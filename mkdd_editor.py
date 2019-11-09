@@ -5,7 +5,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from PyQt5.QtCore import Qt
 
-from PyQt5.QtWidgets import (QWidget, QMainWindow, QFileDialog,
+from PyQt5.QtWidgets import (QWidget, QMainWindow, QFileDialog, QSplitter,
                              QSpacerItem, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QHBoxLayout,
                              QScrollArea, QGridLayout, QMenuBar, QMenu, QAction, QApplication, QStatusBar, QLineEdit)
 from PyQt5.QtGui import QMouseEvent, QImage
@@ -21,6 +21,8 @@ from lib.libgen import GeneratorFile, GeneratorWriter
 
 from widgets.editor_widgets import catch_exception
 from widgets.editor_widgets import AddPikObjectWindow
+from widgets.tree_view import LevelDataTreeView
+
 from configuration import read_config, make_default_config, save_cfg
 
 import mkdd_widgets # as mkddwidgets
@@ -52,6 +54,7 @@ class GenEditor(QMainWindow):
 
         self.level_view.level_file = self.level_file
         self.level_view.set_editorconfig(self.configuration["gen editor"])
+        self.level_view.visibility_menu = self.visibility_menu
 
         self.pathsconfig = self.configuration["default paths"]
         self.editorconfig = self.configuration["gen editor"]
@@ -136,17 +139,22 @@ class GenEditor(QMainWindow):
         self.setup_ui_menubar()
         self.setup_ui_toolbar()
 
-        self.centralwidget = QWidget(self)
-        self.centralwidget.setObjectName("centralwidget")
-        self.setCentralWidget(self.centralwidget)
+        #self.centralwidget = QWidget(self)
+        #self.centralwidget.setObjectName("centralwidget")
+
+        self.horizontalLayout = QSplitter()
+        self.centralwidget = self.horizontalLayout
+        self.setCentralWidget(self.horizontalLayout)
+        self.leveldatatreeview = LevelDataTreeView(self.centralwidget)
 
         self.level_view = BolMapViewer(self.centralwidget)
-        self.horizontalLayout = QHBoxLayout(self.centralwidget)
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.horizontalLayout.addWidget(self.level_view)
 
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.horizontalLayout.addWidget(self.leveldatatreeview)
+        self.horizontalLayout.addWidget(self.level_view)
+        self.leveldatatreeview.resize(200, self.leveldatatreeview.height())
         spacerItem = QSpacerItem(10, 20, QSizePolicy.Minimum, QSizePolicy.Expanding)
-        self.horizontalLayout.addItem(spacerItem)
+        #self.horizontalLayout.addItem(spacerItem)
 
         self.pik_control = PikminSideWidget(self)
         self.horizontalLayout.addWidget(self.pik_control)
@@ -187,11 +195,9 @@ class GenEditor(QMainWindow):
         self.file_menu.addAction(self.save_file_action)
         self.file_menu.addAction(self.save_file_as_action)
 
-        self.paths_menu = QMenu(self.menubar)
-        self.paths_menu.setTitle("Paths")
-        self.paths_load = QAction("Load Paths", self)
-        self.paths_load.triggered.connect(self.button_load_paths)
-        self.paths_menu.addAction(self.paths_load)
+        self.visibility_menu = mkdd_widgets.FilterViewMenu(self)
+        self.visibility_menu.filter_update.connect(self.update_render)
+
 
         # ------ Collision Menu
         self.collision_menu = QMenu(self.menubar)
@@ -229,8 +235,8 @@ class GenEditor(QMainWindow):
         self.change_to_3dview_action.setShortcut("Ctrl+2")
 
         self.menubar.addAction(self.file_menu.menuAction())
+        self.menubar.addAction(self.visibility_menu.menuAction())
         self.menubar.addAction(self.collision_menu.menuAction())
-        self.menubar.addAction(self.paths_menu.menuAction())
         self.menubar.addAction(self.misc_menu.menuAction())
         self.setMenuBar(self.menubar)
 
@@ -277,6 +283,9 @@ class GenEditor(QMainWindow):
                 self.pikmin_gen_view.offset_z = -(pos.z + look.y*fac)
                 self.pikmin_gen_view.offset_x = pos.x - look.x*fac
                 self.pikmin_gen_view.camera_height = pos.y - look.z*fac
+
+    def update_render(self):
+        self.level_view.do_redraw()
 
     def change_to_topdownview(self):
         self.level_view.change_from_3d_to_topdown()
@@ -557,7 +566,7 @@ class GenEditor(QMainWindow):
             open_error_dialog(str(e), self)
 
     def setup_collision(self, verts, faces, filepath):
-        self.pikmin_gen_view.set_collision(verts, faces)
+        self.level_view.set_collision(verts, faces)
         self.pathsconfig["collision"] = filepath
         save_cfg(self.configuration)
 
@@ -790,16 +799,22 @@ class GenEditor(QMainWindow):
             self.level_view.MOVE_DOWN = 0
 
     def action_rotate_object(self, deltarotation):
+        print("hi")
         #obj.set_rotation((None, round(angle, 6), None))
-        for obj in self.pikmin_gen_view.selected:
-            obj.rotation += deltarotation
-
+        for rot in self.level_view.selected_rotations:
+            if deltarotation.x != 0:
+                rot.rotate_around_y(deltarotation.x)
+            elif deltarotation.y != 0:
+                rot.rotate_around_z(deltarotation.y)
+            elif deltarotation.z != 0:
+                rot.rotate_around_x(deltarotation.z)
+        """
         if len(self.pikmin_gen_view.selected) == 1:
             obj = self.pikmin_gen_view.selected[0]
             self.pik_control.set_info(obj, obj.position, obj.rotation)
-
+        """
         #self.pikmin_gen_view.update()
-        self.pikmin_gen_view.do_redraw()
+        self.level_view.do_redraw()
         self.set_has_unsaved_changes(True)
 
     def action_ground_objects(self):

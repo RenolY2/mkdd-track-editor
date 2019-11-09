@@ -73,9 +73,9 @@ def draw_collision(verts, faces):
     i = -1
     for v1, v2, v3 in faces:
         i += 1
-        v1x, v1y, v1z = verts[v1]
-        v2x, v2y, v2z = verts[v2]
-        v3x, v3y, v3z = verts[v3]
+        v1x, v1y, v1z = verts[v1[0]-1]
+        v2x, v2y, v2z = verts[v2[0]-1]
+        v3x, v3y, v3z = verts[v3[0]-1]
 
         # grayscale = ((v1y+v2y+v3y)/3.0)/scaleheight
         """average_y = max(v1y, v2y,v3y) - smallest#(v1y+v2y+v3y)/3.0 - smallest

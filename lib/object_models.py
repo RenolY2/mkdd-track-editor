@@ -53,6 +53,8 @@ class ObjectModels(object):
         for cube in (self.cube, self.redcube, self.bluecube):
             cube.generate_displists()
 
+        self.generic.generate_displists()
+
         # self.generic_wall = TexturedModel.from_obj_path("resources/generic_object_wall2.obj", rotate=True, scale=20.0)
 
     def draw_arrow_head(self, frompos, topos):
@@ -113,6 +115,30 @@ class ObjectModels(object):
     def render_generic_position_colored(self, position, selected, cubename):
         self._render_generic_position(getattr(self, cubename), position, selected)
 
+    def render_generic_position_rotation(self, position, rotation, selected):
+        glPushMatrix()
+        glTranslatef(position.x, -position.z, position.y)
+        mtx = rotation.mtx
+        #glBegin(GL_LINES)
+        #glVertex3f(0.0, 0.0, 0.0)
+        #glVertex3f(mtx[0][0] * 2000, mtx[0][1] * 2000, mtx[0][2] * 2000)
+        #glEnd()
+
+        glMultMatrixf(mtx)
+
+        glColor3f(0.0, 0.0, 0.0)
+        glBegin(GL_LINE_STRIP)
+        glVertex3f(0.0, 0.0, 750.0)
+        glVertex3f(0.0, 0.0, 0.0)
+        glVertex3f(1000.0, 0.0, 0.0)
+        glEnd()
+
+
+        #glMultMatrixf(rotation.mtx[])
+        self.generic.render(selected=selected)
+
+        glPopMatrix()
+
     def _render_generic_position(self, cube, position, selected):
         glPushMatrix()
         glTranslatef(position.x, -position.z, position.y)
@@ -120,13 +146,21 @@ class ObjectModels(object):
 
         glPopMatrix()
 
-    def render_generic_position_coloredid(self, position, id):
+    def render_generic_position_colored_id(self, position, id):
         glPushMatrix()
         glTranslatef(position.x, -position.z, position.y)
         self.cube.render_coloredid(id)
 
         glPopMatrix()
 
+    def render_generic_position_rotation_colored_id(self, position, rotation, id):
+        glPushMatrix()
+        glTranslatef(position.x, -position.z, position.y)
+        mtx = rotation.mtx
+        #glMultMatrixf(rotation.mtx[])
+        self.generic.render_coloredid(id)
+
+        glPopMatrix()
 
 
     def render_line(self, pos1, pos2):

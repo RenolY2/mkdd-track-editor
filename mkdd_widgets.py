@@ -97,7 +97,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.SIZEY = 1024#768#1024
 
         self.canvas_width, self.canvas_height = self.width(), self.height()
-
+        self.resize(600, self.canvas_height)
         #self.setMinimumSize(QSize(self.SIZEX, self.SIZEY))
         #self.setMaximumSize(QSize(self.SIZEX, self.SIZEY))
         self.setObjectName("bw_map_screen")
@@ -143,6 +143,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
         self.overlapping_wp_index = 0
         self.editorconfig = None
+        self.visibility_menu = None
 
         #self.setContextMenuPolicy(Qt.CustomContextMenu)
 
@@ -567,8 +568,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                     self.gizmo.was_hit_at_all = True
                 #if hit != 0xFF and do_:
 
-
             glClearColor(1.0, 1.0, 1.0, 1.0)
+
             if self.level_file is not None and hit == 0xFF and not do_gizmo:
                 #objects = self.pikmin_generators.generators
                 glDisable(GL_TEXTURE_2D)
@@ -576,18 +577,46 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                 #    self.models.render_object_coloredid(pikminobject, i)
 
                 id = 0x100000
-
+                vismenu: FilterViewMenu = self.visibility_menu
                 objlist = []
-
-                for i, obj in enumerate(self.level_file.objects_with_position()):
-                    objlist.append((obj, obj.position, None))
-                    self.models.render_generic_position_coloredid(obj.position, id+i*4)
+                if vismenu.enemyroute.is_selectable():
+                    for i, obj in enumerate(self.level_file.enemypointgroups.points()):
+                        objlist.append((obj, obj.position, None, None))
+                        self.models.render_generic_position_colored_id(obj.position, id + i * 4)
 
                 offset = len(objlist)
-                for i, obj in enumerate(self.level_file.objects_with_2positions()):
-                    objlist.append((obj, obj.start, obj.end))
-                    self.models.render_generic_position_coloredid(obj.start, id+(offset+i)*4)
-                    self.models.render_generic_position_coloredid(obj.end, id+(offset+i)*4 + 1)
+
+                if vismenu.itemroutes.is_selectable():
+                    i = 0
+                    for route in self.level_file.routes:
+                        for obj in route.points:
+                            objlist.append((obj, obj.position, None, None))
+                            self.models.render_generic_position_colored_id(obj.position, id + (offset+i) * 4)
+                            i += 1
+
+                offset = len(objlist)
+
+                if vismenu.checkpoints.is_selectable():
+                    for i, obj in enumerate(self.level_file.objects_with_2positions()):
+                        objlist.append((obj, obj.start, obj.end, None))
+                        self.models.render_generic_position_colored_id(obj.start, id+(offset+i)*4)
+                        self.models.render_generic_position_colored_id(obj.end, id+(offset+i)*4 + 1)
+
+                for is_selectable, collection in (
+                        (vismenu.objects.is_selectable(), self.level_file.objects.objects),
+                        (vismenu.kartstartpoints.is_selectable(), self.level_file.kartpoints.positions),
+                        (vismenu.areas.is_selectable(), self.level_file.areas.areas),
+                        (vismenu.cameras.is_selectable(), self.level_file.cameras),
+                        (vismenu.respawnpoints.is_selectable(), self.level_file.respawnpoints)
+                        ):
+                    offset = len(objlist)
+                    if not is_selectable:
+                        continue
+
+                    for i, obj in enumerate(collection):
+                        objlist.append((obj, obj.position, None, obj.rotation))
+                        self.models.render_generic_position_rotation_colored_id(obj.position, obj.rotation,
+                                                                                id + (offset + i) * 4 + 2)
 
                 assert len(objlist)*4 < id
                 print("We queued up", len(objlist))
@@ -598,21 +627,10 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                 selected_rotations = []
                 #for i in range(0, clickwidth*clickheight, 4):
                 start = default_timer()
-                """for x in range(0, clickwidth, 3):
-                    for y in range(0, clickheight, 3):
-                        i = (x + y*clickwidth)*3
-                        # | (pixels[i*3+0] << 16)
-                        if pixels[i + 1] != 0xFF:
-                            index = (pixels[i + 1] << 8) | pixels[i + 2]
-                            #print(index)
-                            pikminobject = objects[index]
-                            selected[pikminobject] = True
-                """
-                print(clickwidth, clickheight, "BROH")
+
                 for i in range(0, clickwidth*clickheight, 13):
                         # | (pixels[i*3+0] << 16)
                         if pixels[i * 3] != 0xFF:
-                            print("valid pixel")
                             upper = pixels[i * 3] & 0x0F
                             index = (upper << 16)| (pixels[i*3 + 1] << 8) | pixels[i*3 + 2]
                             if index & 0b1:
@@ -631,6 +649,11 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                                     selected[entry[0]] = 1
 
                                     selected_positions.append(entry[1])
+
+                                    if index & 0b10:
+                                        print("found a rotation")
+                                        selected_rotations.append(entry[3])
+
                                 elif selected[entry[0]] == 2:
                                     selected[entry[0]] = 3
                                     selected_positions.append(entry[1])
@@ -652,8 +675,12 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         if pos not in self.selected_positions:
                             self.selected_positions.append(pos)
 
+                    for rot in selected_rotations:
+                        if rot not in self.selected_rotations:
+                            self.selected_rotations.append(rot)
+
                     self.select_update.emit()
-                print("okkkk", len(self.selected_positions))
+
                 self.gizmo.move_to_average(self.selected_positions)
                 if len(selected) == 0:
                     #print("Select did register")
@@ -691,100 +718,130 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             #for pikminobject in objects:
             #    self.models.render_object(pikminobject, pikminobject in selected)
 
-            for route in self.level_file.routes:
-                for point in route.points:
-                    self.models.render_generic_position(point.position, point in select_optimize)
+            vismenu = self.visibility_menu
+            if vismenu.itemroutes.is_visible():
+                for route in self.level_file.routes:
+                    for point in route.points:
+                        self.models.render_generic_position(point.position, point in select_optimize)
 
-                glBegin(GL_LINE_STRIP)
-                glColor3f(0.0, 0.0, 0.0)
-                for point in route.points:
-                    pos = point.position
-                    glVertex3f(pos.x, -pos.z, pos.y)
-                glEnd()
+                    glBegin(GL_LINE_STRIP)
+                    glColor3f(0.0, 0.0, 0.0)
+                    for point in route.points:
+                        pos = point.position
+                        glVertex3f(pos.x, -pos.z, pos.y)
+                    glEnd()
+            if vismenu.enemyroute.is_visible():
+                for group in self.level_file.enemypointgroups.groups.values():
+                    for point in group.points:
+                        self.models.render_generic_position(point.position, point in select_optimize)
 
-            for group in self.level_file.enemypointgroups.groups.values():
-                for point in group.points:
-                    self.models.render_generic_position(point.position, point in select_optimize)
+                    glBegin(GL_LINE_STRIP)
+                    glColor3f(0.0, 0.0, 0.0)
+                    for point in group.points:
+                        pos = point.position
+                        glVertex3f(pos.x, -pos.z, pos.y)
+                    glEnd()
 
-                glBegin(GL_LINE_STRIP)
-                glColor3f(0.0, 0.0, 0.0)
-                for point in group.points:
-                    pos = point.position
-                    glVertex3f(pos.x, -pos.z, pos.y)
-                glEnd()
+            if vismenu.checkpoints.is_visible():
+                for i, group in enumerate(self.level_file.checkpoints.groups):
 
-            for i, group in enumerate(self.level_file.checkpoints.groups):
+                    prev = None
+                    for checkpoint in group.points:
+                        self.models.render_generic_position_colored(checkpoint.start, checkpoint.start in positions, "redcube")
+                        self.models.render_generic_position_colored(checkpoint.end, checkpoint.end in positions, "bluecube")
 
-                prev = None
-                for checkpoint in group.points:
-                    self.models.render_generic_position_colored(checkpoint.start, checkpoint.start in positions, "redcube")
-                    self.models.render_generic_position_colored(checkpoint.end, checkpoint.end in positions, "bluecube")
+                    glColor3f(*colors[i % 4])
 
-                glColor3f(*colors[i % 4])
+                    glBegin(GL_LINES)
+                    for checkpoint in group.points:
+                        pos1 = checkpoint.start
+                        pos2 = checkpoint.end
 
-                glBegin(GL_LINES)
-                for checkpoint in group.points:
-                    pos1 = checkpoint.start
-                    pos2 = checkpoint.end
-
-                    #self.models.render_generic_position(pos1, False)
-                    #self.models.render_generic_position(pos2, False)
-
-                    glVertex3f(pos1.x, -pos1.z, pos1.y)
-                    glVertex3f(pos2.x, -pos2.z, pos2.y)
-                    #glColor3f(0.0, 0.0, 0.0)
-
-                    if prev is not None:
-                        pos3 = prev.start
-                        pos4 = prev.end
+                        #self.models.render_generic_position(pos1, False)
+                        #self.models.render_generic_position(pos2, False)
 
                         glVertex3f(pos1.x, -pos1.z, pos1.y)
-                        glVertex3f(pos3.x, -pos3.z, pos3.y)
                         glVertex3f(pos2.x, -pos2.z, pos2.y)
-                        glVertex3f(pos4.x, -pos4.z, pos4.y)
+                        #glColor3f(0.0, 0.0, 0.0)
 
-                    prev = checkpoint
+                        if prev is not None:
+                            pos3 = prev.start
+                            pos4 = prev.end
 
-                glEnd()
+                            glVertex3f(pos1.x, -pos1.z, pos1.y)
+                            glVertex3f(pos3.x, -pos3.z, pos3.y)
+                            glVertex3f(pos2.x, -pos2.z, pos2.y)
+                            glVertex3f(pos4.x, -pos4.z, pos4.y)
+
+                        prev = checkpoint
+
+                    glEnd()
+
+
 
             #glColor3f(1.0, 1.0, 1.0)
             #glEnable(GL_TEXTURE_2D)
             #glBindTexture(GL_TEXTURE_2D, self.arrow.tex)
             glPushMatrix()
             #lines = []
-            for group in self.level_file.checkpoints.groups:
-                prev = None
-                for checkpoint in group.points:
-                    if prev is None:
-                        prev = checkpoint
-                    else:
-                        #mid1 = prev.mid
-                        #mid2 = checkpoint.mid
-                        mid1 = (prev.start + prev.end) / 2.0
-                        mid2 = (checkpoint.start + checkpoint.end) / 2.0
+            if vismenu.checkpoints.is_visible():
+                for group in self.level_file.checkpoints.groups:
+                    prev = None
+                    for checkpoint in group.points:
+                        if prev is None:
+                            prev = checkpoint
+                        else:
+                            #mid1 = prev.mid
+                            #mid2 = checkpoint.mid
+                            mid1 = (prev.start + prev.end) / 2.0
+                            mid2 = (checkpoint.start + checkpoint.end) / 2.0
 
-                        self.models.draw_arrow_head(mid1, mid2)
-                        #lines.append((mid1, mid2))
-                        prev = checkpoint
+                            self.models.draw_arrow_head(mid1, mid2)
+                            #lines.append((mid1, mid2))
+                            prev = checkpoint
             glPopMatrix()
             glBegin(GL_LINES)
             """for linestart, lineend in lines:
                 glVertex3f(linestart.x, -linestart.z, linestart.y)
                 glVertex3f(lineend.x, -lineend.z, lineend.y)"""
-            for group in self.level_file.checkpoints.groups:
-                prev = None
-                for checkpoint in group.points:
-                    if prev is None:
-                        prev = checkpoint
-                    else:
-                        mid1 = (prev.start+prev.end)/2.0
-                        mid2 = (checkpoint.start+checkpoint.end)/2.0
-                        #mid1 = prev.mid
-                        #mid2 = checkpoint.mid
-                        glVertex3f(mid1.x, -mid1.z, mid1.y)
-                        glVertex3f(mid2.x, -mid2.z, mid2.y)
-                        prev = checkpoint
+            if vismenu.checkpoints.is_visible():
+                for group in self.level_file.checkpoints.groups:
+                    prev = None
+                    for checkpoint in group.points:
+                        if prev is None:
+                            prev = checkpoint
+                        else:
+                            mid1 = (prev.start+prev.end)/2.0
+                            mid2 = (checkpoint.start+checkpoint.end)/2.0
+                            #mid1 = prev.mid
+                            #mid2 = checkpoint.mid
+                            glVertex3f(mid1.x, -mid1.z, mid1.y)
+                            glVertex3f(mid2.x, -mid2.z, mid2.y)
+                            prev = checkpoint
             glEnd()
+
+            if vismenu.objects.is_visible():
+                for object in self.level_file.objects.objects:
+                    self.models.render_generic_position_rotation(object.position, object.rotation,
+                                                                 object in select_optimize)
+            if vismenu.kartstartpoints.is_visible():
+                for object in self.level_file.kartpoints.positions:
+                    self.models.render_generic_position_rotation(object.position, object.rotation,
+                                                                 object in select_optimize)
+            if vismenu.areas.is_visible():
+                for object in self.level_file.areas.areas:
+                    self.models.render_generic_position_rotation(object.position, object.rotation,
+                                                                 object in select_optimize)
+            if vismenu.cameras.is_visible():
+                for object in self.level_file.cameras:
+                    self.models.render_generic_position_rotation(object.position, object.rotation,
+                                                                 object in select_optimize)
+
+            if vismenu.respawnpoints.is_visible():
+                for object in self.level_file.respawnpoints:
+                    self.models.render_generic_position_rotation(object.position, object.rotation,
+                                                                 object in select_optimize)
+
             #glDisable(GL_TEXTURE_2D)
 
         glColor3f(0.0, 0.0, 0.0)
@@ -930,4 +987,96 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             dir.z = tmp
 
         return Line(pos, dir)
+
+
+class ObjectViewSelectionToggle(object):
+    def __init__(self, name, menuparent):
+        self.name = name
+        self.menuparent = menuparent
+
+        self.action_view_toggle = QAction("{0} visible".format(name), menuparent)
+        self.action_select_toggle = QAction("{0} selectable".format(name), menuparent)
+        self.action_view_toggle.setCheckable(True)
+        self.action_view_toggle.setChecked(True)
+        self.action_select_toggle.setCheckable(True)
+        self.action_select_toggle.setChecked(True)
+
+        self.action_view_toggle.triggered.connect(self.handle_view_toggle)
+        self.action_select_toggle.triggered.connect(self.handle_select_toggle)
+
+        menuparent.addAction(self.action_view_toggle)
+        menuparent.addAction(self.action_select_toggle)
+
+    def handle_view_toggle(self, val):
+        if not val:
+            self.action_select_toggle.setChecked(False)
+        else:
+            self.action_select_toggle.setChecked(True)
+
+    def handle_select_toggle(self, val):
+        if val:
+            self.action_view_toggle.setChecked(True)
+
+    def is_visible(self):
+        return self.action_view_toggle.isChecked()
+
+    def is_selectable(self):
+        return self.action_select_toggle.isChecked()
+
+
+class FilterViewMenu(QMenu):
+    filter_update = pyqtSignal()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setTitle("Filter View")
+
+        self.show_all = QAction("Show All", self)
+        self.show_all.triggered.connect(self.handle_show_all)
+        self.addAction(self.show_all)
+
+        self.hide_all = QAction("Hide All", self)
+        self.hide_all.triggered.connect(self.handle_hide_all)
+        self.addAction(self.hide_all)
+
+        self.enemyroute = ObjectViewSelectionToggle("Enemy Routes", self)
+        self.itemroutes = ObjectViewSelectionToggle("Object Routes", self)
+        self.checkpoints = ObjectViewSelectionToggle("Checkpoints", self)
+        self.objects = ObjectViewSelectionToggle("Objects", self)
+        self.areas = ObjectViewSelectionToggle("Areas", self)
+        self.cameras = ObjectViewSelectionToggle("Cameras", self)
+        self.respawnpoints = ObjectViewSelectionToggle("Respawn Points", self)
+        self.kartstartpoints = ObjectViewSelectionToggle("Kart Start Points", self)
+
+        for action in (self.enemyroute, self.itemroutes, self.checkpoints, self.objects,
+                       self.areas, self.cameras, self.respawnpoints, self.kartstartpoints):
+            action.action_view_toggle.triggered.connect(self.emit_update)
+            action.action_select_toggle.triggered.connect(self.emit_update)
+
+    def handle_show_all(self):
+        for action in (self.enemyroute, self.itemroutes, self.checkpoints, self.objects,
+                       self.areas, self.cameras, self.respawnpoints, self.kartstartpoints):
+            action.action_view_toggle.setChecked(True)
+            action.action_select_toggle.setChecked(True)
+        self.filter_update.emit()
+
+    def handle_hide_all(self):
+        for action in (self.enemyroute, self.itemroutes, self.checkpoints, self.objects,
+                       self.areas, self.cameras, self.respawnpoints, self.kartstartpoints):
+            action.action_view_toggle.setChecked(False)
+            action.action_select_toggle.setChecked(False)
+        self.filter_update.emit()
+
+    def emit_update(self, val):
+        self.filter_update.emit()
+
+    def mouseReleaseEvent(self, e):
+        try:
+            action = self.activeAction()
+            if action and action.isEnabled():
+                action.trigger()
+            else:
+                QMenu.mouseReleaseEvent(self, e)
+        except:
+            traceback.print_exc()
 

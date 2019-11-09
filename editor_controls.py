@@ -210,7 +210,7 @@ class Gizmo2DRotateY(Gizmo2DMoveX):
             delta = angle_start - angle
 
 
-            editor.rotate_current.emit(Vector3(0, degrees(delta), 0))
+            editor.rotate_current.emit(Vector3(0, delta, 0))
 
             self.first_click = Vector2(event.x(), event.y())
 
@@ -449,7 +449,11 @@ class Gizmo3DRotateY(Gizmo2DRotateY):
             if self.angle_start is not None:
                 delta = self.angle_start - angle
                 delta *= self.flip_rot(editor.camera_direction)
-                editor.rotate_current.emit(Vector3(*self.do_delta(degrees(delta))))
+
+                # Sometimes on the first click the delta is too high resulting in
+                # a big rotation. We will limit it this way
+                if abs(delta) <= 0.3:
+                    editor.rotate_current.emit(Vector3(*self.do_delta(delta)))
             self.angle_start = angle
 
 
@@ -479,7 +483,7 @@ class Gizmo3DRotateZ(Gizmo3DRotateY):
         self.axis_name = "rotation_z"
 
     def flip_rot(self, dir):
-        vec = numpy.array([0, 1, 0])
+        vec = numpy.array([0, -1, 0])
         dirvec = numpy.array([dir.x, dir.y, dir.z])
 
         d = numpy.dot(vec, dirvec)

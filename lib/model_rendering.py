@@ -433,19 +433,16 @@ class Waterbox(Model):
         glEnd()
 
 
-class Cube(Model):
-    def __init__(self, color=(1.0, 1.0, 1.0, 1.0)):
-        with open("resources/cube.obj", "r") as f:
-            model = Model.from_obj(f, scale=200, rotate=True)
-        self.mesh_list = model.mesh_list
-        self.named_meshes = model.mesh_list
-
+class SelectableModel(Model):
+    def __init__(self):
+        self.mesh_list = []
+        self.named_meshes = {}
         self.displistSelected = None
         self.displistUnselected = None
-        self.color = color
 
     def generate_displists(self):
-        self.mesh_list[0].generate_displist()
+        for mesh in self.mesh_list:
+            mesh.generate_displist()
         self.displistSelected = glGenLists(1)
         self.displistUnselected = glGenLists(1)
         glNewList(self.displistSelected, GL_COMPILE)
@@ -460,6 +457,20 @@ class Cube(Model):
             glCallList(self.displistSelected)
         else:
             glCallList(self.displistUnselected)
+
+    def _render(self, selected=False):
+        pass
+
+
+class Cube(SelectableModel):
+    def __init__(self, color=(1.0, 1.0, 1.0, 1.0)):
+        super().__init__()
+        with open("resources/cube.obj", "r") as f:
+            model = Model.from_obj(f, scale=200, rotate=True)
+        self.mesh_list = model.mesh_list
+        self.named_meshes = model.mesh_list
+
+        self.color = color
 
     def _render(self, selected=False):
 
@@ -492,14 +503,16 @@ class Cube(Model):
         glPopMatrix()
 
 
-class GenericObject(Model):
+class GenericObject(SelectableModel):
     def __init__(self):
-        with open("resources/generic_object.obj", "r") as f:
-            model = Model.from_obj(f, scale=10, rotate=True)
-        self.mesh_list = model.mesh_list
-        self.named_meshes = model.mesh_list
+        super().__init__()
 
-    def render(self, selected=False):
+        with open("resources/generic_object.obj", "r") as f:
+            model = Model.from_obj(f, scale=200, rotate=True)
+        self.mesh_list = model.mesh_list
+        self.named_meshes = model.named_meshes
+
+    def _render(self, selected=False):
         glEnable(GL_CULL_FACE)
         if selected:
             glColor4f(255/255, 223/255, 39/255, 1.0)
@@ -513,23 +526,23 @@ class GenericObject(Model):
         else:
             glScalef(1.2, 1.2, 1.2)
 
-        self.mesh_list[1].render()
+        self.named_meshes["Cube"].render()
         glPopMatrix()
         glCullFace(GL_BACK)
 
         glColor4f(1.0, 1.0, 1.0, 1.0)
-        self.mesh_list[1].render()
+        self.named_meshes["Cube"].render()
         glColor4ub(0x09, 0x93, 0x00, 0xFF)
-        self.mesh_list[0].render()
-        glColor4ub(0x00, 0x00, 0x00, 0xFF)
-        self.mesh_list[2].render()
+        self.named_meshes["tip"].render()
+        #glColor4ub(0x00, 0x00, 0x00, 0xFF)
+        #self.mesh_list[2].render()
         glDisable(GL_CULL_FACE)
 
     def render_coloredid(self, id):
         glColor3ub((id >> 16) & 0xFF, (id >> 8) & 0xFF, (id >> 0) & 0xFF)
         glPushMatrix()
         glScalef(1.2, 1.2, 1.2)
-        self.mesh_list[1].render()
+        self.named_meshes["Cube"].render()
         glPopMatrix()
 
 

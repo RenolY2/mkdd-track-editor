@@ -1,5 +1,8 @@
+import json
 from struct import unpack
-from numpy import ndarray
+from numpy import ndarray, array
+from binascii import hexlify
+from math import cos, sin
 from .vectors import Vector3
 
 def read_uint8(f):
@@ -41,21 +44,62 @@ def read_string(f):
     return string
 
 
-
 class Rotation(object):
     def __init__(self, forward, up, left):
-        self.mtx = ndarray(shape=(3,3), dtype=float)
+        self.mtx = ndarray(shape=(4,4), dtype=float, order="F")
+
         self.mtx[0][0] = forward.x
-        self.mtx[0][1] = forward.y
-        self.mtx[0][2] = forward.z
+        self.mtx[0][1] = -forward.z
+        self.mtx[0][2] = forward.y
+        self.mtx[0][3] = 0.0
 
-        self.mtx[1][0] = up.x
-        self.mtx[1][1] = up.y
-        self.mtx[1][2] = up.z
+        self.mtx[1][0] = left.x
+        self.mtx[1][1] = -left.z
+        self.mtx[1][2] = left.y
+        self.mtx[1][3] = 0.0
 
-        self.mtx[2][0] = left.x
-        self.mtx[2][1] = left.y
-        self.mtx[2][2] = left.z
+        self.mtx[2][0] = up.x
+        self.mtx[2][1] = -up.z
+        self.mtx[2][2] = up.y
+        self.mtx[2][3] = 0.0
+
+        self.mtx[3][0] = self.mtx[3][1] = self.mtx[3][2] = 0.0
+        self.mtx[3][3] = 1.0
+        print(forward.x, -forward.z, forward.y)
+        print(self.mtx)
+        print([x for x in self.mtx])
+
+    def rotate_around_x(self, degrees):
+        mtx = ndarray(shape=(4,4), dtype=float, order="F", buffer=array([
+            cos(degrees), 0.0, -sin(degrees), 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            sin(degrees), 0.0, cos(degrees), 0.0,
+            0.0, 0.0, 0.0, 1.0
+        ]))
+
+        self.mtx = self.mtx.dot(mtx)
+
+    def rotate_around_y(self, degrees):
+        mtx = ndarray(shape=(4,4), dtype=float, order="F", buffer=array([
+            1.0, 0.0, 0.0, 0.0,
+            0.0, cos(degrees), -sin(degrees), 0.0,
+            0.0, sin(degrees), cos(degrees), 0.0,
+            0.0, 0.0, 0.0, 1.0
+        ]))
+
+        self.mtx = self.mtx.dot(mtx)
+
+    def rotate_around_z(self, degrees):
+        mtx = ndarray(shape=(4,4), dtype=float, order="F", buffer=array([
+            cos(degrees),-sin(degrees), 0.0, 0.0,
+            sin(degrees), cos(degrees), 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        ]))
+
+        self.mtx = self.mtx.dot(mtx)
+
+
 
     @classmethod
     def default(cls):
@@ -142,8 +186,8 @@ class EnemyPoint(object):
         self.group = group 
         self.pointsetting2 = pointsetting2
         self.unk1 = unk1 
-        self.unk2 = unk2 
-    
+        self.unk2 = unk2
+
     @classmethod
     def from_file(cls, f):
         args = [Vector3(*unpack(">fff", f.read(12)))]
@@ -187,6 +231,11 @@ class EnemyPointGroups(object):
                 enemypointgroups.groups[enemypoint.group].points.append(enemypoint)
 
         return enemypointgroups
+
+    def points(self):
+        for group in self.groups.values():
+            for point in group.points:
+                yield point
 
 # Enemy/Item Route Code End
 
@@ -254,6 +303,10 @@ class CheckpointGroups(object):
 
         return checkpointgroups
 
+    def points(self):
+        for group in self.groups:
+            for point in group.points:
+                yield point
 
 # Section 3
 # Routes/Paths for cameras, objects and other things
@@ -463,7 +516,7 @@ class Areas(object):
 # Cameras
 class Camera(object):
     def __init__(self, position):
-        self.position1 = position
+        self.position = position
         self.position2 = Vector3(0.0, 0.0, 0.0)
         self.position3 = Vector3(0.0, 0.0, 0.0)
         self.rotation = Rotation.default()
@@ -483,6 +536,12 @@ class Camera(object):
 
     @classmethod
     def from_file(cls, f):
+        start = f.tell()
+        hexd = f.read(4*3*4)
+        f.seek(start)
+        print(hexlify(hexd))
+
+
         position = Vector3(*unpack(">fff", f.read(12)))
 
         cam = cls(position)
@@ -500,9 +559,9 @@ class Camera(object):
         cam.routespeed = read_uint16(f)
         cam.endzoom = read_uint16(f)
         cam.nextcam = read_int16(f)
-        cam.name = read_string(f)
+        cam.name = f.read(4)
 
-
+        return cam
 
 
 # Section 9
@@ -623,18 +682,23 @@ class BOL(object):
 
     def objects_with_rotations(self):
         for object in self.objects.objects:
+            assert object is not None
             yield object
 
         for kartpoint in self.kartpoints.positions:
+            assert kartpoint is not None
             yield kartpoint
 
         for area in self.areas.areas:
+            assert area is not None
             yield area
 
         for camera in self.cameras:
+            assert camera is not None
             yield camera
 
         for respawn in self.respawnpoints:
+            assert respawn is not None
             yield respawn
 
 
@@ -728,6 +792,21 @@ class BOL(object):
         bol.mgentries = ObjectContainer.from_file(f, sectioncounts[MINIGAME], MGEntry)
 
         return bol
+
+
+with open("lib/mkddobjects.json", "r") as f:
+    tmp = json.load(f)
+    OBJECTNAMES = {}
+    for key, val in tmp.items():
+        OBJECTNAMES[int(key)] = val
+    del tmp
+
+
+def get_full_name(id):
+    if id not in OBJECTNAMES:
+        return "Unknown {0}".format(id)
+    else:
+        return OBJECTNAMES[id]
 
 
 if __name__ == "__main__":

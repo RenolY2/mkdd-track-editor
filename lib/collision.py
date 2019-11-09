@@ -66,9 +66,9 @@ def subdivide_grid(minx, minz,
     for i, face in triangles:
         v1_index, v2_index, v3_index = face
 
-        v1 = vertices[v1_index]
-        v2 = vertices[v2_index]
-        v3 = vertices[v3_index]
+        v1 = vertices[v1_index[0]-1]
+        v2 = vertices[v2_index[0]-1]
+        v3 = vertices[v3_index[0]-1]
 
         for quadrant, startx, endx, startz, endz in coordinates:
             if quadrant not in skip:
@@ -117,12 +117,13 @@ class Collision(object):
         self.faces = faces
         self.triangles = []
         for v1i, v2i, v3i in self.faces:
+            print(v1i, v2i, v3i)
             #print(v1i, v2i, v3i, len(self.verts))
-            x, y, z = verts[v1i]
+            x, y, z = verts[v1i[0]-1]
             v1 = Vector3(x, -z, y)
-            x, y, z = verts[v2i]
+            x, y, z = verts[v2i[0]-1]
             v2 = Vector3(x, -z, y)
-            x, y, z = verts[v3i]
+            x, y, z = verts[v3i[0]-1]
             v3 = Vector3(x, -z, y)
 
             self.triangles.append(Triangle(v1,v2,v3))
@@ -152,7 +153,6 @@ class Collision(object):
         print("finished generating triangles")
         print(grid_size_x, grid_size_z)
 
-
     def collide_ray_downwards(self, x, z, y=99999):
         grid_x = int((x+MAX_X) // 100)
         grid_z = int((z+MAX_Z) // 100)
@@ -174,9 +174,9 @@ class Collision(object):
         for i, face in triangles:#face in self.faces:#
             v1index, v2index, v3index = face
 
-            v1 = verts[v1index]
-            v2 = verts[v2index]
-            v3 = verts[v3index]
+            v1 = verts[v1index[0]-1]
+            v2 = verts[v2index[0]-1]
+            v3 = verts[v3index[0]-1]
 
             edge1 = create_vector(v1, v2)
             edge2 = create_vector(v1, v3)
