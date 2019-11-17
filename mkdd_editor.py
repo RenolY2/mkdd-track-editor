@@ -22,7 +22,7 @@ from lib.libgen import GeneratorFile, GeneratorWriter
 from widgets.editor_widgets import catch_exception
 from widgets.editor_widgets import AddPikObjectWindow
 from widgets.tree_view import LevelDataTreeView
-
+import widgets.tree_view as tree_view
 from configuration import read_config, make_default_config, save_cfg
 
 import mkdd_widgets # as mkddwidgets
@@ -132,6 +132,51 @@ class GenEditor(QMainWindow):
             else:
                 self.setWindowTitle("MKDD bol Editor")
 
+    @catch_exception_with_dialog
+    def do_goto_action(self, item, index):
+        print(item, index)
+        self.tree_select_object(item)
+        print(self.level_view.selected_positions)
+        if len(self.level_view.selected_positions) > 0:
+
+            position = self.level_view.selected_positions[0]
+
+            if self.level_view.mode == MODE_TOPDOWN:
+                self.level_view.offset_z = -position.z
+                self.level_view.offset_x = -position.x
+            else:
+                look = self.level_view.camera_direction.copy()
+
+                pos = position.copy()
+                fac = 5000
+                self.level_view.offset_z = -(pos.z + look.y*fac)
+                self.level_view.offset_x = pos.x - look.x*fac
+                self.level_view.camera_height = pos.y - look.z*fac
+            print("heyyy")
+            self.level_view.do_redraw()
+
+    def tree_select_object(self, item):
+        print("Selected:", item)
+        self.level_view.selected = []
+        self.level_view.selected_positions = []
+        self.level_view.selected_rotations = []
+
+        if isinstance(item, (tree_view.CameraEntry, tree_view.RespawnEntry, tree_view.AreaEntry, tree_view.ObjectEntry,
+                             tree_view.KartpointEntry, tree_view.EnemyRoutePoint, tree_view.ObjectRoutePoint)):
+            bound_to = item.bound_to
+            self.level_view.selected = [bound_to]
+            self.level_view.selected_positions = [bound_to.position]
+
+            if hasattr(bound_to, "rotation"):
+                self.level_view.selected_rotations = [bound_to.rotation]
+
+        elif isinstance(item, tree_view.Checkpoint):
+            bound_to = item.bound_to
+            self.level_view.selected = [bound_to]
+            self.level_view.selected_positions = [bound_to.start, bound_to.end]
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
+        self.level_view.do_redraw()
+
     def setup_ui(self):
         self.resize(1000, 800)
         self.set_base_window_title("")
@@ -146,6 +191,8 @@ class GenEditor(QMainWindow):
         self.centralwidget = self.horizontalLayout
         self.setCentralWidget(self.horizontalLayout)
         self.leveldatatreeview = LevelDataTreeView(self.centralwidget)
+        self.leveldatatreeview.currentItemChanged.connect(self.tree_select_object)
+        self.leveldatatreeview.itemDoubleClicked.connect(self.do_goto_action)
 
         self.level_view = BolMapViewer(self.centralwidget)
 
@@ -243,46 +290,7 @@ class GenEditor(QMainWindow):
 
         self.last_obj_select_pos = 0
 
-    @catch_exception_with_dialog
-    def do_goto_action(self, a):
-        namecount = {}
-        objlist = {}
 
-        for obj in self.pikmin_gen_file.generators:
-            if obj.name not in namecount:
-                namecount[obj.name] = 1
-                name = obj.name+" (1)"
-                objlist[name] = obj
-            else:
-                namecount[obj.name] += 1
-                name = obj.name+" ({0})".format(namecount[obj.name])
-                objlist[name] = obj
-
-        choice, pos = FileSelect.open_file_list(self, sorted(objlist.keys()),
-                                           "Select Object", self.last_obj_select_pos)
-
-        if choice is not None:
-            self.last_obj_select_pos = pos
-            obj = objlist[choice]
-
-
-            self.pikmin_gen_view.selected = [obj]
-            self.pikmin_gen_view.gizmo.position.x = obj.position.x
-            self.pikmin_gen_view.gizmo.position.y = obj.position.y
-            self.pikmin_gen_view.gizmo.position.z = obj.position.z
-
-            self.pikmin_gen_view.select_update.emit()
-            if self.pikmin_gen_view.mode == MODE_TOPDOWN:
-                self.pikmin_gen_view.offset_z = -obj.position.z
-                self.pikmin_gen_view.offset_x = -obj.position.x
-            else:
-                look = self.pikmin_gen_view.camera_direction.copy()
-
-                pos = obj.position.copy()
-                fac = 200
-                self.pikmin_gen_view.offset_z = -(pos.z + look.y*fac)
-                self.pikmin_gen_view.offset_x = pos.x - look.x*fac
-                self.pikmin_gen_view.camera_height = pos.y - look.z*fac
 
     def update_render(self):
         self.level_view.do_redraw()
@@ -408,6 +416,7 @@ class GenEditor(QMainWindow):
                     try:
                         bol_file = BOL.from_file(f)
                         self.setup_bol_file(bol_file, filepath)
+                        self.leveldatatreeview.set_objects(bol_file)
 
                     except Exception as error:
                         print("Error appeared while loading:", error)
