@@ -308,6 +308,7 @@ class CheckpointGroups(object):
             for point in group.points:
                 yield point
 
+
 # Section 3
 # Routes/Paths for cameras, objects and other things
 class Route(object):
@@ -425,7 +426,11 @@ class KartStartPoint(object):
         self.scale = Vector3(1.0, 1.0, 1.0)
         self.rotation = Rotation.default()
         self.poleposition = POLE_LEFT
-        self.playerstartmask = 0b11111111  # Each bit refers to player 1-8
+
+        # 0xFF = All, otherwise refers to player who starts here
+        # Example: 0 = Player 1
+        self.playerid = 0xFF
+
         self.padding = 0
 
     @classmethod
@@ -436,8 +441,8 @@ class KartStartPoint(object):
         kstart.scale = Vector3(*unpack(">fff", f.read(12)))
         kstart.rotation = Rotation.from_file(f)
         kstart.poleposition = read_uint8(f)
-        kstart.playerstartmask = read_uint8(f)
-        kstart.padding = 0
+        kstart.playerid = read_uint8(f)
+        kstart.padding = read_uint16(f)
 
         return kstart
 
@@ -449,18 +454,13 @@ class KartStartPoints(object):
     @classmethod
     def from_file(cls, f, count):
         kspoints = cls()
-        startmask = 0
 
         for i in range(count):
             kstart = KartStartPoint.from_file(f)
             kspoints.positions.append(kstart)
 
-            if kstart.playerstartmask & startmask != 0:
-                print("Warning: At least two KartStartPoints are start pos for players")
-            startmask |= kstart.playerstartmask
-
-
         return kspoints
+
 
 # Section 7
 # Areas
