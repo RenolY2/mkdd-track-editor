@@ -239,6 +239,7 @@ class EnemyPointGroups(object):
 
 # Enemy/Item Route Code End
 
+
 ##########
 # Section 2
 # Checkpoint Group Code Start
