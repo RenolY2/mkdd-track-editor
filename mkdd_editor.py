@@ -174,6 +174,11 @@ class GenEditor(QMainWindow):
             bound_to = item.bound_to
             self.level_view.selected = [bound_to]
             self.level_view.selected_positions = [bound_to.start, bound_to.end]
+        elif isinstance(item, (tree_view.CheckpointGroup, tree_view.ObjectPointGroup)):
+            self.level_view.selected = [item.bound_to]
+        elif isinstance(item, tree_view.BolHeader) and self.level_file is not None:
+            self.level_view.selected = [self.level_file]
+
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
         self.level_view.do_redraw()
         self.level_view.select_update.emit()
@@ -961,35 +966,6 @@ class GenEditor(QMainWindow):
             else:
                 self.pik_control.reset_info("{0} objects selected".format(len(self.level_view.selected)))
                 self.pik_control.set_objectlist(selected)
-        return
-        if self.pikmin_gen_file is not None:
-            selected = self.pikmin_gen_view.selected
-            self._justupdatingselectedobject = True
-            if len(self.pikmin_gen_view.selected) == 1:
-                currentobj = selected[0]
-
-                self.pik_control.set_info(currentobj,
-                                          currentobj.position,
-                                          currentobj.rotation)
-
-                #if currentobj.object_type == "{teki}":
-                #    self.pik_control.lineedit_rotationx.setDisabled(True)
-                #    self.pik_control.lineedit_rotationz.setDisabled(True)
-
-            else:
-                self.pik_control.reset_info("{0} objects selected".format(len(self.pikmin_gen_view.selected)))
-                """objectnames = []
-                for obj in self.pikmin_gen_view.selected:
-                    if len(objectnames) >= 30:
-                        break
-
-                    objectnames.append(obj.get_useful_object_name())
-
-                objectnames.sort()
-
-                self.pik_control.comment_label.setText("Selected objects:\n" + (", ".join(objectnames)))"""
-                self.pik_control.set_objectlist(self.pikmin_gen_view.selected)
-            self._justupdatingselectedobject = False
 
     @catch_exception
     def mapview_showcontextmenu(self, position):

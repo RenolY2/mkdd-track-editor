@@ -4,6 +4,7 @@ from numpy import ndarray, array
 from binascii import hexlify
 from math import cos, sin
 from .vectors import Vector3
+from collections import OrderedDict
 
 def read_uint8(f):
     return unpack(">B", f.read(1))[0]
@@ -361,7 +362,7 @@ class MapObject(object):
         self.scale = Vector3(1.0, 1.0, 1.0)
         self.rotation = Rotation.default()
         self.objectid = objectid
-        self.pathid = 0xFFFF
+        self.pathid = -1
         self.unk_28 = 0
         self.unk_2a = 0
         self.presence_filter = 0
@@ -369,6 +370,8 @@ class MapObject(object):
         self.unk_flag = 0
         self.unk_2f = 0
         self.userdata = [0 for i in range(8)]
+
+        self.widget = None
 
     @classmethod
     def from_file(cls, f):
@@ -382,7 +385,7 @@ class MapObject(object):
         obj = MapObject(position, objectid)
         obj.scale = scale
         obj.rotation = Rotation.from_mkdd_rotation(fx, fy, fz, ux, uy, uz)
-        obj.pathid = read_uint16(f)
+        obj.pathid = read_int16(f)
         obj.unk_28 = read_uint16(f)
         obj.unk_2a = read_uint16(f)
         obj.presence_filter = read_uint8(f)
@@ -802,12 +805,24 @@ with open("lib/mkddobjects.json", "r") as f:
         OBJECTNAMES[int(key)] = val
     del tmp
 
+REVERSEOBJECTNAMES = OrderedDict()
+for key in sorted(OBJECTNAMES.keys()):
+    REVERSEOBJECTNAMES[OBJECTNAMES[key]] = key
+
 
 def get_full_name(id):
     if id not in OBJECTNAMES:
         return "Unknown {0}".format(id)
     else:
         return OBJECTNAMES[id]
+
+
+def temp_add_invalid_id(id):
+    if id not in OBJECTNAMES:
+        name = get_full_name(id)
+        OBJECTNAMES[id] = name
+        REVERSEOBJECTNAMES[name] = id
+
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 from lib.libbol import BOL, get_full_name
 
+
 class BolHeader(QTreeWidgetItem):
     def __init__(self):
         super().__init__()
@@ -18,6 +19,19 @@ class ObjectGroup(QTreeWidgetItem):
 
     def remove_children(self):
         self.takeChildren()
+
+
+class ObjectGroupObjects(ObjectGroup):
+    def sort(self):
+        """items = []
+        for i in range(self.childCount()):
+            items.append(self.takeChild(0))
+
+        items.sort(key=lambda x: x.bound_to.objectid)
+
+        for item in items:
+            self.addChild(item)"""
+        self.sortChildren(0, 0)
 
 
 # Groups
@@ -94,9 +108,15 @@ class ObjectRoutePoint(NamedItem):
 
 
 class ObjectEntry(NamedItem):
+    def __init__(self, parent, name, bound_to):
+        super().__init__(parent, name, bound_to)
+        bound_to.widget = self
+
     def update_name(self):
         self.setText(0, get_full_name(self.bound_to.objectid))
 
+    def __lt__(self, other):
+        return self.bound_to.objectid < other.bound_to.objectid
 
 class KartpointEntry(NamedItem):
     def update_name(self):
@@ -147,7 +167,7 @@ class LevelDataTreeView(QTreeWidget):
         self.enemyroutes = self._add_group("Enemy point groups")
         self.checkpointgroups = self._add_group("Checkpoint groups")
         self.objectroutes = self._add_group("Object point groups")
-        self.objects = self._add_group("Objects")
+        self.objects = self._add_group("Objects", ObjectGroupObjects)
         self.kartpoints = self._add_group("Kart start points")
         self.areas = self._add_group("Areas")
         self.cameras = self._add_group("Cameras")
@@ -155,8 +175,11 @@ class LevelDataTreeView(QTreeWidget):
         self.lightparams = self._add_group("Light param entries")
         self.mgentries = self._add_group("MG entries")
 
-    def _add_group(self, name):
-        group = ObjectGroup(name)
+    def _add_group(self, name, customgroup=None):
+        if customgroup is None:
+            group = ObjectGroup(name)
+        else:
+            group = customgroup(name)
         self.addTopLevelItem(group)
         return group
 
@@ -218,11 +241,12 @@ class LevelDataTreeView(QTreeWidget):
             item = MGEntry(self.mgentries, "MG", mg)
 
     def sort_objects(self):
-        items = []
+        self.objects.sort()
+        """items = []
         for i in range(self.objects.childCount()):
             items.append(self.objects.takeChild(0))
 
         items.sort(key=lambda x: x.bound_to.objectid)
 
         for item in items:
-            self.objects.addChild(item)
+            self.objects.addChild(item)"""
