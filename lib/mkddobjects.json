@@ -158,5 +158,6 @@
 "9906": "TMapObjMoveItemBox",
 "9907": "GeoRabbitMark",
 "9908": "GeoShine",
-"9909": "TShineArrow"
+"9909": "TShineArrow",
+"32767": "INVALID"
 }
