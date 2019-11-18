@@ -1,8 +1,15 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QCheckBox, QLineEdit, QComboBox
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 from math import inf
+from lib.libbol import (EnemyPoint, CheckpointGroup, Checkpoint, Route, RoutePoint,
+                        MapObject, KartStartPoint, Area, Camera, BOL, JugemPoint,
+                        LightParam, MGEntry)
+
+from PyQt5.QtCore import pyqtSignal
 
 class DataEditor(QWidget):
+    emit_3d_update = pyqtSignal()
+
     def __init__(self, parent, bound_to):
         super().__init__(parent)
 
@@ -10,9 +17,12 @@ class DataEditor(QWidget):
         self.vbox = QVBoxLayout(self)
         self.setLayout(self.vbox)
 
-        self.description = self.add_label(self, "Object")
+        self.description = self.add_label("Object")
 
         self.setup_widgets()
+
+    def catch_text_update(self):
+        self.emit_3d_update.emit()
 
     def setup_widgets(self):
         pass
@@ -32,7 +42,7 @@ class DataEditor(QWidget):
 
     def create_labeled_widget(self, parent, text, widget):
         layout = QHBoxLayout(parent)
-        label = self.add_label(layout)
+        label = self.create_label(text)
         label.setText(text)
         layout.addWidget(label)
         layout.addWidget(widget)
@@ -40,7 +50,7 @@ class DataEditor(QWidget):
 
     def create_labeled_widgets(self, parent, text, widgetlist):
         layout = QHBoxLayout(parent)
-        label = self.add_label(layout)
+        label = self.create_label(text)
         label.setText(text)
         layout.addWidget(label)
         for widget in widgetlist:
@@ -64,36 +74,36 @@ class DataEditor(QWidget):
 
     def add_integer_input(self, text, attribute, min_val, max_val):
         line_edit = QLineEdit(self)
-        layout = self.create_labeled_widget(self, text)
+        layout = self.create_labeled_widget(self, text, line_edit)
 
         line_edit.setValidator(QIntValidator(min_val, max_val, self))
 
-        def input_edited(text):
+        def input_edited():
+            text = line_edit.text()
             print("input:", text)
 
             setattr(self.bound_to, attribute, int(text))
 
         line_edit.editingFinished.connect(input_edited)
 
-        layout = self.create_labeled_widget(self, text, line_edit)
         self.vbox.addLayout(layout)
 
         return layout, line_edit
 
-    def add_decimal_input(self, text, attribute, min_val=, max_val):
+    def add_decimal_input(self, text, attribute, min_val, max_val):
         line_edit = QLineEdit(self)
         layout = self.create_labeled_widget(self, text, line_edit)
 
-        line_edit.setValidator(QDoubleValidator(min_val, max_val, self))
+        line_edit.setValidator(QDoubleValidator(min_val, max_val, 6, self))
 
-        def input_edited(text):
+        def input_edited():
+            text = line_edit.text()
             print("input:", text)
 
-            setattr(self.bound_to, attribute, int(text))
+            setattr(self.bound_to, attribute, float(text))
 
         line_edit.editingFinished.connect(input_edited)
 
-        layout = self.create_labeled_widget(self, text, line_edit)
         self.vbox.addLayout(layout)
 
         return layout, line_edit
@@ -104,7 +114,8 @@ class DataEditor(QWidget):
 
         line_edit.setMaxLength(maxlength)
 
-        def input_edited(text):
+        def input_edited():
+            text = line_edit.text()
             text = text.rjust(maxlength)
             setattr(self.bound_to, attribute, text)
 
@@ -133,14 +144,10 @@ class DataEditor(QWidget):
         line_edits = []
         for subattr in subattributes:
             line_edit = QLineEdit(self)
-            layout = self.create_labeled_widget(self, text, line_edit)
 
             line_edit.setValidator(QIntValidator(min_val, max_val, self))
 
-            def input_edited(text):
-                print("input:", text)
-                mainattr = getattr(self.bound_to, attribute)
-                setattr(mainattr, subattr, int(text))
+            input_edited = create_setter(line_edit, self.bound_to, attribute, subattr, isFloat=False)
 
             line_edit.editingFinished.connect(input_edited)
             line_edits.append(line_edit)
@@ -155,15 +162,11 @@ class DataEditor(QWidget):
         line_edits = []
         for subattr in subattributes:
             line_edit = QLineEdit(self)
-            layout = self.create_labeled_widget(self, text, line_edit)
 
-            line_edit.setValidator(QDoubleValidator(min_val, max_val, self))
 
-            def input_edited(text):
-                print("input:", text)
-                mainattr = getattr(self.bound_to, attribute)
-                setattr(mainattr, subattr, int(text))
+            line_edit.setValidator(QDoubleValidator(min_val, max_val, 6, self))
 
+            input_edited = create_setter(line_edit, self.bound_to, attribute, subattr, isFloat=True)
             line_edit.editingFinished.connect(input_edited)
             line_edits.append(line_edit)
 
@@ -171,6 +174,24 @@ class DataEditor(QWidget):
         self.vbox.addLayout(layout)
 
         return layout, line_edits
+
+
+def create_setter(lineedit, bound_to, attribute, subattr, isFloat):
+    if isFloat:
+        def input_edited():
+            text = lineedit.text()
+            mainattr = getattr(bound_to, attribute)
+
+            setattr(mainattr, subattr, float(text))
+        return input_edited
+    else:
+        def input_edited():
+            text = lineedit.text()
+            mainattr = getattr(bound_to, attribute)
+
+            setattr(mainattr, subattr, int(text))
+
+        return input_edited
 
 MIN_SIGNED_BYTE = -128
 MAX_SIGNED_BYTE = 127
@@ -185,10 +206,17 @@ MAX_UNSIGNED_SHORT = 2**16 - 1
 MAX_UNSIGNED_INT = 2**32 - 1
 
 
+def choose_data_editor(obj):
+    if isinstance(obj, EnemyPoint):
+        return EnemyPointEdit
+    else:
+        return None
+
+
 class EnemyPointEdit(DataEditor):
     def setup_widgets(self):
         self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
-                                                        MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+                                                        -inf, +inf)
         self.pointsettings = self.add_integer_input("Point Setting", "pointsetting",
                                                     MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.link = self.add_integer_input("Link", "link",
@@ -204,3 +232,11 @@ class EnemyPointEdit(DataEditor):
                                            MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.unk2 = self.add_integer_input("Unknown 2", "unk2",
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+
+        for widget in self.position[1]:
+            widget.editingFinished.connect(self.catch_text_update)
+
+    def update_data(self):
+        self.position[1][0].setText(str(round(self.bound_to.position.x, 3)))
+        self.position[1][1].setText(str(round(self.bound_to.position.y, 3)))
+        self.position[1][2].setText(str(round(self.bound_to.position.z, 3)))

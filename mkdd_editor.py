@@ -176,6 +176,7 @@ class GenEditor(QMainWindow):
             self.level_view.selected_positions = [bound_to.start, bound_to.end]
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
         self.level_view.do_redraw()
+        self.level_view.select_update.emit()
 
     def setup_ui(self):
         self.resize(1000, 800)
@@ -207,7 +208,7 @@ class GenEditor(QMainWindow):
         self.horizontalLayout.addWidget(self.pik_control)
 
         QtWidgets.QShortcut(Qt.CTRL + Qt.Key_E, self).activated.connect(self.action_open_editwindow)
-        QtWidgets.QShortcut(Qt.Key_M, self).activated.connect(self.shortcut_move_objects)
+        #QtWidgets.QShortcut(Qt.Key_M, self).activated.connect(self.shortcut_move_objects)
         QtWidgets.QShortcut(Qt.Key_G, self).activated.connect(self.action_ground_objects)
         QtWidgets.QShortcut(Qt.CTRL + Qt.Key_A, self).activated.connect(self.shortcut_open_add_item_window)
         self.statusbar = QStatusBar(self)
@@ -322,13 +323,13 @@ class GenEditor(QMainWindow):
 
     def connect_actions(self):
         self.level_view.select_update.connect(self.action_update_info)
-        self.pik_control.lineedit_coordinatex.textChanged.connect(self.create_field_edit_action("coordinatex"))
-        self.pik_control.lineedit_coordinatey.textChanged.connect(self.create_field_edit_action("coordinatey"))
-        self.pik_control.lineedit_coordinatez.textChanged.connect(self.create_field_edit_action("coordinatez"))
+        #self.pik_control.lineedit_coordinatex.textChanged.connect(self.create_field_edit_action("coordinatex"))
+        #self.pik_control.lineedit_coordinatey.textChanged.connect(self.create_field_edit_action("coordinatey"))
+        #self.pik_control.lineedit_coordinatez.textChanged.connect(self.create_field_edit_action("coordinatez"))
 
-        self.pik_control.lineedit_rotationx.textChanged.connect(self.create_field_edit_action("rotationx"))
-        self.pik_control.lineedit_rotationy.textChanged.connect(self.create_field_edit_action("rotationy"))
-        self.pik_control.lineedit_rotationz.textChanged.connect(self.create_field_edit_action("rotationz"))
+        #self.pik_control.lineedit_rotationx.textChanged.connect(self.create_field_edit_action("rotationx"))
+        #self.pik_control.lineedit_rotationy.textChanged.connect(self.create_field_edit_action("rotationy"))
+        #self.pik_control.lineedit_rotationz.textChanged.connect(self.create_field_edit_action("rotationz"))
 
         self.level_view.position_update.connect(self.action_update_position)
 
@@ -680,27 +681,6 @@ class GenEditor(QMainWindow):
         self.history.add_history_addobject(newobj)
         self.set_has_unsaved_changes(True)
 
-    def button_move_objects(self):
-        if self.pikmin_gen_view.mousemode == pikwidgets.MOUSE_MODE_MOVEWP:
-            self.pikmin_gen_view.set_mouse_mode(pikwidgets.MOUSE_MODE_NONE)
-            #self.pik_control.button_move_object.setChecked(False)
-
-        else:
-            self.pikmin_gen_view.set_mouse_mode(pikwidgets.MOUSE_MODE_MOVEWP)
-            self.pik_control.button_add_object.setChecked(False)
-            #self.pik_control.button_move_object.setChecked(True)
-
-    def shortcut_move_objects(self):
-        if self.pikmin_gen_view.mousemode == pikwidgets.MOUSE_MODE_MOVEWP:
-            self.pikmin_gen_view.set_mouse_mode(pikwidgets.MOUSE_MODE_NONE)
-            #self.pik_control.button_move_object.setChecked(False)
-
-        else:
-            self.pikmin_gen_view.set_mouse_mode(pikwidgets.MOUSE_MODE_MOVEWP)
-            self.pik_control.button_add_object.setChecked(False)
-            #self.pik_control.button_move_object.setChecked(True)
-
-
     @catch_exception
     def action_move_objects(self, deltax, deltay, deltaz):
         for i in range(len(self.level_view.selected_positions)):
@@ -733,6 +713,7 @@ class GenEditor(QMainWindow):
 
         #self.pikmin_gen_view.update()
         self.level_view.do_redraw()
+        self.pik_control.update_info()
         self.set_has_unsaved_changes(True)
 
 
@@ -825,6 +806,7 @@ class GenEditor(QMainWindow):
         #self.pikmin_gen_view.update()
         self.level_view.do_redraw()
         self.set_has_unsaved_changes(True)
+        self.pik_control.update_info()
 
     def action_ground_objects(self):
         for obj in self.pikmin_gen_view.selected:
@@ -927,49 +909,6 @@ class GenEditor(QMainWindow):
             self.pikmin_gen_view.do_redraw()
         self.set_has_unsaved_changes(True)
 
-    def create_field_edit_action(self, fieldname):
-        attribute = "lineedit_"+fieldname
-
-        @catch_exception
-        def change_field(text):
-            if text == "":
-                return
-            try:
-                #val = float(getattr(self.pik_control, attribute).text())
-                val = float(text)
-            except Exception as e:
-                print(e)
-                #open_error_dialog(str(e), self)
-            else:
-                if len(self.pikmin_gen_view.selected) == 1:
-                    pikobject = self.pikmin_gen_view.selected[0]
-
-                    coord = fieldname[-1]
-                    if fieldname.startswith("coordinate"):
-                        setattr(pikobject.position, coord, val)
-                        #setattr(pikobject, coord, val)
-                        #setattr(pikobject, "position_"+coord, val)
-                        #setattr(pikobject, "offset_"+coord, 0)  # We reset offset to 0 for ease
-
-                    elif fieldname.startswith("rotation"):
-                        setattr(pikobject.rotation, coord, val)
-                        """if pikobject.object_type == "{item}":
-                            if coord == "x": pikobject.set_rotation((val, None, None))
-                            elif coord == "y": pikobject.set_rotation((None, val, None))
-                            elif coord == "z": pikobject.set_rotation((None, None, val))
-                        elif pikobject.object_type == "{teki}" and coord == "y":
-                            pikobject.set_rotation((None, val, None))
-                        elif pikobject.object_type == "{pelt}":
-                            if coord == "x": pikobject.set_rotation((val, None, None))
-                            elif coord == "y": pikobject.set_rotation((None, val, None))
-                            elif coord == "z": pikobject.set_rotation((None, None, val))"""
-                    #self.pikmin_gen_view.update()
-                    self.pikmin_gen_view.do_redraw()
-                    if not self._justupdatingselectedobject:
-                        self.set_has_unsaved_changes(True)
-
-        return change_field
-
     @catch_exception
     def action_open_editwindow(self):
         if self.pikmin_gen_file is not None:
@@ -1007,8 +946,21 @@ class GenEditor(QMainWindow):
                 else:
                     self.editing_windows[currentobj].activateWindow()
 
+    def update_3d(self):
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
+        self.level_view.do_redraw()
+
     @catch_exception
     def action_update_info(self):
+        if self.level_file is not None:
+            selected = self.level_view.selected
+            if len(selected) == 1:
+                currentobj = selected[0]
+                self.pik_control.set_info(currentobj, self.update_3d)
+                self.pik_control.update_info()
+            else:
+                self.pik_control.reset_info("{0} objects selected".format(len(self.level_view.selected)))
+                self.pik_control.set_objectlist(selected)
         return
         if self.pikmin_gen_file is not None:
             selected = self.pikmin_gen_view.selected

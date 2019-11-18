@@ -5,6 +5,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from PyQt5.QtCore import QSize, pyqtSignal, QPoint, QRect
 from PyQt5.QtCore import Qt
+from widgets.data_editor import choose_data_editor
 
 class PikminSideWidget(QWidget):
     def __init__(self, *args, **kwargs):
@@ -12,9 +13,9 @@ class PikminSideWidget(QWidget):
         parent = args[0]
 
         self.parent = parent
-        self.setMaximumSize(QSize(250, 1500))
+        self.setMaximumSize(QSize(300, 1500))
         self.verticalLayout = QVBoxLayout(self)
-        self.verticalLayout.setAlignment(Qt.AlignBottom)
+        self.verticalLayout.setAlignment(Qt.AlignTop)
 
         font = QFont()
         font.setFamily("Consolas")
@@ -46,13 +47,13 @@ class PikminSideWidget(QWidget):
         self.button_add_object.setCheckable(True)
         #self.button_move_object.setCheckable(True)
 
-        self.lineedit_coordinatex = QLineEdit(parent)
-        self.lineedit_coordinatey = QLineEdit(parent)
-        self.lineedit_coordinatez = QLineEdit(parent)
-        self.verticalLayout.addStretch(10)
-        self.lineedit_rotationx = QLineEdit(parent)
-        self.lineedit_rotationy = QLineEdit(parent)
-        self.lineedit_rotationz = QLineEdit(parent)
+        #self.lineedit_coordinatex = QLineEdit(parent)
+        #self.lineedit_coordinatey = QLineEdit(parent)
+        #self.lineedit_coordinatez = QLineEdit(parent)
+        #self.verticalLayout.addStretch(10)
+        #self.lineedit_rotationx = QLineEdit(parent)
+        #self.lineedit_rotationy = QLineEdit(parent)
+        #self.lineedit_rotationz = QLineEdit(parent)
         self.verticalLayout.addWidget(self.button_add_object)
         self.verticalLayout.addWidget(self.button_remove_object)
         self.verticalLayout.addWidget(self.button_ground_object)
@@ -71,7 +72,7 @@ class PikminSideWidget(QWidget):
         self.verticalLayout.addWidget(self.name_label)
         #self.verticalLayout.addWidget(self.identifier_label)
 
-        self.verticalLayout.addWidget(self.lineedit_coordinatex)
+        """self.verticalLayout.addWidget(self.lineedit_coordinatex)
         self.verticalLayout.addWidget(self.lineedit_coordinatey)
         self.verticalLayout.addWidget(self.lineedit_coordinatez)
 
@@ -81,16 +82,18 @@ class PikminSideWidget(QWidget):
         self.verticalLayout.addStretch(10)
         self.verticalLayout.addLayout(self._make_labeled_lineedit(self.lineedit_rotationx, "RotX:"))
         self.verticalLayout.addLayout(self._make_labeled_lineedit(self.lineedit_rotationy, "RotY:"))
-        self.verticalLayout.addLayout(self._make_labeled_lineedit(self.lineedit_rotationz, "RotZ:"))
-        self.verticalLayout.addStretch(10)
+        self.verticalLayout.addLayout(self._make_labeled_lineedit(self.lineedit_rotationz, "RotZ:"))"""
+        #self.verticalLayout.addStretch(10)
         self.comment_label = QLabel(parent)
         self.comment_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.comment_label.setWordWrap(True)
         self.comment_label.setFont(font)
         self.verticalLayout.addWidget(self.comment_label)
-        self.verticalLayout.addStretch(500)
+        #self.verticalLayout.addStretch(500)
 
         self.objectlist = []
+
+        self.object_data_edit = None
 
         self.reset_info()
 
@@ -113,54 +116,33 @@ class PikminSideWidget(QWidget):
         #self.identifier_label.setText("")
         self.comment_label.setText("")
 
-        self.lineedit_coordinatex.setText("")
-        self.lineedit_coordinatey.setText("")
-        self.lineedit_coordinatez.setText("")
-
-        self.lineedit_coordinatex.setDisabled(True)
-        self.lineedit_coordinatey.setDisabled(True)
-        self.lineedit_coordinatez.setDisabled(True)
-
-        self.lineedit_rotationx.setText("")
-        self.lineedit_rotationy.setText("")
-        self.lineedit_rotationz.setText("")
-
-        self.lineedit_rotationx.setDisabled(True)
-        self.lineedit_rotationy.setDisabled(True)
-        self.lineedit_rotationz.setDisabled(True)
+        if self.object_data_edit is not None:
+            self.object_data_edit.deleteLater()
+            del self.object_data_edit
+            self.object_data_edit = None
 
         self.objectlist = []
 
-    def set_info(self, obj, position, rotation=None):
-        self.name_label.setText("Selected: {}".format(obj.name))
+    def update_info(self):
+        if self.object_data_edit is not None:
+            self.object_data_edit.update_data()
+
+    def set_info(self, obj, update3d):
+        self.name_label.setText("Selected: {}".format(type(obj).__name__))
         #self.identifier_label.setText(obj.get_identifier())
+        if self.object_data_edit is not None:
+            #self.verticalLayout.removeWidget(self.object_data_edit)
+            self.object_data_edit.deleteLater()
+            del self.object_data_edit
+            self.object_data_edit = None
+            print("should be removed")
 
-        """comment = "Object notes:\n"
-        for part in obj.preceeding_comment:
-            comment += part.strip() + "\n"
-        self.comment_label.setText(comment)"""
+        editor = choose_data_editor(obj)
+        if editor is not None:
 
-        self.lineedit_coordinatex.setDisabled(False)
-        self.lineedit_coordinatey.setDisabled(False)
-        self.lineedit_coordinatez.setDisabled(False)
-        self.lineedit_coordinatex.setText(str(position.x))
-        self.lineedit_coordinatey.setText(str(position.y))
-        self.lineedit_coordinatez.setText(str(position.z))
-
-        if rotation is None:
-            self.lineedit_rotationx.setText("")
-            self.lineedit_rotationy.setText("")
-            self.lineedit_rotationz.setText("")
-            self.lineedit_rotationx.setDisabled(True)
-            self.lineedit_rotationy.setDisabled(True)
-            self.lineedit_rotationz.setDisabled(True)
-        else:
-            self.lineedit_rotationx.setDisabled(False)
-            self.lineedit_rotationy.setDisabled(False)
-            self.lineedit_rotationz.setDisabled(False)
-            self.lineedit_rotationx.setText(str(rotation.x))
-            self.lineedit_rotationy.setText(str(rotation.y))
-            self.lineedit_rotationz.setText(str(rotation.z))
+            self.object_data_edit = editor(self, obj)
+            self.verticalLayout.addWidget(self.object_data_edit)
+            self.object_data_edit.emit_3d_update.connect(update3d)
 
         self.objectlist = []
         self.comment_label.setText("")
