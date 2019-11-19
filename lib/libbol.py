@@ -1,25 +1,31 @@
 import json
-from struct import unpack
+from struct import unpack, pack
 from numpy import ndarray, array
 from binascii import hexlify
 from math import cos, sin
 from .vectors import Vector3
 from collections import OrderedDict
 
+
 def read_uint8(f):
     return unpack(">B", f.read(1))[0]
+
 
 def read_int16(f):
     return unpack(">h", f.read(2))[0]
 
+
 def read_uint16(f):
     return unpack(">H", f.read(2))[0]
+
 
 def read_uint24(f):
     return unpack(">I", b"\x00"+f.read(3))[0]
 
+
 def read_uint32(f):
     return unpack(">I", f.read(4))[0]
+
 
 def read_float(f):
     return unpack(">f", f.read(4))[0]
@@ -44,6 +50,22 @@ def read_string(f):
 
     return string
 
+
+def write_uint16(f, val):
+    f.write(pack(">H", val))
+
+
+PADDING = b"This is padding data to align"
+
+
+def write_padding(f, multiple):
+    next_aligned = (f.tell() + (multiple - 1)) & ~(multiple - 1)
+
+    diff = next_aligned - f.tell()
+
+    for i in range(diff):
+        pos = i % len(PADDING)
+        f.write(PADDING[pos:pos + 1])
 
 class Rotation(object):
     def __init__(self, forward, up, left):
@@ -125,6 +147,18 @@ class Rotation(object):
             read_int16(f), read_int16(f), read_int16(f)
         )
 
+    def write(self, f):
+        f.write(pack(">hhh",
+                     int(round(self.forward.x * 10000)),
+                     int(round(self.forward.y * 10000)),
+                     int(round(self.forward.z * 10000))
+                     ))
+        f.write(pack(">hhh",
+                     int(round(self.up.x * 10000)),
+                     int(round(self.up.y * 10000)),
+                     int(round(self.up.z * 10000))
+                     ))
+
 
 class ObjectContainer(list):
     def __init__(self, *args, **kwargs):
@@ -141,12 +175,12 @@ class ObjectContainer(list):
         return container
 
 
-ENEMYITEMPOINT = 1 
+ENEMYITEMPOINT = 1
 CHECKPOINT = 2
-ROUTEGROUP = 3 
-ROUTEPOINT = 4 
-OBJECTS = 5 
-KARTPOINT = 6 
+ROUTEGROUP = 3
+ROUTEPOINT = 4
+OBJECTS = 5
+KARTPOINT = 6
 AREA = 7
 CAMERA = 8
 RESPAWNPOINT = 9
@@ -156,52 +190,65 @@ MINIGAME = 11
 
 class ColorRGB(object):
     def __init__(self, r, g, b):
-        self.r = r 
-        self.g = g 
-        self.b = b 
-    
+        self.r = r
+        self.g = g
+        self.b = b
+
     @classmethod
     def from_file(cls, f):
         return cls(read_uint8(f), read_uint8(f), read_uint8(f))
+
+    def write(self, f):
+        f.write(pack(">BBB", self.r, self.g, self.b))
 
 
 class ColorRGBA(ColorRGB):
     def __init__(self, r, g, b, a):
         super().__init__(r, g, b)
-        self.a = a 
-    
+        self.a = a
+
     @classmethod
     def from_file(cls, f):
         return cls(*unpack(">BBBB", f.read(4)))
 
+    def write(self, f):
+        super().write(f)
+        f.write(pack(">B", self.a))
 
 # Section 1
 # Enemy/Item Route Code Start
 class EnemyPoint(object):
     def __init__(self, position, pointsetting, link, scale, groupsetting, group, pointsetting2, unk1=0, unk2=0):
-        self.position = position 
-        self.pointsetting = pointsetting 
+        self.position = position
+        self.pointsetting = pointsetting
         self.link = link
-        self.scale = scale 
+        self.scale = scale
         self.groupsetting = groupsetting
-        self.group = group 
+        self.group = group
         self.pointsetting2 = pointsetting2
-        self.unk1 = unk1 
+        self.unk1 = unk1
         self.unk2 = unk2
 
     @classmethod
     def from_file(cls, f):
         args = [Vector3(*unpack(">fff", f.read(12)))]
         args.extend(unpack(">HhfHBBBH", f.read(15)))
-        f.read(5) #padding
+        padding = f.read(5) #padding
+        assert padding == b"\x00"*5
         return cls(*args)
+
+    def write(self, f):
+        f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
+        f.write(pack(">Hhf", self.pointsetting, self.link, self.scale))
+        f.write(pack(">HBBBH", self.groupsetting, self.group, self.pointsetting2, self.unk1, self.unk2))
+        f.write(b"\x00"*5)
 
 
 class EnemyPointGroup(object):
     def __init__(self):
         self.points = []
         self.index = None
-    
+
     def insert_point(self, enemypoint, index=-1):
         self.points.insert(index, enemypoint)
 
@@ -213,17 +260,17 @@ class EnemyPointGroup(object):
 class EnemyPointGroups(object):
     def __init__(self):
         self.groups = {}
-    
+
     @classmethod
     def from_file(cls, f, count):
         enemypointgroups = cls()
         curr_group = None
-        
+
         for i in range(count):
             enemypoint = EnemyPoint.from_file(f)
             print("Point", i, "in group", enemypoint.group, "links to", enemypoint.link)
             if enemypoint.group not in enemypointgroups.groups:
-                # start of group 
+                # start of group
                 curr_group = EnemyPointGroup()
                 curr_group.index = enemypoint.group
                 enemypointgroups.groups[enemypoint.group] = curr_group
@@ -266,6 +313,13 @@ class CheckpointGroup(object):
 
         return checkpointgroup
 
+    def write(self, f):
+        self._pointcount = len(self.points)
+
+        f.write(pack(">H", self._pointcount))
+        f.write(pack(">hhhh", *self.prevgroup))
+        f.write(pack(">hhhh", *self.prevgroup))
+
 
 class Checkpoint(object):
     def __init__(self, start, end, unk1=0, unk2=0, unk3=0, unk4=0):
@@ -282,8 +336,15 @@ class Checkpoint(object):
         start = Vector3(*unpack(">fff", f.read(12)))
         end = Vector3(*unpack(">fff", f.read(12)))
         unk1, unk2, unk3, unk4 = unpack(">BBBB", f.read(4))
-
+        assert unk2 == unk3 == unk4 == 0
         return cls(start, end, unk1, unk2, unk3, unk4)
+
+    def write(self, f):
+        f.write(pack(">fff", self.start.x, self.start.y, self.start.z))
+        f.write(pack(">fff", self.end.x, self.end.y, self.end.z))
+        f.write(pack(">B", self.unk1))
+        f.write(b"\x00\x00\x00")
+
 
 
 class CheckpointGroups(object):
@@ -320,7 +381,7 @@ class Route(object):
         self._pointstart = 0
         self.unk1 = 0
         self.unk2 = 0
-    
+
     @classmethod
     def from_file(cls, f):
         route = cls()
@@ -332,7 +393,7 @@ class Route(object):
         route.unk2 = read_uint8(f)
         pad = f.read(7)
         assert pad == b"\x00"*7
-        
+
         return route
 
     def add_routepoints(self, points):
@@ -344,13 +405,13 @@ class Route(object):
 # Route point for use with routes from section 3
 class RoutePoint(object):
     def __init__(self, position):
-        self.position = position 
-    
+        self.position = position
+
     @classmethod
     def from_file(cls, f):
         position = Vector3(*unpack(">fff", f.read(12)))
         padding = f.read(20)
-        
+
         return cls(position)
 
 
@@ -398,6 +459,13 @@ class MapObject(object):
 
         return obj
 
+    def write(self, f):
+        f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
+        f.write(pack(">fff", self.scale.x, self.scale.y, self.scale.z))
+        self.rotation.write(f)
+        f.write(pack(">hHH", self.pathid, self.unk_28, self.unk_2a))
+        f.write(pack(">BBBB", self.presence_filter, self.presence, self.unk_flag, self.unk_2f))
+
 
 class MapObjects(object):
     def __init__(self):
@@ -435,7 +503,7 @@ class KartStartPoint(object):
         # Example: 0 = Player 1
         self.playerid = 0xFF
 
-        self.padding = 0
+        self.unknown = 0
 
     @classmethod
     def from_file(cls, f):
@@ -446,9 +514,15 @@ class KartStartPoint(object):
         kstart.rotation = Rotation.from_file(f)
         kstart.poleposition = read_uint8(f)
         kstart.playerid = read_uint8(f)
-        kstart.padding = read_uint16(f)
-
+        kstart.unknown = read_uint16(f)
+        #assert kstart.unknown == 0
         return kstart
+
+    def write(self, f):
+        f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
+        f.write(pack(">fff", self.scale.x, self.scale.y, self.scale.z))
+        self.rotation.write(f)
+        f.write(pack(">BBH", self.poleposition, self.playerid, self.unknown))
 
 
 class KartStartPoints(object):
@@ -502,6 +576,14 @@ class Area(object):
 
         return area
 
+    def write(self, f):
+        f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
+        f.write(pack(">fff", self.scale.x, self.scale.y, self.scale.z))
+        self.rotation.write(f)
+        f.write(pack(">BBH", self.check_flag, self.area_type, self.camera_index))
+        f.write(pack(">II", self.unk1, self.unk2))
+        f.write(pack(">hhhh", self.unkfixedpoint, self.unkshort, self.shadow_id, self.lightparam_index))
+
 
 class Areas(object):
     def __init__(self):
@@ -545,7 +627,6 @@ class Camera(object):
         f.seek(start)
         print(hexlify(hexd))
 
-
         position = Vector3(*unpack(">fff", f.read(12)))
 
         cam = cls(position)
@@ -563,10 +644,21 @@ class Camera(object):
         cam.routespeed = read_uint16(f)
         cam.endzoom = read_uint16(f)
         cam.nextcam = read_int16(f)
-        cam.name = f.read(4)
+        cam.name = str(f.read(4), encoding="ascii")
 
         return cam
 
+    def write(self, f):
+        f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
+        self.rotation.write(f)
+        f.write(pack(">fff", self.position2.x, self.position2.y, self.position2.z))
+        f.write(pack(">fff", self.position3.x, self.position3.y, self.position3.z))
+        f.write(pack(">BBHHH", self.unkbyte, self.camtype, self.startzoom, self.camduration, self.startcamera))
+        f.write(pack(">HHhHHh",
+                     self.unk2, self.unk3, self.route,
+                     self.routespeed, self.endzoom, self.nextcam))
+        assert len(self.name) == 4
+        f.write(bytes(self.name, encoding="ascii"))
 
 # Section 9
 # Jugem Points
@@ -591,6 +683,10 @@ class JugemPoint(object):
 
         return jugem
 
+    def write(self, f):
+        f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
+        self.rotation.write(f)
+        f.write(pack(">HHhh", self.respawn_id, self.unk1, self.unk2, self.unk3))
 
 # Section 10
 # LightParam
@@ -613,6 +709,11 @@ class LightParam(object):
 
         return lp
 
+    def write(self, f):
+        f.write(">hh", self.unk1, self.unk2)
+        f.write(">fff", self.unkvec.x, self.unkvec.y, self.unkvec.z)
+        f.write(">hh", self.unk3, self.unk4)
+
 
 # Section 11
 # MG (MiniGame?)
@@ -633,29 +734,32 @@ class MGEntry(object):
 
         return mgentry
 
+    def write(self, f):
+        f.write(pack(">hhhh", self.unk1, self.unk2, self.unk3, self.unk4))
+
 
 class BOL(object):
     def __init__(self):
-        self.roll = False 
-        self.ambient = ColorRGB(0x64, 0x64, 0x64)
-        self.light = ColorRGBA(0xFF, 0xFF, 0xFF, 0xFF)
+        self.roll = False
+        self.rgb_ambient = ColorRGB(0x64, 0x64, 0x64)
+        self.rgba_light = ColorRGBA(0xFF, 0xFF, 0xFF, 0xFF)
         self.lightsource = Vector3(0.0, 0.0, 0.0)
         self.fog_type = 0
         self.fog_color = ColorRGB(0x64, 0x64, 0x64)
-        self.fog_startz = 12800.0
-        self.fog_endz = 12800.0
+        self.fog_startz = 8000.0
+        self.fog_endz = 230000.0
         self.unk1 = 0
         self.unk2 = 0
         self.unk3 = 0
         self.unk4 = 0
         self.unk5 = 0
         self.unk6 = 0
-        
+
         self.shadow_color = ColorRGB(0x00, 0x00, 0x00)
-        
-        
+
+
         self.sections = {}
-        
+
         self.lap_count = 0
         self.music_id = 0
 
@@ -706,29 +810,29 @@ class BOL(object):
             yield respawn
 
 
-    @classmethod 
+    @classmethod
     def from_file(cls, f):
         bol = cls()
         magic = f.read(4)
         print(magic, type(magic))
         assert magic == b"0015"
-        
-        bol.roll = read_uint8(f)
+
+        bol.roll = read_uint8(f) > 0
         bol.rgb_ambient = ColorRGB.from_file(f)
         bol.rgba_light = ColorRGBA.from_file(f)
-        
+
         bol.lightsource = Vector3(read_float(f), read_float(f), read_float(f))
-        
+
         bol.lap_count = read_uint8(f)
         bol.music_id = read_uint8(f)
 
         sectioncounts = {}
         for i in (ENEMYITEMPOINT, CHECKPOINT, OBJECTS, AREA, CAMERA, ROUTEGROUP, RESPAWNPOINT):
             sectioncounts[i] = read_uint16(f)
-        
+
         bol.fog_type = read_uint8(f)
         bol.fog_color = ColorRGB.from_file(f)
-        
+
         bol.fog_startz = read_float(f)
         bol.fog_endz = read_float(f)
         bol.unk1 = read_uint16(f)
@@ -737,22 +841,22 @@ class BOL(object):
         bol.shadow_color = ColorRGB.from_file(f)
         bol.unk4 = read_uint8(f)
         bol.unk5 = read_uint8(f)
-        
+
         sectioncounts[LIGHTPARAM] = read_uint8(f)
         sectioncounts[MINIGAME] = read_uint8(f)
         bol.unk6 = read_uint8(f)
-        
+
         filestart = read_uint32(f)
         assert filestart == 0
-        
+
         sectionoffsets = {}
         for i in range(11):
             sectionoffsets[i+1] = read_uint32(f)
-        
+
         f.read(12) # padding
-        
+
         endofheader = f.tell()
-        
+
 
         #calculated_count = (sectionoffsets[CHECKPOINT] - sectionoffsets[ENEMYITEMPOINT])//0x20
         #assert sectioncounts[ENEMYITEMPOINT] == calculated_count
@@ -797,6 +901,42 @@ class BOL(object):
 
         return bol
 
+    def write(self, f):
+        f.write(b"0015")
+        f.write(pack(">B", self.roll))
+        self.rgb_ambient.write(f)
+        self.rgba_light.write(f)
+        f.write(pack(">fff", self.lightsource.x, self.lightsource.y, self.lightsource.z))
+        f.write(pack(">BB", self.lap_count, self.music_id))
+
+        write_uint16(f, len(self.enemypointgroups.groups))
+        write_uint16(f, len(self.checkpoints.groups))
+        write_uint16(f, len(self.objects.objects))
+        write_uint16(f, len(self.areas.areas))
+        write_uint16(f, len(self.cameras))
+        write_uint16(f, len(self.routes))
+        write_uint16(f, len(self.respawnpoints))
+
+        f.write(pack(">B", self.fog_type))
+        self.fog_color.write(f)
+        f.write(pack(">ffHBB",
+                self.fog_startz, self.fog_endz,
+                self.unk1, self.unk2, self.unk3))
+        self.shadow_color.write(f)
+        f.write(pack(">BB", self.unk4, self.unk5))
+        f.write(pack(">BB", len(self.lightparams), len(self.mgentries)))
+        f.write(pack(">B", self.unk6))
+
+        f.write(b"\x00"*4) # Filestart 0
+
+        offset_start = f.tell()
+        offsets = []
+        for i in range(11):
+            f.write(b"FOOB") # placeholder for offsets
+
+
+
+
 
 with open("lib/mkddobjects.json", "r") as f:
     tmp = json.load(f)
@@ -808,6 +948,19 @@ with open("lib/mkddobjects.json", "r") as f:
 REVERSEOBJECTNAMES = OrderedDict()
 for key in sorted(OBJECTNAMES.keys()):
     REVERSEOBJECTNAMES[OBJECTNAMES[key]] = key
+
+with open("lib/music_ids.json", "r") as f:
+    tmp = json.load(f)
+    MUSIC_IDS = {}
+    for key, val in tmp.items():
+        MUSIC_IDS[int(key)] = val
+    del tmp
+
+REVERSE_MUSIC_IDS = OrderedDict()
+for key in sorted(MUSIC_IDS.keys()):
+    REVERSE_MUSIC_IDS[MUSIC_IDS[key]] = key
+
+
 
 
 def get_full_name(id):
@@ -822,7 +975,6 @@ def temp_add_invalid_id(id):
         name = get_full_name(id)
         OBJECTNAMES[id] = name
         REVERSEOBJECTNAMES[name] = id
-
 
 
 if __name__ == "__main__":

@@ -178,6 +178,8 @@ class GenEditor(QMainWindow):
             self.level_view.selected = [item.bound_to]
         elif isinstance(item, tree_view.BolHeader) and self.level_file is not None:
             self.level_view.selected = [self.level_file]
+        elif isinstance(item, (tree_view.LightParamEntry, tree_view.MGEntry)):
+            self.level_view.selected = [item.bound_to]
 
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
         self.level_view.do_redraw()
