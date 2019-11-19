@@ -425,6 +425,7 @@ class GenEditor(QMainWindow):
                         bol_file = BOL.from_file(f)
                         self.setup_bol_file(bol_file, filepath)
                         self.leveldatatreeview.set_objects(bol_file)
+                        self.current_gen_path = filepath
 
                     except Exception as error:
                         print("Error appeared while loading:", error)
@@ -483,9 +484,8 @@ class GenEditor(QMainWindow):
                 self.statusbar.showMessage("Saved to {0}".format(self.current_gen_path))
 
             else:
-                with open(self.current_gen_path, "w", encoding="shift-jis-2004", errors="backslashreplace") as f:
-                    writer = GeneratorWriter(f)
-                    self.pikmin_gen_file.write(writer)
+                with open(self.current_gen_path, "wb") as f:
+                    self.level_file.write(f)
                     self.set_has_unsaved_changes(False)
 
                     self.statusbar.showMessage("Saved to {0}".format(self.current_gen_path))
@@ -516,17 +516,14 @@ class GenEditor(QMainWindow):
                     self.set_has_unsaved_changes(False)
                     self.statusbar.showMessage("Saved to {0}".format(filepath))
             else:
-                with open(filepath, "w", encoding="shift-jis-2004", errors="backslashreplace") as f:
-
-                    writer = GeneratorWriter(f)
-                    self.pikmin_gen_file.write(writer)
-                    self.set_base_window_title(filepath)
+                with open(filepath, "wb") as f:
+                    self.level_file.write(f)
                     self.pathsconfig["gen"] = filepath
                     save_cfg(self.configuration)
                     self.current_gen_path = filepath
                     self.set_has_unsaved_changes(False)
 
-            self.statusbar.showMessage("Saved to {0}".format(self.current_gen_path))
+            self.statusbar.showMessage("Saved to {0}".format(self.filepath))
 
     def button_load_collision(self):
         try:

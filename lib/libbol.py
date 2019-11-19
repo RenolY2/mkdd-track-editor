@@ -5,7 +5,7 @@ from binascii import hexlify
 from math import cos, sin
 from .vectors import Vector3
 from collections import OrderedDict
-
+from io import BytesIO
 
 def read_uint8(f):
     return unpack(">B", f.read(1))[0]
@@ -148,15 +148,18 @@ class Rotation(object):
         )
 
     def write(self, f):
+        forward = Vector3(self.mtx[0][0], self.mtx[0][2], -self.mtx[0][1])
+        up = Vector3(self.mtx[2][0], self.mtx[2][2], -self.mtx[2][1])
+
         f.write(pack(">hhh",
-                     int(round(self.forward.x * 10000)),
-                     int(round(self.forward.y * 10000)),
-                     int(round(self.forward.z * 10000))
+                     int(round(forward.x * 10000)),
+                     int(round(forward.y * 10000)),
+                     int(round(forward.z * 10000))
                      ))
         f.write(pack(">hhh",
-                     int(round(self.up.x * 10000)),
-                     int(round(self.up.y * 10000)),
-                     int(round(self.up.z * 10000))
+                     int(round(up.x * 10000)),
+                     int(round(up.y * 10000)),
+                     int(round(up.z * 10000))
                      ))
 
 
@@ -215,6 +218,7 @@ class ColorRGBA(ColorRGB):
         super().write(f)
         f.write(pack(">B", self.a))
 
+
 # Section 1
 # Enemy/Item Route Code Start
 class EnemyPoint(object):
@@ -231,17 +235,22 @@ class EnemyPoint(object):
 
     @classmethod
     def from_file(cls, f):
+        start = f.tell()
         args = [Vector3(*unpack(">fff", f.read(12)))]
         args.extend(unpack(">HhfHBBBH", f.read(15)))
         padding = f.read(5) #padding
         assert padding == b"\x00"*5
-        return cls(*args)
+        obj =  cls(*args)
+        obj._size = f.tell() - start
+        return obj
 
     def write(self, f):
+        start = f.tell()
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         f.write(pack(">Hhf", self.pointsetting, self.link, self.scale))
         f.write(pack(">HBBBH", self.groupsetting, self.group, self.pointsetting2, self.unk1, self.unk2))
         f.write(b"\x00"*5)
+        assert f.tell() - start == self._size
 
 
 class EnemyPointGroup(object):
@@ -316,7 +325,7 @@ class CheckpointGroup(object):
     def write(self, f):
         self._pointcount = len(self.points)
 
-        f.write(pack(">H", self._pointcount))
+        f.write(pack(">HH", self._pointcount, self.grouplink))
         f.write(pack(">hhhh", *self.prevgroup))
         f.write(pack(">hhhh", *self.prevgroup))
 
@@ -336,6 +345,7 @@ class Checkpoint(object):
         start = Vector3(*unpack(">fff", f.read(12)))
         end = Vector3(*unpack(">fff", f.read(12)))
         unk1, unk2, unk3, unk4 = unpack(">BBBB", f.read(4))
+        print(unk2, unk3, unk4)
         assert unk2 == unk3 == unk4 == 0
         return cls(start, end, unk1, unk2, unk3, unk4)
 
@@ -400,6 +410,10 @@ class Route(object):
         for i in range(self._pointcount):
             self.points.append(points[self._pointstart+i])
 
+    def write(self, f, pointstart):
+        f.write(pack(">HH", len(self.points), pointstart))
+        f.write(pack(">IB", self.unk1, self.unk2))
+        f.write(b"\x00"*7)
 
 # Section 4
 # Route point for use with routes from section 3
@@ -413,6 +427,10 @@ class RoutePoint(object):
         padding = f.read(20)
 
         return cls(position)
+
+    def write(self, f):
+        f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
+        f.write(b"\x00"*20)
 
 
 # Section 5
@@ -436,6 +454,7 @@ class MapObject(object):
 
     @classmethod
     def from_file(cls, f):
+        start = f.tell()
         position = Vector3(*unpack(">fff", f.read(12)))
         scale = Vector3(*unpack(">fff", f.read(12)))
         fx, fy, fz = read_int16(f), read_int16(f), read_int16(f)
@@ -456,16 +475,21 @@ class MapObject(object):
 
         for i in range(8):
             obj.userdata[i] = read_int16(f)
-
+        obj._size = f.tell() - start
         return obj
 
     def write(self, f):
+        start = f.tell()
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         f.write(pack(">fff", self.scale.x, self.scale.y, self.scale.z))
         self.rotation.write(f)
-        f.write(pack(">hHH", self.pathid, self.unk_28, self.unk_2a))
+
+        f.write(pack(">hhHH", self.objectid, self.pathid, self.unk_28, self.unk_2a))
         f.write(pack(">BBBB", self.presence_filter, self.presence, self.unk_flag, self.unk_2f))
 
+        for i in range(8):
+            f.write(pack(">h", self.userdata[i]))
+        assert f.tell() - start == self._size
 
 class MapObjects(object):
     def __init__(self):
@@ -660,6 +684,7 @@ class Camera(object):
         assert len(self.name) == 4
         f.write(bytes(self.name, encoding="ascii"))
 
+
 # Section 9
 # Jugem Points
 class JugemPoint(object):
@@ -710,9 +735,9 @@ class LightParam(object):
         return lp
 
     def write(self, f):
-        f.write(">hh", self.unk1, self.unk2)
-        f.write(">fff", self.unkvec.x, self.unkvec.y, self.unkvec.z)
-        f.write(">hh", self.unk3, self.unk4)
+        f.write(pack(">hh", self.unk1, self.unk2))
+        f.write(pack(">fff", self.unkvec.x, self.unkvec.y, self.unkvec.z))
+        f.write(pack(">hh", self.unk3, self.unk4))
 
 
 # Section 11
@@ -909,7 +934,10 @@ class BOL(object):
         f.write(pack(">fff", self.lightsource.x, self.lightsource.y, self.lightsource.z))
         f.write(pack(">BB", self.lap_count, self.music_id))
 
-        write_uint16(f, len(self.enemypointgroups.groups))
+        enemypoints = 0
+        for index, group in self.enemypointgroups.groups.items():
+            enemypoints += len(group.points)
+        write_uint16(f, enemypoints)
         write_uint16(f, len(self.checkpoints.groups))
         write_uint16(f, len(self.objects.objects))
         write_uint16(f, len(self.areas.areas))
@@ -933,9 +961,65 @@ class BOL(object):
         offsets = []
         for i in range(11):
             f.write(b"FOOB") # placeholder for offsets
+        f.write(b"\x00"*12) # padding
 
+        offsets.append(f.tell())
+        for groupindex in sorted(self.enemypointgroups.groups.keys()):
+            group = self.enemypointgroups.groups[groupindex]
+            for point in group.points:
+                point.write(f)
 
+        offsets.append(f.tell())
+        for group in self.checkpoints.groups:
+            group.write(f)
+        for group in self.checkpoints.groups:
+            for point in group.points:
+                point.write(f)
 
+        offsets.append(f.tell())
+
+        index = 0
+        for route in self.routes:
+            route.write(f, index)
+            index += len(route.points)
+
+        offsets.append(f.tell())
+        for route in self.routes:
+            for point in route.points:
+                point.write(f)
+
+        offsets.append(f.tell())
+        for object in self.objects.objects:
+            object.write(f)
+
+        offsets.append(f.tell())
+        for startpoint in self.kartpoints.positions:
+            startpoint.write(f)
+
+        offsets.append(f.tell())
+        for area in self.areas.areas:
+            area.write(f)
+
+        offsets.append(f.tell())
+        for camera in self.cameras:
+            camera.write(f)
+
+        offsets.append(f.tell())
+        for respawnpoint in self.respawnpoints:
+            respawnpoint.write(f)
+
+        offsets.append(f.tell())
+        for lightparam in self.lightparams:
+            lightparam.write(f)
+
+        offsets.append(f.tell())
+        for mgentry in self.mgentries:
+            mgentry.write(f)
+        print(len(offsets))
+        assert len(offsets) == 11
+        f.seek(offset_start)
+        for offset in offsets:
+            f.write(pack(">I", offset))
 
 
 with open("lib/mkddobjects.json", "r") as f:
@@ -980,3 +1064,12 @@ def temp_add_invalid_id(id):
 if __name__ == "__main__":
     with open("mario_course.bol", "rb") as f:
         bol = BOL.from_file(f)
+
+    with open("mario_course_new.bol", "wb") as f:
+        bol.write(f)
+
+    with open("mario_course_new.bol", "rb") as f:
+        newbol = BOL.from_file(f)
+
+    with open("mario_course_new2.bol", "wb") as f:
+        newbol.write(f)
