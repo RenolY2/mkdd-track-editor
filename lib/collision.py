@@ -111,6 +111,7 @@ def cross_product(v1, v2):
 MAX_X = 20000
 MAX_Z = 20000
 
+
 class Collision(object):
     def __init__(self, verts, faces):
         self.verts = verts
@@ -153,7 +154,7 @@ class Collision(object):
         print("finished generating triangles")
         print(grid_size_x, grid_size_z)
 
-    def collide_ray_downwards(self, x, z, y=99999):
+    def collide_ray_downwards(self, x, z, y=999999):
         grid_x = int((x+MAX_X) // 100)
         grid_z = int((z+MAX_Z) // 100)
 
@@ -171,6 +172,47 @@ class Collision(object):
 
         hit = None
 
+        result = self._collide(verts, triangles, x, y, z, -1.0)
+
+        return result
+
+    def collide_ray_closest(self, x, z, y):
+        grid_x = int((x + MAX_X) // 100)
+        grid_z = int((z + MAX_Z) // 100)
+
+        if grid_x not in self.grid or grid_z not in self.grid[grid_x]:
+            return None
+
+        triangles = self.grid[grid_x][grid_z]
+
+        verts = self.verts
+
+        y = y
+        dir_x = 0
+        dir_y = -1.0
+        dir_z = 0
+
+        hit = None
+
+        result1 = self._collide(verts, triangles, x, y, z, -1.0)
+        result2 = self._collide(verts, triangles, x, y, z, 1.0)
+
+        if result1 is None and result2 is None:
+            return None
+        elif result1 is None:
+            return result2
+        elif result2 is None:
+            return result1
+        else:
+            dist1 = abs(y - result1)
+            dist2 = abs(y - result2)
+            if dist1 > dist2:
+                return result2
+            else:
+                return result1
+
+    def _collide(self, verts, triangles, x, y, z, dir_y):
+        hit = None
         for i, face in triangles:#face in self.faces:#
             v1index, v2index, v3index = face
 
@@ -209,7 +251,7 @@ class Collision(object):
 
                 height = point[1]
 
-                if hit is None or height > hit:
+                if hit is None or abs(y - height) < abs(y - hit):
                     hit = height
 
         return hit
