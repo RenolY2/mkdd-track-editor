@@ -142,9 +142,11 @@ class Material(object):
             else:
                 raise RuntimeError("unknown tex format: {0}".format(texturepath))
 
-            qimage = QtGui.QImage(texturepath, "fmt")
+            qimage = QtGui.QImage(texturepath, fmt)
+            qimage = qimage.convertToFormat(QtGui.QImage.Format_ARGB32)
 
             imgdata = bytes(qimage.bits().asarray(qimage.width() * qimage.height() * 4))
+
             glTexImage2D(GL_TEXTURE_2D, 0, 4, qimage.width(), qimage.height(), 0, GL_BGRA, GL_UNSIGNED_BYTE, imgdata)
 
             del qimage
@@ -320,6 +322,8 @@ class TexturedModel(object):
                                     lasttex = None
 
                         if lastmat is not None:
+                            if lasttex is not None and not os.path.isabs(lasttex):
+                                lasttex = os.path.join(objpath, lasttex)
                             materials[lastmat] = Material(diffuse=lastdiffuse, texturepath=lasttex)
                             lastdiffuse = None
                             lasttex = None
