@@ -89,12 +89,15 @@ class Model(object):
                     curr_mesh = Mesh("")
                     curr_mesh.vertices = vertices
 
-                # if it uses more than 3 vertices to describe a face then we panic!
-                # no triangulation yet.
-                if len(args) != 4:
-                    raise RuntimeError("Model needs to be triangulated! Only faces with 3 vertices are supported.")
-                v1, v2, v3 = map(read_vertex, args[1:4])
-                curr_mesh.triangles.append(((v1[0], None), (v2[0], None), (v3[0], None)))
+                if len(args) == 5:
+                    v1, v2, v3, v4 = map(read_vertex, args[1:5])
+                    curr_mesh.triangles.append(((v1[0], None), (v3[0], None), (v2[0], None)))
+                    curr_mesh.triangles.append(((v3[0], None), (v1[0], None), (v4[0], None)))
+                elif len(args) == 4:
+                    v1, v2, v3 = map(read_vertex, args[1:4])
+                    curr_mesh.triangles.append(((v1[0], None), (v2[0], None), (v3[0], None)))
+                elif len(args) > 5:
+                    raise RuntimeError("Mesh has faces with more than 4 polygons! Only Tris and Quads supported.")
         model.meshes.append(curr_mesh)
         #elif cmd == "vn":
         #    nx, ny, nz = map(float, args[1:4])

@@ -427,11 +427,13 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.MOVE_RIGHT = 0
         self.SPEEDUP = 0
 
-    def set_collision(self, verts, faces):
+    def set_collision(self, verts, faces, alternative_mesh):
         self.collision = Collision(verts, faces)
 
         if self.main_model is None:
             self.main_model = glGenLists(1)
+
+        self.alternative_mesh = alternative_mesh
 
         glNewList(self.main_model, GL_COMPILE)
         #glBegin(GL_TRIANGLES)
@@ -696,8 +698,15 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         glDisable(GL_TEXTURE_2D)
         glColor4f(1.0, 1.0, 1.0, 1.0)
         if self.main_model is not None:
-            glCallList(self.main_model)
+            if self.alternative_mesh is None:
+                glCallList(self.main_model)
+            else:
+                glPushMatrix()
+                glScalef(1.0, -1.0, 1.0)
+                self.alternative_mesh.render()
+                glPopMatrix()
 
+        glDisable(GL_TEXTURE_2D)
         glColor4f(1.0, 1.0, 1.0, 1.0)
         self.grid.render()
         if self.mode == MODE_TOPDOWN:

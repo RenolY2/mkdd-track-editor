@@ -32,10 +32,15 @@ def read_obj(objfile):
         elif cmd == "f":
             # if it uses more than 3 vertices to describe a face then we panic!
             # no triangulation yet.
-            if len(args) != 4:
-                raise RuntimeError("Model needs to be triangulated! Only faces with 3 vertices are supported.")
-            v1, v2, v3 = map(read_vertex, args[1:4])
-            faces.append((v1,v2,v3))
+            if len(args) == 5:
+                v1, v2, v3, v4 = map(read_vertex, args[1:5])
+                faces.append((v1, v3, v2))
+                faces.append((v3, v1, v4))
+            elif len(args) == 4:
+                v1, v2, v3 = map(read_vertex, args[1:4])
+                faces.append((v1, v2, v3))
+            elif len(args) > 5:
+                raise RuntimeError("Mesh has faces with more than 4 polygons! Only Tris and Quads supported.")
         elif cmd == "vn":
             nx,ny,nz = map(float, args[1:4])
             normals.append((nx,ny,nz))

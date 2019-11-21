@@ -13,11 +13,6 @@ import PyQt5.QtGui as QtGui
 
 import opengltext
 import py_obj
-from lib.model_rendering import Waterbox
-from lib.libgen import GeneratorFile, GeneratorWriter
-
-
-#from libpiktxt import PikminGenFile, WaterboxTxt
 
 from widgets.editor_widgets import catch_exception
 from widgets.editor_widgets import AddPikObjectWindow
@@ -29,9 +24,10 @@ import mkdd_widgets # as mkddwidgets
 from widgets.side_widget import PikminSideWidget
 from widgets.editor_widgets import PikObjectEditor, open_error_dialog, catch_exception_with_dialog
 from mkdd_widgets import BolMapViewer, MODE_TOPDOWN
-from lib.sarc import SARCArchive
-from lib.libpath import Paths
 from lib.libbol import BOL
+from lib.rarc import Archive
+from lib.BCOllider import RacetrackCollision
+from lib.model_rendering import TexturedModel
 
 from widgets.file_select import FileSelect
 
@@ -214,10 +210,8 @@ class GenEditor(QMainWindow):
         self.pik_control = PikminSideWidget(self)
         self.horizontalLayout.addWidget(self.pik_control)
 
-        QtWidgets.QShortcut(Qt.CTRL + Qt.Key_E, self).activated.connect(self.action_open_editwindow)
-        #QtWidgets.QShortcut(Qt.Key_M, self).activated.connect(self.shortcut_move_objects)
         QtWidgets.QShortcut(Qt.Key_G, self).activated.connect(self.action_ground_objects)
-        QtWidgets.QShortcut(Qt.CTRL + Qt.Key_A, self).activated.connect(self.shortcut_open_add_item_window)
+        #QtWidgets.QShortcut(Qt.CTRL + Qt.Key_A, self).activated.connect(self.shortcut_open_add_item_window)
         self.statusbar = QStatusBar(self)
         self.statusbar.setObjectName("statusbar")
         self.setStatusBar(self.statusbar)
@@ -257,11 +251,11 @@ class GenEditor(QMainWindow):
         # ------ Collision Menu
         self.collision_menu = QMenu(self.menubar)
         self.collision_menu.setTitle("Geometry")
-        self.collision_load_action = QAction("Load .OBJ", self)
+        self.collision_load_action = QAction("Load OBJ", self)
         self.collision_load_action.triggered.connect(self.button_load_collision)
         self.collision_menu.addAction(self.collision_load_action)
-        self.collision_load_grid_action = QAction("Load BJMP", self)
-        self.collision_load_grid_action.triggered.connect(self.button_load_collision_bjmp)
+        self.collision_load_grid_action = QAction("Load BCO", self)
+        self.collision_load_grid_action.triggered.connect(self.button_load_collision_bco)
         self.collision_menu.addAction(self.collision_load_grid_action)
 
 
@@ -341,7 +335,6 @@ class GenEditor(QMainWindow):
         self.level_view.position_update.connect(self.action_update_position)
 
         self.level_view.customContextMenuRequested.connect(self.mapview_showcontextmenu)
-        self.pik_control.button_edit_object.pressed.connect(self.action_open_editwindow)
 
         self.pik_control.button_add_object.pressed.connect(self.button_open_add_item_window)
         #self.pik_control.button_move_object.pressed.connect(self.button_move_objects)
@@ -379,46 +372,32 @@ class GenEditor(QMainWindow):
         filepath, choosentype = QFileDialog.getOpenFileName(
             self, "Open File",
             self.pathsconfig["gen"],
-            "BOL files (*.bol);;Archived files (*.arc, *.szs);;All files (*)")
+            "BOL files (*.bol);;Archived files (*.arc);;All files (*)")
 
         if filepath:
             print("Resetting editor")
             self.reset()
             print("Reset done")
             print("Chosen file type:", choosentype)
-            if choosentype == "Archived files (*.arc, *.szs)" or filepath.endswith(".szs") or filepath.endswith(".arc"):
+            if choosentype == "Archived files (*.arc)" or filepath.endswith(".arc"):
                 with open(filepath, "rb") as f:
                     try:
-                        self.loaded_archive = SARCArchive.from_file(f)
+                        self.loaded_archive = Archive.from_file(f)
+                        root_name = self.loaded_archive.root.name
+                        bol_file = self.loaded_archive[root_name + "/" + root_name + "_course.bol"]
+                        bol_data = BOL.from_file(bol_file)
+                        self.setup_bol_file(bol_data, filepath)
+                        self.leveldatatreeview.set_objects(bol_data)
+                        self.current_gen_path = filepath
+                        self.loaded_archive_file = root_name + "_course.bol"
+
                     except Exception as error:
                         print("Error appeared while loading:", error)
                         traceback.print_exc()
                         open_error_dialog(str(error), self)
+                        self.loaded_archive = None
+                        self.loaded_archive_file = None
                         return
-                filepaths = [x for x in self.loaded_archive.files.keys()]
-                filepaths.sort()
-                file, lastpos = FileSelect.open_file_list(self, filepaths, title="Select file")
-                print("selected:", file)
-                self.loaded_archive_file = file
-
-                if file is None:
-                    self.loaded_archive = None
-                    return
-
-                genfile = self.loaded_archive.files[file]
-
-                try:
-                    pikmin_gen_file = GeneratorFile.from_file(
-                        TextIOWrapper(BytesIO(genfile.getvalue()), errors="replace")
-                    )
-                    genfile.seek(0)
-                    self.setup_gen_file(pikmin_gen_file, filepath)
-
-                except Exception as error:
-                    print("Error appeared while loading:", error)
-                    traceback.print_exc()
-                    open_error_dialog(str(error), self)
-
             else:
                 with open(filepath, "rb") as f:
                     try:
@@ -431,23 +410,6 @@ class GenEditor(QMainWindow):
                         print("Error appeared while loading:", error)
                         traceback.print_exc()
                         open_error_dialog(str(error), self)
-
-    def button_load_paths(self):
-        filepath, choosentype = QFileDialog.getOpenFileName(
-            self, "Open File",
-            self.pathsconfig["gen"],
-            "Path file(path.txt;*.txt);;All files (*)")
-
-        if filepath:
-            with open(filepath, "r", encoding="shift_jis-2004") as f:
-                try:
-                    paths = Paths.from_file(f)
-                    self.pikmin_gen_view.paths = paths
-
-                except Exception as error:
-                    print("Error appeared while loading:", error)
-                    traceback.print_exc()
-                    open_error_dialog(str(error), self)
 
     def setup_bol_file(self, bol_file, filepath):
         self.level_file = bol_file
@@ -468,17 +430,14 @@ class GenEditor(QMainWindow):
         if self.current_gen_path is not None:
             if self.loaded_archive is not None:
                 assert self.loaded_archive_file is not None
+                root_name = self.loaded_archive.root.name
+                file = self.loaded_archive[root_name + "/" + self.loaded_archive_file]
+                file.seek(0)
 
-                file = self.loaded_archive.files[self.loaded_archive_file]
-                file.seek(0)
-                tmp = StringIO()
-                writer = GeneratorWriter(tmp)
-                self.pikmin_gen_file.write(writer)
-                file.write(tmp.getvalue().encode(encoding="shift-jis-2004", errors="backslashreplace"))
-                file.seek(0)
+                self.level_file.write(file)
 
                 with open(self.current_gen_path, "wb") as f:
-                    self.loaded_archive.to_file(f, compress=self.current_gen_path.endswith(".szs"))
+                    self.loaded_archive.write_arc(f)
 
                 self.set_has_unsaved_changes(False)
                 self.statusbar.showMessage("Saved to {0}".format(self.current_gen_path))
@@ -497,33 +456,35 @@ class GenEditor(QMainWindow):
         filepath, choosentype = QFileDialog.getSaveFileName(
             self, "Save File",
             self.pathsconfig["gen"],
-            "Generator files (*.txt);;Archived files (*.arc, *.szs);;All files (*)")
+            "MKDD Track Data (*.bol);;Archived files (*.arc);;All files (*)")
         if filepath:
-            if choosentype == "Archived files (*.arc, *.szs)" or filepath.endswith(".arc") or filepath.endswith(".szs"):
+            if choosentype == "Archived files (*.arc)" or filepath.endswith(".arc"):
                 if self.loaded_archive is None or self.loaded_archive_file is None:
-                    raise RuntimeError("No archive loaded!")
-                else:
-                    file = self.loaded_archive.files[self.loaded_archive_file]
-                    file.seek(0)
-                    tmp = StringIO()
-                    writer = GeneratorWriter(tmp)
-                    self.pikmin_gen_file.write(writer)
-                    file.write(tmp.getvalue().encode(encoding="shift-jis-2004", errors="backslashreplace"))
-                    file.seek(0)
-                    with open(filepath, "wb") as f:
-                        self.loaded_archive.to_file(f, compress=filepath.endswith(".szs"))
+                    with open(filepath, "rb") as f:
+                        self.loaded_archive = Archive.from_file(f)
+                        root_name = self.loaded_archive.root.name
+                        self.loaded_archive_file = root_name + "_course.bol"
+                root_name = self.loaded_archive.root.name
+                file = self.loaded_archive[root_name + "/" + self.loaded_archive_file]
+                file.seek(0)
 
-                    self.set_has_unsaved_changes(False)
-                    self.statusbar.showMessage("Saved to {0}".format(filepath))
+                self.level_file.write(file)
+
+                with open(filepath, "wb") as f:
+                    self.loaded_archive.write_arc(f)
+
+                self.set_has_unsaved_changes(False)
+                self.statusbar.showMessage("Saved to {0}".format(filepath))
             else:
                 with open(filepath, "wb") as f:
                     self.level_file.write(f)
-                    self.pathsconfig["gen"] = filepath
-                    save_cfg(self.configuration)
-                    self.current_gen_path = filepath
+
                     self.set_has_unsaved_changes(False)
 
-            self.statusbar.showMessage("Saved to {0}".format(self.filepath))
+            self.current_gen_path = filepath
+            self.pathsconfig["gen"] = filepath
+            save_cfg(self.configuration)
+            self.statusbar.showMessage("Saved to {0}".format(filepath))
 
     def button_load_collision(self):
         try:
@@ -537,41 +498,43 @@ class GenEditor(QMainWindow):
 
             with open(filepath, "r") as f:
                 verts, faces, normals = py_obj.read_obj(f)
+            print(faces[0])
+            alternative_mesh = TexturedModel.from_obj_path(filepath, rotate=True)
 
-            self.setup_collision(verts, faces, filepath)
+            self.setup_collision(verts, faces, filepath, alternative_mesh)
 
         except Exception as e:
             traceback.print_exc()
             open_error_dialog(str(e), self)
 
-    def button_load_collision_bjmp(self):
+    def button_load_collision_bco(self):
         try:
             filepath, choosentype = QFileDialog.getOpenFileName(
                 self, "Open File",
                 self.pathsconfig["collision"],
-                "Pikmin 3 Archive (*.szs);;Pikmin 3 Map Collision (*.bjmp);;All files (*)")
+                "MKDD Collision (*.bco);;Archived files (*.arc);;All files (*)")
             if filepath:
-                if choosentype == "Pikmin 3 Archive (*.szs)" or filepath.endswith(".szs"):
+                bco_coll = RacetrackCollision()
+                verts = []
+                faces = []
+
+                if choosentype == "Archived files (*.arc)" or filepath.endswith(".arc"):
                     with open(filepath, "rb") as f:
-                        sarc = SARCArchive.from_file(f)
-                    verts = []
-                    faces = []
+                        rarc = Archive.from_file(f)
 
-                    for path, file in sarc.files.items():
-                        if path.endswith(".bjmp"):
-                            collision = py_obj.BJMP(file)
-                            offset = len(verts)
-                            for v1,v2,v3 in collision.triangles:
-                                faces.append((v1+offset, v2+offset, v3+offset))
-                            verts.extend(collision.vertices)
-                    del sarc
 
+                    root_name = rarc.root.name
+                    bco = rarc[root_name][root_name+"_course.bco"]
+                    bco_coll.load_file(bco)
                 else:
                     with open(filepath, "rb") as f:
-                        collision = py_obj.BJMP(f)
+                        bco_coll.load_file(f)
 
-                    verts = collision.vertices
-                    faces = collision.triangles #[face for face in collision.faces]
+                for vert in bco_coll.vertices:
+                    verts.append(vert)
+
+                for v1, v2, v3, rest in bco_coll.triangles:
+                    faces.append(((v1+1, None), (v2+1, None), (v3+1, None)))
 
                 self.setup_collision(verts, faces, filepath)
 
@@ -579,8 +542,8 @@ class GenEditor(QMainWindow):
             traceback.print_exc()
             open_error_dialog(str(e), self)
 
-    def setup_collision(self, verts, faces, filepath):
-        self.level_view.set_collision(verts, faces)
+    def setup_collision(self, verts, faces, filepath, alternative_mesh=None):
+        self.level_view.set_collision(verts, faces, alternative_mesh)
         self.pathsconfig["collision"] = filepath
         save_cfg(self.configuration)
 
@@ -813,20 +776,18 @@ class GenEditor(QMainWindow):
         self.pik_control.update_info()
 
     def action_ground_objects(self):
-        for obj in self.pikmin_gen_view.selected:
-            if self.pikmin_gen_view.collision is None:
+        for pos in self.level_view.selected_positions:
+            if self.level_view.collision is None:
                 return None
-            height = self.pikmin_gen_view.collision.collide_ray_downwards(obj.position.x, obj.position.z)
+            height = self.level_view.collision.collide_ray_closest(pos.x, pos.z, pos.y)
 
             if height is not None:
-                obj.position.y = height
+                pos.y = height
 
-        if len(self.pikmin_gen_view.selected) == 1:
-            obj = self.pikmin_gen_view.selected[0]
-            self.pik_control.set_info(obj, obj.position, obj.rotation)
-        self.pikmin_gen_view.gizmo.move_to_average(self.pikmin_gen_view.selected)
+        self.pik_control.update_info()
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
         self.set_has_unsaved_changes(True)
-        self.pikmin_gen_view.do_redraw()
+        self.level_view.do_redraw()
 
     def action_delete_objects(self):
         tobedeleted = []
@@ -912,43 +873,6 @@ class GenEditor(QMainWindow):
             #self.pikmin_gen_view.update()
             self.pikmin_gen_view.do_redraw()
         self.set_has_unsaved_changes(True)
-
-    @catch_exception
-    def action_open_editwindow(self):
-        if self.pikmin_gen_file is not None:
-            selected = self.pikmin_gen_view.selected
-
-            if len(self.pikmin_gen_view.selected) == 1:
-                currentobj = selected[0]
-
-                if currentobj not in self.editing_windows:
-                    self.editing_windows[currentobj] = PikObjectEditor()
-                    self.editing_windows[currentobj].set_content(currentobj)
-
-                    @catch_exception
-                    def action_editwindow_save_data():
-                        newobj = self.editing_windows[currentobj].get_content()
-                        if newobj is not None:
-                            currentobj.from_other(newobj)
-                            self.pik_control.set_info(currentobj,
-                                                      currentobj.position,
-                                                      currentobj.rotation)
-                            #self.pikmin_gen_view.update()
-                            self.pikmin_gen_view.do_redraw()
-
-                            self.set_has_unsaved_changes(True)
-
-                    @catch_exception
-                    def action_close_edit_window():
-                        #self.editing_windows[currentobj].destroy()
-                        del self.editing_windows[currentobj]
-
-                    self.editing_windows[currentobj].button_savetext.pressed.connect(action_editwindow_save_data)
-                    self.editing_windows[currentobj].closing.connect(action_close_edit_window)
-                    self.editing_windows[currentobj].show()
-
-                else:
-                    self.editing_windows[currentobj].activateWindow()
 
     def update_3d(self):
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
