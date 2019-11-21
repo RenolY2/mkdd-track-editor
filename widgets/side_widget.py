@@ -26,22 +26,22 @@ class PikminSideWidget(QWidget):
         self.verticalLayout.setObjectName("verticalLayout")
 
         self.button_add_object = QPushButton(parent)
+
         self.button_remove_object = QPushButton(parent)
         self.button_ground_object = QPushButton(parent)
         #self.button_move_object = QPushButton(parent)
-        self.button_edit_object = QPushButton(parent)
+        #self.button_edit_object = QPushButton(parent)
+
+        self.button_add_object.setDisabled(True)
+        self.button_remove_object.setDisabled(True)
 
         self.button_add_object.setText("Add Object")
         self.button_remove_object.setText("Remove Object(s)")
         self.button_ground_object.setText("Ground Object(s)")
-        #self.button_move_object.setText("Move Object(s)")
-        self.button_edit_object.setText("Edit Object")
 
         self.button_add_object.setToolTip("Hotkey: Ctrl+A")
         self.button_remove_object.setToolTip("Hotkey: Delete")
         self.button_ground_object.setToolTip("Hotkey: G")
-        #self.button_move_object.setToolTip("Hotkey: M\nWhen enabled, hold R to rotate when one object is selected.")
-        self.button_edit_object.setToolTip("Hotkey: Ctrl+E")
 
 
         self.button_add_object.setCheckable(True)
@@ -58,7 +58,6 @@ class PikminSideWidget(QWidget):
         self.verticalLayout.addWidget(self.button_remove_object)
         self.verticalLayout.addWidget(self.button_ground_object)
         #self.verticalLayout.addWidget(self.button_move_object)
-        self.verticalLayout.addWidget(self.button_edit_object)
         self.verticalLayout.addStretch(20)
 
         self.name_label = QLabel(parent)
