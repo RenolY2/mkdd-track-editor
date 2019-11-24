@@ -195,7 +195,7 @@ class GenEditor(QMainWindow):
         self.centralwidget = self.horizontalLayout
         self.setCentralWidget(self.horizontalLayout)
         self.leveldatatreeview = LevelDataTreeView(self.centralwidget)
-        self.leveldatatreeview.currentItemChanged.connect(self.tree_select_object)
+        self.leveldatatreeview.itemClicked.connect(self.tree_select_object)
         self.leveldatatreeview.itemDoubleClicked.connect(self.do_goto_action)
 
         self.level_view = BolMapViewer(self.centralwidget)
@@ -498,7 +498,6 @@ class GenEditor(QMainWindow):
 
             with open(filepath, "r") as f:
                 verts, faces, normals = py_obj.read_obj(f)
-            print(faces[0])
             alternative_mesh = TexturedModel.from_obj_path(filepath, rotate=True)
 
             self.setup_collision(verts, faces, filepath, alternative_mesh)
