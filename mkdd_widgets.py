@@ -411,6 +411,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             self.offset_x = 0
             self.offset_z = 0
             self._zoom_factor = 10
+            #self._zoom_i
+            #self._zoom_i
             #self.waterboxes = []
 
         self.pikmin_generators = None
@@ -456,8 +458,13 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         return self._zoom_factor/10.0
 
     def zoom(self, fac):
-        if 1 < (self.zoom_factor + fac*40) <= 250:
-            self._zoom_factor += int(fac*40)
+        if self.zoom_factor <= 40:
+            mult = 20.0
+        else:
+            mult = 40.0
+
+        if 1 < (self.zoom_factor + fac*mult) <= 250:
+            self._zoom_factor += int(fac*mult)
             #self.update()
             self.do_redraw()
 
