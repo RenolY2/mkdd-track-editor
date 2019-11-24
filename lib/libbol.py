@@ -234,14 +234,28 @@ class EnemyPoint(object):
         self.unk2 = unk2
 
     @classmethod
-    def from_file(cls, f):
+    def new(cls):
+        return cls(
+            Vector3(0.0, 0.0, 0.0),
+            0, 0, 0.0, 0, 0, 0
+        )
+
+    @classmethod
+    def from_file(cls, f, old_bol=False):
         start = f.tell()
         args = [Vector3(*unpack(">fff", f.read(12)))]
-        args.extend(unpack(">HhfHBBBH", f.read(15)))
-        padding = f.read(5) #padding
-        assert padding == b"\x00"*5
-        obj =  cls(*args)
+        if not old_bol:
+            args.extend(unpack(">HhfHBBBH", f.read(15)))
+            padding = f.read(5)  # padding
+            assert padding == b"\x00" * 5
+        else:
+            args.extend(unpack(">HhfHBB", f.read(12)))
+            args.extend((0, 0))
+
+        obj = cls(*args)
         obj._size = f.tell() - start
+        if old_bol:
+            obj._size += 8
         return obj
 
     def write(self, f):
@@ -271,12 +285,12 @@ class EnemyPointGroups(object):
         self.groups = {}
 
     @classmethod
-    def from_file(cls, f, count):
+    def from_file(cls, f, count, old_bol=False):
         enemypointgroups = cls()
         curr_group = None
 
         for i in range(count):
-            enemypoint = EnemyPoint.from_file(f)
+            enemypoint = EnemyPoint.from_file(f, old_bol)
             print("Point", i, "in group", enemypoint.group, "links to", enemypoint.link)
             if enemypoint.group not in enemypointgroups.groups:
                 # start of group
@@ -345,7 +359,7 @@ class Checkpoint(object):
         start = Vector3(*unpack(">fff", f.read(12)))
         end = Vector3(*unpack(">fff", f.read(12)))
         unk1, unk2, unk3, unk4 = unpack(">BBBB", f.read(4))
-        print(unk2, unk3, unk4)
+        #print(unk2, unk3, unk4)
         assert unk2 == unk3 == unk4 == 0
         return cls(start, end, unk1, unk2, unk3, unk4)
 
@@ -415,22 +429,29 @@ class Route(object):
         f.write(pack(">IB", self.unk1, self.unk2))
         f.write(b"\x00"*7)
 
+
 # Section 4
 # Route point for use with routes from section 3
 class RoutePoint(object):
     def __init__(self, position):
         self.position = position
+        self.unk = 0
 
     @classmethod
     def from_file(cls, f):
         position = Vector3(*unpack(">fff", f.read(12)))
-        padding = f.read(20)
+        point = cls(position)
 
-        return cls(position)
+        point.unk = read_uint32(f)
+
+        padding = f.read(16)
+        assert padding == b"\x00"*16
+        return point
 
     def write(self, f):
-        f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
-        f.write(b"\x00"*20)
+        f.write(pack(">fffI", self.position.x, self.position.y, self.position.z,
+                     self.unk))
+        f.write(b"\x00"*16)
 
 
 # Section 5
@@ -840,13 +861,15 @@ class BOL(object):
         bol = cls()
         magic = f.read(4)
         print(magic, type(magic))
-        assert magic == b"0015"
+        assert magic == b"0015" or magic == b"0012"
+        old_bol = magic == b"0012"
 
         bol.roll = read_uint8(f) > 0
         bol.rgb_ambient = ColorRGB.from_file(f)
-        bol.rgba_light = ColorRGBA.from_file(f)
 
-        bol.lightsource = Vector3(read_float(f), read_float(f), read_float(f))
+        if not old_bol:
+            bol.rgba_light = ColorRGBA.from_file(f)
+            bol.lightsource = Vector3(read_float(f), read_float(f), read_float(f))
 
         bol.lap_count = read_uint8(f)
         bol.music_id = read_uint8(f)
@@ -872,21 +895,22 @@ class BOL(object):
         bol.unk6 = read_uint8(f)
 
         filestart = read_uint32(f)
+        print(hex(f.tell()), filestart)
         assert filestart == 0
 
         sectionoffsets = {}
         for i in range(11):
             sectionoffsets[i+1] = read_uint32(f)
 
-        f.read(12) # padding
-
+        padding = f.read(12) # padding
+        assert padding == b"\x00"*12
         endofheader = f.tell()
 
 
         #calculated_count = (sectionoffsets[CHECKPOINT] - sectionoffsets[ENEMYITEMPOINT])//0x20
         #assert sectioncounts[ENEMYITEMPOINT] == calculated_count
         f.seek(sectionoffsets[ENEMYITEMPOINT])
-        bol.enemypointgroups = EnemyPointGroups.from_file(f, sectioncounts[ENEMYITEMPOINT])
+        bol.enemypointgroups = EnemyPointGroups.from_file(f, sectioncounts[ENEMYITEMPOINT], old_bol)
 
         f.seek(sectionoffsets[CHECKPOINT])
         bol.checkpoints = CheckpointGroups.from_file(f, sectioncounts[CHECKPOINT])
