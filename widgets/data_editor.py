@@ -398,18 +398,21 @@ class ObjectRoutePointEdit(DataEditor):
     def setup_widgets(self):
         self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
                                                         -inf, +inf)
+        self.unknown = self.add_integer_input("Unknown", "unk",
+                                              MIN_UNSIGNED_INT, MAX_UNSIGNED_INT)
 
     def update_data(self):
         obj: RoutePoint = self.bound_to
         self.position[0].setText(str(round(obj.position.x, 3)))
         self.position[1].setText(str(round(obj.position.y, 3)))
         self.position[2].setText(str(round(obj.position.z, 3)))
+        self.unknown.setText(str(obj.unk))
 
 
 class BOLEdit(DataEditor):
     def setup_widgets(self):
         self.roll = self.add_checkbox("Stage Tilt", "roll", off_value=False, on_value=True)
-        self.rgb_ambient = self.add_multiple_integer_input("RGB Ambient", "rgba_ambient", ["r", "g", "b"],
+        self.rgb_ambient = self.add_multiple_integer_input("RGB Ambient", "rgb_ambient", ["r", "g", "b"],
                                                            MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.rgba_light = self.add_multiple_integer_input("RGBA Light", "rgba_light", ["r", "g", "b", "a"],
                                                           MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
@@ -542,6 +545,7 @@ class ObjectEdit(DataEditor):
         self.pathid.setText(str(obj.pathid))
         self.unk_28.setText(str(obj.unk_28))
         self.unk_2a.setText(str(obj.unk_2a))
+        self.unk_2f.setText(str(obj.unk_2f))
         self.presence_filter.setText(str(obj.presence_filter))
         self.presence.setText(str(obj.presence))
         self.flag.setText(str(obj.unk_flag))
