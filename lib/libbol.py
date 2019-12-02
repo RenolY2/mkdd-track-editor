@@ -67,6 +67,7 @@ def write_padding(f, multiple):
         pos = i % len(PADDING)
         f.write(PADDING[pos:pos + 1])
 
+
 class Rotation(object):
     def __init__(self, forward, up, left):
         self.mtx = ndarray(shape=(4,4), dtype=float, order="F")
@@ -88,9 +89,9 @@ class Rotation(object):
 
         self.mtx[3][0] = self.mtx[3][1] = self.mtx[3][2] = 0.0
         self.mtx[3][3] = 1.0
-        print(forward.x, -forward.z, forward.y)
-        print(self.mtx)
-        print([x for x in self.mtx])
+        #print(forward.x, -forward.z, forward.y)
+        #print(self.mtx)
+        #print([x for x in self.mtx])
 
     def rotate_around_x(self, degrees):
         mtx = ndarray(shape=(4,4), dtype=float, order="F", buffer=array([
@@ -121,8 +122,6 @@ class Rotation(object):
         ]))
 
         self.mtx = self.mtx.dot(mtx)
-
-
 
     @classmethod
     def default(cls):
@@ -272,6 +271,10 @@ class EnemyPointGroup(object):
         self.points = []
         self.index = None
 
+    @classmethod
+    def new(cls):
+        return cls()
+
     def insert_point(self, enemypoint, index=-1):
         self.points.insert(index, enemypoint)
 
@@ -323,6 +326,10 @@ class CheckpointGroup(object):
         self.nextgroup = [0, -1, -1, -1]
 
     @classmethod
+    def new(cls):
+        return cls(0)
+
+    @classmethod
     def from_file(cls, f):
         pointcount = read_uint16(f)
         checkpointgroup = cls(read_uint16(f))
@@ -355,20 +362,27 @@ class Checkpoint(object):
         self.unk4 = unk4
 
     @classmethod
+    def new(cls):
+        return cls(Vector3(0.0, 0.0, 0.0),
+                   Vector3(0.0, 0.0, 0.0))
+
+
+    @classmethod
     def from_file(cls, f):
+        startoff = f.tell()
         start = Vector3(*unpack(">fff", f.read(12)))
         end = Vector3(*unpack(">fff", f.read(12)))
         unk1, unk2, unk3, unk4 = unpack(">BBBB", f.read(4))
+        #print(start, end)
         #print(unk2, unk3, unk4)
-        assert unk2 == unk3 == unk4 == 0
+        assert unk2 == unk4 == 0
+        assert unk3 == 0 or unk3 == 1
         return cls(start, end, unk1, unk2, unk3, unk4)
 
     def write(self, f):
         f.write(pack(">fff", self.start.x, self.start.y, self.start.z))
         f.write(pack(">fff", self.end.x, self.end.y, self.end.z))
-        f.write(pack(">B", self.unk1))
-        f.write(b"\x00\x00\x00")
-
+        f.write(pack(">BBBB", self.unk1, self.unk2, self.unk3, self.unk4))
 
 
 class CheckpointGroups(object):
@@ -407,6 +421,11 @@ class Route(object):
         self.unk2 = 0
 
     @classmethod
+    def new(cls):
+        return cls()
+
+
+    @classmethod
     def from_file(cls, f):
         route = cls()
         route._pointcount = read_uint16(f)
@@ -436,6 +455,11 @@ class RoutePoint(object):
     def __init__(self, position):
         self.position = position
         self.unk = 0
+
+    @classmethod
+    def new(cls):
+        return cls(Vector3(0.0, 0.0, 0.0))
+
 
     @classmethod
     def from_file(cls, f):
@@ -472,6 +496,10 @@ class MapObject(object):
         self.userdata = [0 for i in range(8)]
 
         self.widget = None
+
+    @classmethod
+    def new(cls):
+        return cls(Vector3(0.0, 0.0, 0.0), 1)
 
     @classmethod
     def from_file(cls, f):
@@ -512,6 +540,7 @@ class MapObject(object):
             f.write(pack(">h", self.userdata[i]))
         assert f.tell() - start == self._size
 
+
 class MapObjects(object):
     def __init__(self):
         self.objects = []
@@ -549,6 +578,10 @@ class KartStartPoint(object):
         self.playerid = 0xFF
 
         self.unknown = 0
+
+    @classmethod
+    def new(cls):
+        return cls(Vector3(0.0, 0.0, 0.0))
 
     @classmethod
     def from_file(cls, f):
@@ -603,6 +636,10 @@ class Area(object):
         self.lightparam_index = 0
 
     @classmethod
+    def new(cls):
+        return cls(Vector3(0.0, 0.0, 0.0))
+
+    @classmethod
     def from_file(cls, f):
         position = Vector3(*unpack(">fff", f.read(12)))
 
@@ -611,7 +648,7 @@ class Area(object):
         area.rotation = Rotation.from_file(f)
         area.check_flag = read_uint8(f)
         area.area_type = read_uint8(f)
-        area.camera_index = read_uint16(f)
+        area.camera_index = read_int16(f)
         area.unk1 = read_uint32(f)
         area.unk2 = read_uint32(f)
         area.unkfixedpoint = read_int16(f)
@@ -625,7 +662,7 @@ class Area(object):
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         f.write(pack(">fff", self.scale.x, self.scale.y, self.scale.z))
         self.rotation.write(f)
-        f.write(pack(">BBH", self.check_flag, self.area_type, self.camera_index))
+        f.write(pack(">BBh", self.check_flag, self.area_type, self.camera_index))
         f.write(pack(">II", self.unk1, self.unk2))
         f.write(pack(">hhhh", self.unkfixedpoint, self.unkshort, self.shadow_id, self.lightparam_index))
 
@@ -664,6 +701,10 @@ class Camera(object):
         self.endzoom = 0
         self.nextcam = -1
         self.name = "null"
+
+    @classmethod
+    def new(cls):
+        return cls(Vector3(0.0, 0.0, 0.0))
 
     @classmethod
     def from_file(cls, f):
@@ -718,6 +759,10 @@ class JugemPoint(object):
         self.unk3 = 0
 
     @classmethod
+    def new(cls):
+        return cls(Vector3(0.0, 0.0, 0.0))
+
+    @classmethod
     def from_file(cls, f):
         position = Vector3(*unpack(">fff", f.read(12)))
         jugem = cls(position)
@@ -734,6 +779,7 @@ class JugemPoint(object):
         self.rotation.write(f)
         f.write(pack(">HHhh", self.respawn_id, self.unk1, self.unk2, self.unk3))
 
+
 # Section 10
 # LightParam
 class LightParam(object):
@@ -743,6 +789,10 @@ class LightParam(object):
         self.unkvec = Vector3(0.0, 0.0, 0.0)
         self.unk3 = 0
         self.unk4 = 0
+
+    @classmethod
+    def new(cls):
+        return cls()
 
     @classmethod
     def from_file(cls, f):
@@ -769,6 +819,10 @@ class MGEntry(object):
         self.unk2 = 0
         self.unk3 = 0
         self.unk4 = 0
+
+    @classmethod
+    def new(cls):
+        return cls(0)
 
     @classmethod
     def from_file(cls, f):
