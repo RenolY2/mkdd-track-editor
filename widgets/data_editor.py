@@ -356,14 +356,10 @@ class CheckpointEdit(DataEditor):
         self.end = self.add_multiple_decimal_input("End", "end", ["x", "y", "z"],
                                                      -inf, +inf)
 
-        self.unk1 = self.add_integer_input("Unknown 1", "unk1",
+        self.unk1 = self.add_integer_input("Unknown", "unk1",
                                            MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        """self.unk2 = self.add_integer_input("Unknown 2", "unk2",
-                                           MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.unk3 = self.add_integer_input("Unknown 3", "unk3",
-                                           MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.unk4 = self.add_integer_input("Unknown 4", "unk4",
-                                           MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)"""
+        self.unk3 = self.add_checkbox("Unknown Flag", "unk3",
+                                           0, 1)
 
     def update_data(self):
         obj: Checkpoint = self.bound_to
@@ -376,9 +372,7 @@ class CheckpointEdit(DataEditor):
         self.end[2].setText(str(round(obj.end.z, 3)))
 
         self.unk1.setText(str(obj.unk1))
-        #self.unk2.setText(str(obj.unk2))
-        #self.unk3.setText(str(obj.unk3))
-        #self.unk4.setText(str(obj.unk4))
+        self.unk3.setChecked(obj.unk3 != 0)
 
 
 class ObjectRouteEdit(DataEditor):
@@ -521,6 +515,8 @@ class ObjectEdit(DataEditor):
             widget.editingFinished.connect(self.catch_text_update)
 
     def update_name(self):
+        if self.bound_to.widget is None:
+            return
         self.bound_to.widget.update_name()
         self.bound_to.widget.parent().sort()
         self.bound_to.widget.setSelected(True)
@@ -596,7 +592,7 @@ class AreaEdit(DataEditor):
         self.area_type = self.add_integer_input("Area Type", "area_type",
                                                 MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.camera_index = self.add_integer_input("Camera Index", "camera_index",
-                                                   MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+                                                   MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.unk1 = self.add_integer_input("Unknown 1", "unk1",
                                            MIN_UNSIGNED_INT, MAX_UNSIGNED_INT)
         self.unk2 = self.add_integer_input("Unknown 2", "unk2",
@@ -654,7 +650,7 @@ class CameraEdit(DataEditor):
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.unk3 = self.add_integer_input("Unknown 3", "unk3",
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-        self.route = self.add_integer_input("Route", "route",
+        self.route = self.add_integer_input("Path ID", "route",
                                             MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.routespeed = self.add_integer_input("Route Speed", "routespeed",
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
