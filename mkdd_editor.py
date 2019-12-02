@@ -1,6 +1,8 @@
 import traceback
 from timeit import default_timer
+from copy import deepcopy
 from io import TextIOWrapper, BytesIO, StringIO
+from math import sin, cos, atan2
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from PyQt5.QtCore import Qt
@@ -22,12 +24,14 @@ from configuration import read_config, make_default_config, save_cfg
 
 import mkdd_widgets # as mkddwidgets
 from widgets.side_widget import PikminSideWidget
-from widgets.editor_widgets import PikObjectEditor, open_error_dialog, catch_exception_with_dialog
+from widgets.editor_widgets import open_error_dialog, catch_exception_with_dialog
 from mkdd_widgets import BolMapViewer, MODE_TOPDOWN
-from lib.libbol import BOL
+from lib.libbol import BOL, MGEntry
+import lib.libbol as libbol
 from lib.rarc import Archive
 from lib.BCOllider import RacetrackCollision
 from lib.model_rendering import TexturedModel
+from widgets.editor_widgets import ErrorAnalyzer
 
 from widgets.file_select import FileSelect
 
@@ -72,10 +76,14 @@ class GenEditor(QMainWindow):
 
         self.loaded_archive = None
         self.loaded_archive_file = None
+        self.last_position_clicked = []
+
+        self.analyzer_window = None
 
 
     @catch_exception
     def reset(self):
+        self.last_position_clicked = []
         self.loaded_archive = None
         self.loaded_archive_file = None
         self.history.reset()
@@ -265,11 +273,15 @@ class GenEditor(QMainWindow):
         #self.spawnpoint_action = QAction("Set startPos/Dir", self)
         #self.spawnpoint_action.triggered.connect(self.action_open_rotationedit_window)
         #self.misc_menu.addAction(self.spawnpoint_action)
-        self.goto_action = QAction("Go to Object", self)
-        self.goto_action.triggered.connect(self.do_goto_action)
-        self.goto_action.setShortcut("Ctrl+G")
-        self.misc_menu.addAction(self.goto_action)
-
+        self.rotation_mode = QAction("Rotate Positions around Pivot", self)
+        self.rotation_mode.setCheckable(True)
+        self.rotation_mode.setChecked(True)
+        #self.goto_action.triggered.connect(self.do_goto_action)
+        #self.goto_action.setShortcut("Ctrl+G")
+        self.misc_menu.addAction(self.rotation_mode)
+        self.analyze_action = QAction("Analyze for common mistakes", self)
+        self.analyze_action.triggered.connect(self.analyze_for_mistakes)
+        self.misc_menu.addAction(self.analyze_action)
         self.change_to_topdownview_action = QAction("Topdown View", self)
         self.change_to_topdownview_action.triggered.connect(self.change_to_topdownview)
         self.misc_menu.addAction(self.change_to_topdownview_action)
@@ -292,7 +304,13 @@ class GenEditor(QMainWindow):
 
         self.last_obj_select_pos = 0
 
+    def analyze_for_mistakes(self):
+        if self.analyzer_window is not None:
+            self.analyzer_window.destroy()
+            self.analyzer_window = None
 
+        self.analyzer_window = ErrorAnalyzer(self.level_file)
+        self.analyzer_window.show()
 
     def update_render(self):
         self.level_view.do_redraw()
@@ -384,12 +402,13 @@ class GenEditor(QMainWindow):
                     try:
                         self.loaded_archive = Archive.from_file(f)
                         root_name = self.loaded_archive.root.name
-                        bol_file = self.loaded_archive[root_name + "/" + root_name + "_course.bol"]
+                        coursename = find_file(self.loaded_archive.root, "_course.bol")
+                        bol_file = self.loaded_archive[root_name + "/" + coursename]
                         bol_data = BOL.from_file(bol_file)
                         self.setup_bol_file(bol_data, filepath)
                         self.leveldatatreeview.set_objects(bol_data)
                         self.current_gen_path = filepath
-                        self.loaded_archive_file = root_name + "_course.bol"
+                        self.loaded_archive_file = coursename
 
                     except Exception as error:
                         print("Error appeared while loading:", error)
@@ -462,8 +481,8 @@ class GenEditor(QMainWindow):
                 if self.loaded_archive is None or self.loaded_archive_file is None:
                     with open(filepath, "rb") as f:
                         self.loaded_archive = Archive.from_file(f)
-                        root_name = self.loaded_archive.root.name
-                        self.loaded_archive_file = root_name + "_course.bol"
+
+                self.loaded_archive_file = find_file(self.loaded_archive.root, "_course.bol")
                 root_name = self.loaded_archive.root.name
                 file = self.loaded_archive[root_name + "/" + self.loaded_archive_file]
                 file.seek(0)
@@ -523,7 +542,8 @@ class GenEditor(QMainWindow):
 
 
                     root_name = rarc.root.name
-                    bco = rarc[root_name][root_name+"_course.bco"]
+                    collision_file = find_file(rarc.root, "_course.bco")
+                    bco = rarc[root_name][collision_file]
                     bco_coll.load_file(bco)
                 else:
                     with open(filepath, "rb") as f:
@@ -596,10 +616,9 @@ class GenEditor(QMainWindow):
 
             if self.object_to_be_added is not None:
                 self.addobjectwindow_last_selected_category = self.add_object_window.category_menu.currentIndex()
-                self.addobjectwindow_last_selected = self.add_object_window.template_menu.currentIndex()
                 self.pik_control.button_add_object.setChecked(True)
                 #self.pik_control.button_move_object.setChecked(False)
-                self.pikmin_gen_view.set_mouse_mode(pikwidgets.MOUSE_MODE_ADDWP)
+                self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
                 self.add_object_window.destroy()
                 self.add_object_window = None
                 #self.pikmin_gen_view.setContextMenuPolicy(Qt.DefaultContextMenu)
@@ -610,42 +629,72 @@ class GenEditor(QMainWindow):
         # self.add_object_window.destroy()
         self.add_object_window = None
         self.pik_control.button_add_object.setChecked(False)
-        self.pikmin_gen_view.set_mouse_mode(pikwidgets.MOUSE_MODE_NONE)
+        self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
 
     @catch_exception
     def action_add_object(self, x, z):
-        newobj = self.object_to_be_added.copy()
-        newobj.position.x = x
-        newobj.position.z = z
-
+        y = 0
         if self.editorconfig.getboolean("GroundObjectsWhenAdding") is True:
-            if self.pikmin_gen_view.collision is not None:
-                y = self.pikmin_gen_view.collision.collide_ray_downwards(x, z)
-                if y is not None:
-                    newobj.position.y = y
+            if self.level_view.collision is not None:
+                y_collided = self.level_view.collision.collide_ray_downwards(x, z)
+                if y_collided is not None:
+                    y = y_collided
 
-        self.pikmin_gen_file.generators.append(newobj)
-        #self.pikmin_gen_view.update()
-        self.pikmin_gen_view.do_redraw()
-
-        self.history.add_history_addobject(newobj)
-        self.set_has_unsaved_changes(True)
+        self.action_add_object_3d(x, y, z)
 
     @catch_exception
     def action_add_object_3d(self, x, y, z):
-        newobj = self.object_to_be_added.copy()
+        object, group, position = self.object_to_be_added
+        if position < 0:
+            position = 99999999 # this forces insertion at the end of the list
 
-        newobj.position.x = round(x, 6)
-        newobj.position.y = round(y, 6)
-        newobj.position.z = round(z, 6)
-        #newobj.offset_x = newobj.offset_y = newobj.offset_z = 0.0
+        if isinstance(object, libbol.Checkpoint):
+            if len(self.last_position_clicked) == 1:
+                placeobject = deepcopy(object)
 
-        self.pikmin_gen_file.generators.append(newobj)
-        # self.pikmin_gen_view.update()
-        self.pikmin_gen_view.do_redraw()
+                x1, y1, z1 = self.last_position_clicked[0]
+                placeobject.start.x = x1
+                placeobject.start.y = y1
+                placeobject.start.z = z1
 
-        self.history.add_history_addobject(newobj)
-        self.set_has_unsaved_changes(True)
+                placeobject.end.x = x
+                placeobject.end.y = y
+                placeobject.end.z = z
+                self.last_position_clicked = []
+                self.level_file.checkpoints.groups[group].points.insert(position, placeobject)
+                self.pikmin_gen_view.do_redraw()
+                self.set_has_unsaved_changes(True)
+            else:
+                self.last_position_clicked = [(x, y, z)]
+
+        else:
+            placeobject = deepcopy(object)
+            placeobject.position.x = x
+            placeobject.position.y = y
+            placeobject.position.z = z
+
+            if isinstance(object, libbol.EnemyPoint):
+                self.level_file.enemypointgroups.groups[group].insert(position, placeobject)
+            elif isinstance(object, libbol.RoutePoint):
+                self.level_file.routes[group].insert(position, placeobject)
+            elif isinstance(object, libbol.MapObject):
+                self.level_file.objects.objects.append(placeobject)
+            elif isinstance(object, libbol.KartStartPoint):
+                self.level_file.kartpoints.positions.append(placeobject)
+            elif isinstance(object, libbol.JugemPoint):
+                self.level_file.respawnpoints.append(placeobject)
+            elif isinstance(object, libbol.Area):
+                self.level_file.areas.areas.append(placeobject)
+            elif isinstance(object, libbol.Camera):
+                self.level_file.cameras.append(placeobject)
+            else:
+                raise RuntimeError("Unknown object type {0}".format(type(object)))
+
+            self.level_view.do_redraw()
+            self.leveldatatreeview.set_objects(self.level_file)
+            self.set_has_unsaved_changes(True)
+
+
 
     @catch_exception
     def action_move_objects(self, deltax, deltay, deltaz):
@@ -755,7 +804,6 @@ class GenEditor(QMainWindow):
             self.level_view.MOVE_DOWN = 0
 
     def action_rotate_object(self, deltarotation):
-        print("hi")
         #obj.set_rotation((None, round(angle, 6), None))
         for rot in self.level_view.selected_rotations:
             if deltarotation.x != 0:
@@ -764,6 +812,21 @@ class GenEditor(QMainWindow):
                 rot.rotate_around_z(deltarotation.y)
             elif deltarotation.z != 0:
                 rot.rotate_around_x(deltarotation.z)
+
+        middle = self.level_view.gizmo.position
+
+        for position in self.level_view.selected_positions:
+            diff = position - middle
+            diff.y = 0.0
+
+            length = diff.norm()
+            if length > 0:
+                diff.normalize()
+                angle = atan2(diff.x, diff.z)
+                angle += deltarotation.y
+                position.x = middle.x + length * sin(angle)
+                position.z = middle.z + length * cos(angle)
+
         """
         if len(self.pikmin_gen_view.selected) == 1:
             obj = self.pikmin_gen_view.selected[0]
@@ -790,20 +853,54 @@ class GenEditor(QMainWindow):
 
     def action_delete_objects(self):
         tobedeleted = []
-        for obj in self.pikmin_gen_view.selected:
-            self.pikmin_gen_file.generators.remove(obj)
-            if obj in self.editing_windows:
-                self.editing_windows[obj].destroy()
-                del self.editing_windows[obj]
+        for obj in self.level_view.selected:
+            if isinstance(obj, libbol.EnemyPoint):
+                for group, objlist in self.level_file.enemypointgroups.groups.items():
+                    if obj in objlist.points:
+                        objlist.points.remove(obj)
+                        break
 
-            tobedeleted.append(obj)
-        self.pikmin_gen_view.selected = []
+            elif isinstance(obj, libbol.RoutePoint):
+                for route in self.level_file.routes:
+                    if obj in route.points:
+                        route.points.remove(obj)
+                        break
+
+            elif isinstance(obj, libbol.Checkpoint):
+                for group in self.level_file.checkpoints.groups:
+                    if obj in group.points:
+                        group.points.remove(obj)
+                        break
+
+            elif isinstance(obj, libbol.MapObject):
+                self.level_file.objects.objects.remove(obj)
+            elif isinstance(obj, libbol.KartStartPoint):
+                self.level_file.kartpoints.positions.remove(obj)
+            elif isinstance(obj, libbol.JugemPoint):
+                self.level_file.respawnpoints.remove(obj)
+            elif isinstance(obj, libbol.Area):
+                self.level_file.areas.areas.remove(obj)
+            elif isinstance(obj, libbol.Camera):
+                self.level_file.cameras.remove(obj)
+            elif isinstance(obj, libbol.CheckpointGroup):
+                self.level_file.checkpoints.groups.remove(obj)
+            elif isinstance(obj, libbol.EnemyPointGroup):
+                for key in self.level_file.enemypointgroups.groups:
+                    if self.level_file.enemypointgroups.groups[key] == obj:
+                        self.level_file.enemypointgroups.pop(key)
+                        break
+            elif isinstance(obj, libbol.Route):
+                self.level_file.routes.remove(obj)
+
+        self.level_view.selected = []
+        self.level_view.selected_positions = []
+        self.level_view.selected_rotations = []
 
         self.pik_control.reset_info()
-        self.pikmin_gen_view.gizmo.hidden = True
+        self.leveldatatreeview.set_objects(self.level_file)
+        self.level_view.gizmo.hidden = True
         #self.pikmin_gen_view.update()
-        self.pikmin_gen_view.do_redraw()
-        self.history.add_history_removeobjects(tobedeleted)
+        self.level_view.do_redraw()
         self.set_has_unsaved_changes(True)
 
     @catch_exception
@@ -954,6 +1051,12 @@ class EditorHistory(object):
         item = self.history[self.step]
         self.step += 1
         return item
+
+def find_file(rarc_folder, ending):
+    for filename in rarc_folder.files.keys():
+        if filename.endswith(ending):
+            return filename
+    raise RuntimeError("No Course File found!")
 
 import sys
 def except_hook(cls, exception, traceback):
