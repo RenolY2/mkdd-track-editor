@@ -154,7 +154,7 @@ class Collision(object):
         print("finished generating triangles")
         print(grid_size_x, grid_size_z)
 
-    def collide_ray_downwards(self, x, z, y=999999):
+    def collide_ray_downwards(self, x, z, y=99999999):
         grid_x = int((x+MAX_X) // 100)
         grid_z = int((z+MAX_Z) // 100)
 
