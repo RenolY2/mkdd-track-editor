@@ -1,10 +1,11 @@
 import traceback
 from io import StringIO
+from itertools import chain
 import os
 import sys
 
 from PyQt5.QtGui import QMouseEvent, QWheelEvent, QPainter, QColor, QFont, QFontMetrics, QPolygon, QImage, QPixmap, QKeySequence
-from PyQt5.QtWidgets import (QWidget, QListWidget, QListWidgetItem, QDialog, QMenu, QLineEdit, QFileDialog,
+from PyQt5.QtWidgets import (QWidget, QListWidget, QListWidgetItem, QDialog, QMenu, QLineEdit, QFileDialog, QScrollArea,
                             QMdiSubWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QTextEdit, QAction, QShortcut)
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
@@ -12,7 +13,9 @@ from PyQt5.QtCore import QSize, pyqtSignal, QPoint, QRect
 from PyQt5.QtCore import Qt
 import PyQt5.QtGui as QtGui
 
-from lib.libgen import GeneratorWriter, GeneratorObject, GeneratorReader
+import lib.libbol as libbol
+from widgets.data_editor import choose_data_editor
+from lib.libbol import get_full_name
 
 def catch_exception(func):
     def handle(*args, **kwargs):
@@ -53,148 +56,126 @@ def open_error_dialog(errormsg, self):
     errorbox.setFixedSize(500, 200)
 
 
-class PikObjectEditor(QMdiSubWindow):
-    triggered = pyqtSignal(object)
-    closing = pyqtSignal()
-
-    def __init__(self, *args, **kwargs):
+class ErrorAnalyzer(QMdiSubWindow):
+    @catch_exception
+    def __init__(self, bol, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.window_name = "Edit Pikmin Object"
-        self.resize(900, 500)
-        self.setMinimumSize(QSize(300, 300))
-
-        self.centralwidget = QWidget(self)
-        self.setWidget(self.centralwidget)
-        self.entity = None
-
         font = QFont()
         font.setFamily("Consolas")
         font.setStyleHint(QFont.Monospace)
         font.setFixedPitch(True)
         font.setPointSize(10)
 
-        self.dummywidget = QWidget(self)
-        self.dummywidget.setMaximumSize(0,0)
+        self.setWindowTitle("Analysis Results")
+        self.text_widget = QTextEdit(self)
+        self.setWidget(self.text_widget)
+        self.resize(900, 500)
+        self.setMinimumSize(QSize(300, 300))
+        self.text_widget.setFont(font)
+        self.text_widget.setReadOnly(True)
 
-        self.verticalLayout = QVBoxLayout(self.centralwidget)
-        self.verticalLayout.addWidget(self.dummywidget)
-
-        self.textbox_xml = QTextEdit(self.centralwidget)
-        self.button_savetext = QPushButton(self.centralwidget)
-        self.button_savetext.setText("Save Object Data")
-        self.button_savetext.setMaximumWidth(400)
-        self.textbox_xml.setLineWrapMode(QTextEdit.NoWrap)
-        self.textbox_xml.setContextMenuPolicy(Qt.CustomContextMenu)
-
-        self.button_writetemplate = QPushButton(self.centralwidget)
-        self.button_writetemplate.setText("Write Template")
-        self.button_writetemplate.setMaximumWidth(400)
-        self.button_writetemplate.pressed.connect(self.save_template)
-        #self.textbox_xml.customContextMenuRequested.connect(self.my_context_menu)
-
-        metrics = QFontMetrics(font)
-        self.textbox_xml.setTabStopWidth(4 * metrics.width(' '))
-        self.textbox_xml.setFont(font)
-
-        self.verticalLayout.addWidget(self.textbox_xml)
-        hozlayout = QHBoxLayout()
-        hozlayout.addWidget(self.button_savetext)
-        hozlayout.addWidget(self.button_writetemplate)
-        self.verticalLayout.addLayout(hozlayout)
-        #self.verticalLayout.addWidget(self.button_savetext)
-        self.setWindowTitle(self.window_name)
-
-        QtWidgets.QShortcut(Qt.CTRL + Qt.Key_S, self).activated.connect(self.emit_save_object)
-        self.button_savetext.setToolTip("Hotkey: Ctrl+S")
-
-    def save_template(self):
-        content = self.textbox_xml.toPlainText()
-        #dir_path = os.path.dirname(os.path.realpath(__file__))
-        #print(dir_path)
-        filepath, choosentype = QFileDialog.getSaveFileName(
-            self, "Save File",
-            os.path.join(os.getcwd(), "object_templates"),
-            "Text file (*.txt);;All files (*)")
-
-        if filepath:
-            with open(filepath, "w", encoding="utf-8") as f:
-                f.write(content)
-
-    def keyPressEvent(self, event: QtGui.QKeyEvent):
-        if event.key() == Qt.CTRL + Qt.Key_W:
-            self.shortcut_closewindow()
-        else:
-            super().keyPressEvent(event)
-
-    def emit_save_object(self):
-        self.button_savetext.pressed.emit()
+        self.analyze_bol_and_write_results(bol)
 
     @catch_exception
-    def shortcut_closewindow(self):
-        self.close()
+    def analyze_bol_and_write_results(self, bol):
+        results = StringIO()
 
-    def closeEvent(self, event):
-        self.closing.emit()
+        def write_line(line):
+            results.write(line)
+            results.write("\n")
 
-    def set_content(self, pikminobject):
-        try:
-            text = StringIO()
-            """for comment in pikminobject.preceeding_comment:
-                assert comment.startswith("#")
-                text.write(comment.strip())
-                text.write("\n")
-            node = pikminobject.to_textnode()
-            piktxt = PikminTxt()
-            piktxt.write(text, node=[node])"""
-            genwriter = GeneratorWriter(text)
-            pikminobject.write(genwriter)
-            self.textbox_xml.setText(text.getvalue())
-            self.entity = pikminobject
-            self.set_title(pikminobject.name)
-            text.close()
-            del text
-        except:
-            traceback.print_exc()
+        # Check enemy point linkage errors
+        links = {}
+        for group_index, group in bol.enemypointgroups.groups.items():
+            for i, point in enumerate(group.points):
+                if point.link == -1:
+                    continue
 
-    def open_new_window(self, owner):
-        #print("It was pressed!", owner)
-        #print("selected:", owner.textbox_xml.textCursor().selectedText())
+                if point.link not in links:
+                    links[point.link] = [(group_index, i, point)]
+                else:
+                    links[point.link].append(((group_index, i, point)))
 
-        self.triggered.emit(self)
+        for link_id, points in links.items():
+            if len(points) == 1:
+                group_index, i, point = points[0]
+                write_line("Point {0} in enemy point group {1} has link {2}; No other point has link {2}".format(
+                    i, group_index, point.link
+                ))
+        for group_index, group in bol.enemypointgroups.groups.items():
+            print(group.points[0].link, group.points[-1].link)
+            if group.points[0].link == -1:
+                write_line("Start point of enemy point group {0} has no valid link to form a loop".format(group_index))
+            if group.points[-1].link == -1:
+                write_line("End point of enemy point group {0} has no valid link to form a loop".format(group_index))
 
-    def get_content(self):
-        try:
-            content = self.textbox_xml.toPlainText()
-            file = StringIO()
-            file.write(content)
-            file.seek(0)
-            reader = GeneratorReader(file)
-            obj = GeneratorObject.from_generator_file(reader)
-            del reader
-            del file
-            self.set_title(obj.name)
-            return obj
-        except Exception as e:
-            traceback.print_exc()
-            open_error_dialog(str(e), self)
-            return None
+        # Check prev/next groups of checkpoints
+        for i, group in enumerate(bol.checkpoints.groups):
+            for index in chain(group.prevgroup, group.nextgroup):
+                if index != -1:
+                    if index < -1 or index+1 > len(bol.checkpoints.groups):
+                        write_line("Checkpoint group {0} has invalid Prev or Nextgroup index {1}".format(
+                            i, index
+                        ))
 
-    def set_title(self, objectname):
-        self.setWindowTitle("{0} - {1}".format(self.window_name, objectname))
+        # Validate path id in objects
+        for object in bol.objects.objects:
+            if object.pathid < -1 or object.pathid + 1 > len(bol.routes):
+                write_line("Map object {0} uses path id {1} that does not exist".format(
+                    get_full_name(object.objectid), object.pathid
+                ))
 
-    def reset(self):
-        pass
+        # Validate Kart start positions
+        if len(bol.kartpoints.positions) == 0:
+            write_line("Map contains no kart start points")
+        else:
+            exist = [False for x in range(8)]
 
+            for i, kartstartpos in enumerate(bol.kartpoints.positions):
+                if kartstartpos.playerid == 0xFF:
+                    if all(exist):
+                        write_line("Duplicate kart start point for all karts")
+                    exist = [True for x in range(8)]
+                elif kartstartpos.playerid > 8:
+                    write_line("A kart start point with an invalid player id exists: {0}".format(
+                        kartstartpos.playerid
+                    ))
+                elif exist[kartstartpos.playerid]:
+                    write_line("Duplicate kart start point for player id {0}".format(
+                        kartstartpos.playerid))
+                else:
+                    exist[kartstartpos.playerid] = True
 
-class AddPikObjectWindow(PikObjectEditor):
+        # Check camera indices in areas
+        for i, area in enumerate(bol.areas.areas):
+            if area.camera_index < -1 or area.camera_index + 1 > len(bol.cameras):
+                write_line("Area {0} uses invalid camera index {1}".format(i, area.camera_index))
+
+        # Check cameras
+        for i, camera in enumerate(bol.cameras):
+            if camera.nextcam < -1 or camera.nextcam + 1 > len(bol.cameras):
+                write_line("Camera {0} uses invalid nextcam (next camera) index {1}".format(
+                    i, camera.nextcam
+                ))
+            if camera.route < -1 or camera.route + 1 > len(bol.routes):
+                write_line("Camera {0} uses invalid path id {1}".format(i,
+                                                                        camera.route))
+        text = results.getvalue()
+        if not text:
+            text = "No common errors detected!"
+        self.text_widget.setText(results.getvalue())
+
+class AddPikObjectWindow(QMdiSubWindow):
+    triggered = pyqtSignal(object)
+    closing = pyqtSignal()
+
     @catch_exception
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if "windowtype" in kwargs:
             self.window_name = kwargs["windowtype"]
-            del kwargs["windowtype"]
         else:
-            self.window_name = "Add Pikmin Object"
+            self.window_name = "Add Object"
 
         self.resize(900, 500)
         self.setMinimumSize(QSize(300, 300))
@@ -214,28 +195,60 @@ class AddPikObjectWindow(PikObjectEditor):
 
 
         self.verticalLayout = QVBoxLayout(self.centralwidget)
+        self.verticalLayout.setAlignment(Qt.AlignTop)
         self.verticalLayout.addWidget(self.dummywidget)
 
-        self.setup_dropdown_menu()
-        self.verticalLayout.addWidget(self.template_menu)
 
-        self.textbox_xml = QTextEdit(self.centralwidget)
+
+        self.setup_dropdown_menu()
+
+
+
+        self.hbox1 = QHBoxLayout(self.centralwidget)
+        self.hbox2 = QHBoxLayout(self.centralwidget)
+
+
+        self.label1 = QLabel(self.centralwidget)
+        self.label2 = QLabel(self.centralwidget)
+        self.label3 = QLabel(self.centralwidget)
+        self.label1.setText("Group")
+        self.label2.setText("Position in Group")
+        self.label3.setText("(-1 means end of Group)")
+        self.group_edit = QLineEdit(self.centralwidget)
+        self.position_edit = QLineEdit(self.centralwidget)
+
+        self.group_edit.setValidator(QtGui.QIntValidator(0, 2**32-1))
+        self.position_edit.setValidator(QtGui.QIntValidator(-1, 2**32-1))
+
+        self.hbox1.setAlignment(Qt.AlignRight)
+        self.hbox2.setAlignment(Qt.AlignRight)
+
+
+        self.verticalLayout.addLayout(self.hbox1)
+        self.verticalLayout.addLayout(self.hbox2)
+        self.hbox1.addWidget(self.label1)
+        self.hbox1.addWidget(self.group_edit)
+        self.hbox2.addWidget(self.label2)
+        self.hbox2.addWidget(self.position_edit)
+        self.hbox2.addWidget(self.label3)
+
+        self.group_edit.setDisabled(True)
+        self.position_edit.setDisabled(True)
+
+
+        self.editor_widget = None
+        self.editor_layout = QScrollArea()#QVBoxLayout(self.centralwidget)
+        self.verticalLayout.addWidget(self.editor_layout)
+        #self.textbox_xml = QTextEdit(self.centralwidget)
         self.button_savetext = QPushButton(self.centralwidget)
         self.button_savetext.setText("Add Object")
         self.button_savetext.setToolTip("Hotkey: Ctrl+S")
         self.button_savetext.setMaximumWidth(400)
-        self.textbox_xml.setLineWrapMode(QTextEdit.NoWrap)
-        self.textbox_xml.setContextMenuPolicy(Qt.CustomContextMenu)
-        #self.textbox_xml.customContextMenuRequested.connect(self.my_context_menu)
+        self.button_savetext.setDisabled(True)
 
-        metrics = QFontMetrics(font)
-        self.textbox_xml.setTabStopWidth(4 * metrics.width(' '))
-        self.textbox_xml.setFont(font)
-
-        self.verticalLayout.addWidget(self.textbox_xml)
         self.verticalLayout.addWidget(self.button_savetext)
         self.setWindowTitle(self.window_name)
-
+        self.created_object = None
         #QtWidgets.QShortcut(Qt.CTRL + Qt.Key_S, self).activated.connect(self.emit_add_object)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent):
@@ -249,15 +262,16 @@ class AddPikObjectWindow(PikObjectEditor):
 
     def get_content(self):
         try:
-            content = self.textbox_xml.toPlainText()
-            file = StringIO()
-            file.write(content)
-            file.seek(0)
-            reader = GeneratorReader(file)
-            obj = GeneratorObject.from_generator_file(reader)
-            del reader
-            del file
-            return obj
+            if not self.group_edit.text():
+                group = None
+            else:
+                group = int(self.group_edit.text())
+            if not self.position_edit.text():
+                position = None
+            else:
+                position = int(self.position_edit.text())
+            return self.created_object, group, position
+
         except Exception as e:
             traceback.print_exc()
             open_error_dialog(str(e), self)
@@ -265,64 +279,70 @@ class AddPikObjectWindow(PikObjectEditor):
 
     def setup_dropdown_menu(self):
         self.category_menu = QtWidgets.QComboBox(self)
-        self.category_menu.addItem("-- select object category --")
-        self.category_menu.addItem("[None]")
-
-        self.template_menu = QtWidgets.QComboBox(self)
-        self.template_menu.addItem("-- select object template --")
-        self.template_menu.addItem("[None]")
+        self.category_menu.addItem("-- select type --")
 
         self.verticalLayout.addWidget(self.category_menu)
-        self.verticalLayout.addWidget(self.template_menu)
 
-        for dirpath, dirs, files in os.walk("./object_templates"):
-            for dirname in dirs:
-                self.category_menu.addItem(dirname)
+        self.objecttypes = {
+            "Enemy route point": libbol.EnemyPoint,
+            "Checkpoint": libbol.Checkpoint,
+            "Map object route point": libbol.RoutePoint,
+            "Map object": libbol.MapObject,
+            "Area": libbol.Area,
+            "Camera": libbol.Camera,
+            "Respawn point": libbol.JugemPoint,
+            "Kart start point": libbol.KartStartPoint,
+            "Enemy point group": libbol.EnemyPointGroup,
+            "Checkpoint group": libbol.CheckpointGroup,
+            "Object point group": libbol.Route,
+            "Light param": libbol.LightParam,
+            "Minigame param": libbol.MGEntry
+        }
 
-            for filename in files:
-                self.template_menu.addItem(filename)
-
-            break
+        for item, val in self.objecttypes.items():
+            self.category_menu.addItem(item)
 
         self.category_menu.currentIndexChanged.connect(self.change_category)
-        self.template_menu.currentIndexChanged.connect(self.read_template_file_into_window)
 
     def change_category(self, index):
-        self.template_menu.clear()
-        self.template_menu.addItem("-- select object template --")
-        self.template_menu.addItem("[None]")
+        if index > 0:
+            item = self.category_menu.currentText()
+            self.button_savetext.setDisabled(False)
+            objecttype = self.objecttypes[item]
 
-        if index == 1:
+            if self.editor_widget is not None:
+                self.editor_widget.deleteLater()
+                self.editor_widget = None
+            if self.created_object is not None:
+                del self.created_object
 
-            for dirpath, dirs, files in os.walk("./object_templates"):
-                for filename in files:
-                    self.template_menu.addItem(filename)
+            self.created_object = objecttype.new()
 
-                break
-        elif index > 1:
-            dirname = self.category_menu.currentText()
-            for dirpath, dirs, files in os.walk(os.path.join("object_templates", dirname)):
-                for filename in files:
-                    self.template_menu.addItem(filename)
-
-                break
-
-
-    @catch_exception_with_dialog
-    def read_template_file_into_window(self, index):
-        if index == 1:
-            self.textbox_xml.setText("")
-        elif index > 1:
-            if self.category_menu.currentIndex() <= 1:
-                dirname = ""
+            if isinstance(self.created_object, (libbol.Checkpoint, libbol.EnemyPoint, libbol.RoutePoint)):
+                self.group_edit.setDisabled(False)
+                self.position_edit.setDisabled(False)
+                self.group_edit.setText("0")
+                self.position_edit.setText("-1")
             else:
-                dirname = self.category_menu.currentText()
+                self.group_edit.setDisabled(True)
+                self.position_edit.setDisabled(True)
+                self.group_edit.clear()
+                self.position_edit.clear()
 
-            filename = self.template_menu.currentText()
+            data_editor = choose_data_editor(self.created_object)
+            if data_editor is not None:
+                self.editor_widget = data_editor(self, self.created_object)
+                self.editor_layout.setWidget(self.editor_widget)
+                self.editor_widget.update_data()
 
-            with open(os.path.join("./object_templates", dirname, filename), "r", encoding="utf-8") as f:
-                self.textbox_xml.setText(f.read())
-
+        else:
+            self.editor_widget.deleteLater()
+            self.editor_widget = None
+            del self.created_object
+            self.created_object = None
+            self.button_savetext.setDisabled(True)
+            self.position_edit.setDisabled(True)
+            self.group_edit.setDisabled(True)
 
 class SpawnpointEditor(QMdiSubWindow):
     triggered = pyqtSignal(object)
