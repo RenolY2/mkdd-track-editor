@@ -1,0 +1,7 @@
+{
+  "EnemyRoutes": [0.7, 0.7, 0.7, 1.0],
+  "ItemRoutes": [0.0, 0.8, 0.0, 1.0],
+  "CheckpointLeft": [1.0, 0.0, 0.0, 1.0],
+  "CheckpointRight": [0.1, 0.1, 0.8, 1.0],
+  "SelectionColor": [1.0, 0.874, 0.153, 1.0]
+}
