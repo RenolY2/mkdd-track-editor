@@ -14,6 +14,7 @@ class PikminSideWidget(QWidget):
 
         self.parent = parent
         self.setMaximumSize(QSize(350, 1500))
+        self.setMinimumWidth(300)
         self.verticalLayout = QVBoxLayout(self)
         self.verticalLayout.setAlignment(Qt.AlignTop)
 
@@ -32,8 +33,8 @@ class PikminSideWidget(QWidget):
         #self.button_move_object = QPushButton(parent)
         #self.button_edit_object = QPushButton(parent)
 
-        self.button_add_object.setDisabled(True)
-        self.button_remove_object.setDisabled(True)
+        #self.button_add_object.setDisabled(True)
+        #self.button_remove_object.setDisabled(True)
 
         self.button_add_object.setText("Add Object")
         self.button_remove_object.setText("Remove Object(s)")
