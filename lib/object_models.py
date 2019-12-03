@@ -5,6 +5,9 @@ from .model_rendering import (GenericObject, Model, TexturedModel,
                               GenericFlyer, GenericCrystallWall, GenericLongLegs, GenericChappy, GenericSnakecrow,
                               GenericSwimmer, Cube)
 
+with open("lib/color_coding.json", "r") as f:
+    colors = json.load(f)
+
 
 class ObjectModels(object):
     def __init__(self):
@@ -16,8 +19,12 @@ class ObjectModels(object):
         self.generic_snakecrow = GenericSnakecrow()
         self.generic_swimmer = GenericSwimmer()
         self.cube = Cube()
-        self.redcube = Cube((1.0, 0.0, 0.0, 1.0))
-        self.bluecube = Cube((0.1, 0.1, 8.0, 1.0))
+        self.checkpointleft = Cube(colors["CheckpointLeft"])
+        self.checkpointright = Cube(colors["CheckpointRight"])
+        self.itempoint = Cube(colors["ItemRoutes"])
+        self.enemypoint = Cube(colors["EnemyRoutes"])
+        #self.purplecube = Cube((0.7, 0.7, 1.0, 1.0))
+
 
         genericmodels = {
             "Chappy": self.generic_chappy,
@@ -50,7 +57,7 @@ class ObjectModels(object):
                     filename = os.path.basename(file)
                     objectname = filename.rsplit(".", 1)[0]
                     self.models[objectname] = TexturedModel.from_obj_path(os.path.join(dirpath, file), rotate=True)
-        for cube in (self.cube, self.redcube, self.bluecube):
+        for cube in (self.cube, self.checkpointleft, self.checkpointright, self.itempoint, self.enemypoint):
             cube.generate_displists()
 
         self.generic.generate_displists()
@@ -72,8 +79,6 @@ class ObjectModels(object):
         #glVertex3f(frompos.x, -frompos.z, frompos.y)
         #glVertex3f(topos.x, -topos.z, topos.y)
         #glEnd()
-
-
 
     def draw_sphere(self, position, scale):
         glPushMatrix()

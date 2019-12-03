@@ -1,3 +1,5 @@
+import json
+
 from OpenGL.GL import *
 from .vectors import Vector3
 from struct import unpack
@@ -6,6 +8,10 @@ from OpenGL.GL import *
 
 from PyQt5 import QtGui
 
+with open("lib/color_coding.json") as f:
+    colors = json.load(f)
+
+selectioncolor = colors["SelectionColor"]
 
 def read_vertex(v_data):
     split = v_data.split("/")
@@ -114,7 +120,7 @@ class TexturedMesh(object):
             else:
                 glColor3f(1.0, 1.0, 1.0)
         else:
-            glColor4f(255 / 255, 223 / 255, 39 / 255, 1.0)
+            glColor4f(*selectioncolor)
 
         glCallList(self._displist)
 
@@ -480,7 +486,7 @@ class Cube(SelectableModel):
 
         glEnable(GL_CULL_FACE)
         if selected:
-            glColor4f(255/255, 223/255, 39/255, 1.0)
+            glColor4f(*selectioncolor)
         else:
             glColor4f(0.0, 0.0, 0.0, 1.0)
         glCullFace(GL_FRONT)
@@ -519,7 +525,7 @@ class GenericObject(SelectableModel):
     def _render(self, selected=False):
         glEnable(GL_CULL_FACE)
         if selected:
-            glColor4f(255/255, 223/255, 39/255, 1.0)
+            glColor4f(*selectioncolor)
         else:
             glColor4f(0.0, 0.0, 0.0, 1.0)
         glCullFace(GL_FRONT)
@@ -567,7 +573,7 @@ class GenericComplexObject(GenericObject):
     def render(self, selected=False):
         glEnable(GL_CULL_FACE)
         if selected:
-            glColor4f(255/255, 223/255, 39/255, 1.0)
+            glColor4f(*selectioncolor)
         else:
             glColor4f(0.0, 0.0, 0.0, 1.0)
         glCullFace(GL_FRONT)
@@ -593,7 +599,7 @@ class GenericComplexObject(GenericObject):
         glPopMatrix()
 
         if selected:
-            glColor4f(255/255, 223/255, 39/255, 1.0)
+            glColor4f(*selectioncolor)
         else:
             glColor4f(0.0, 0.0, 0.0, 1.0)
 
@@ -656,7 +662,7 @@ class __GenericChappy(GenericObject):
     def render(self, selected=False):
         glEnable(GL_CULL_FACE)
         if selected:
-            glColor4f(255/255, 223/255, 39/255, 1.0)
+            glColor4f(*selectioncolor)
         else:
             glColor4f(0.0, 0.0, 0.0, 1.0)
 
@@ -686,7 +692,7 @@ class __GenericChappy(GenericObject):
 
 
         if selected:
-            glColor4f(255/255, 223/255, 39/255, 1.0)
+            glColor4f(*selectioncolor)
         else:
             glColor4f(0.0, 0.0, 0.0, 1.0)
         self.mesh_list[0].render()  # leg

@@ -738,7 +738,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             if vismenu.itemroutes.is_visible():
                 for route in self.level_file.routes:
                     for point in route.points:
-                        self.models.render_generic_position(point.position, point in select_optimize)
+                        self.models.render_generic_position_colored(point.position, point in select_optimize, "itempoint")
 
                     glBegin(GL_LINE_STRIP)
                     glColor3f(0.0, 0.0, 0.0)
@@ -746,10 +746,11 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         pos = point.position
                         glVertex3f(pos.x, -pos.z, pos.y)
                     glEnd()
+
             if vismenu.enemyroute.is_visible():
                 for group in self.level_file.enemypointgroups.groups.values():
                     for point in group.points:
-                        self.models.render_generic_position(point.position, point in select_optimize)
+                        self.models.render_generic_position_colored(point.position, point in select_optimize, "enemypoint")
 
                     glBegin(GL_LINE_STRIP)
                     glColor3f(0.0, 0.0, 0.0)
@@ -758,13 +759,40 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         glVertex3f(pos.x, -pos.z, pos.y)
                     glEnd()
 
+
+                groups = self.level_file.enemypointgroups.groups
+                links = {}
+                for group in groups.values():
+                    for point in group.points:
+                        if point.link != -1:
+
+                            if point.link not in links:
+                                links[point.link] = [point.position]
+                            else:
+                                links[point.link].append(point.position)
+                """
+                            and point.link in groups and len(groups[point.link].points) > 0:
+                            if point != groups[point.link].points[0]:
+                                pos1 = point.position
+                                pos2 = groups[point.link].points[0].position
+                                glVertex3f(pos1.x, -pos1.z, pos1.y)
+                                glVertex3f(pos2.x, -pos2.z, pos2.y)"""
+
+
+                glColor3f(0.0, 0.0, 1.0)
+                for link, points in links.items():
+                    glBegin(GL_LINE_LOOP)
+                    for point in points:
+                         glVertex3f(point.x, -point.z, point.y)
+                    glEnd()
+
             if vismenu.checkpoints.is_visible():
                 for i, group in enumerate(self.level_file.checkpoints.groups):
 
                     prev = None
                     for checkpoint in group.points:
-                        self.models.render_generic_position_colored(checkpoint.start, checkpoint.start in positions, "redcube")
-                        self.models.render_generic_position_colored(checkpoint.end, checkpoint.end in positions, "bluecube")
+                        self.models.render_generic_position_colored(checkpoint.start, checkpoint.start in positions, "checkpointleft")
+                        self.models.render_generic_position_colored(checkpoint.end, checkpoint.end in positions, "checkpointright")
 
                     glColor3f(*colors[i % 4])
 
