@@ -5,11 +5,14 @@ from .yaz0 import decompress, compress_fast, read_uint32, read_uint16
 
 import time
 
+
 def write_uint32(f, val):
     f.write(pack(">I", val))
 
+
 def write_uint16(f, val):
     f.write(pack(">H", val))
+
 
 def write_pad32(f):
     next_aligned_pos = (f.tell() + 0x1F) & ~0x1F
@@ -19,6 +22,7 @@ def write_pad32(f):
     #print(hex(next_aligned_pos))
 
 DATA = [0]
+
 
 # Hashing algorithm taken from Gamma and LordNed's WArchive-Tools, hope it works
 def hash_name(name):
@@ -34,6 +38,7 @@ def hash_name(name):
         hash = (hash + ord(letter)) & 0xFFFF
 
     return hash
+
 
 class StringTable(object):
     def __init__(self):
@@ -57,6 +62,7 @@ class StringTable(object):
     def write_to(self, f):
         f.write(self._strings.getvalue())
 
+
 def stringtable_get_name(f, stringtable_offset, offset):
     current = f.tell()
     f.seek(stringtable_offset+offset)
@@ -78,6 +84,7 @@ def stringtable_get_name(f, stringtable_offset, offset):
 
     return decodedfilename
 
+
 def split_path(path): # Splits path at first backslash encountered
     for i, char in enumerate(path):
         if char == "/" or char == "\\":
@@ -87,6 +94,7 @@ def split_path(path): # Splits path at first backslash encountered
                 return path[:i], path[i+1:]
 
     return path, None
+
 
 class Directory(object):
     def __init__(self, dirname, nodeindex=None):
@@ -255,6 +263,7 @@ class Directory(object):
         for dirname, dir in self.subdirs.items():
             dir.extract_to(current_dirpath)
 
+
 class File(BytesIO):
     def __init__(self, filename, fileid=None, hashcode=None, flags=None):
         super().__init__()
@@ -272,8 +281,6 @@ class File(BytesIO):
         file.seek(0)
 
         return file
-
-
 
     @classmethod
     def from_fileentry(cls, f, stringtable_offset, globaldataoffset, fileid, hashcode, flags, nameoffset, filedataoffset, datasize):
@@ -371,7 +378,6 @@ class Archive(object):
         newarc.root = Directory.from_node(f, rootfoldername, stringtable_offset, file_entry_offset, data_offset, nodes, 0)
 
         return newarc
-
 
     def listdir(self, path):
         if path == ".":
