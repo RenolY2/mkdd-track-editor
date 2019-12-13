@@ -34,8 +34,16 @@ from lib.model_rendering import TexturedModel, CollisionModel
 from widgets.editor_widgets import ErrorAnalyzer
 
 from widgets.file_select import FileSelect
-
+from PyQt5.QtWidgets import QTreeWidgetItem
 PIKMIN2GEN = "Generator files (defaultgen.txt;initgen.txt;plantsgen.txt;*.txt)"
+
+
+def get_treeitem(root:QTreeWidgetItem, obj):
+    for i in range(root.childCount()):
+        child = root.child(i)
+        if child.bound_to == obj:
+            return child
+    return None
 
 
 class GenEditor(QMainWindow):
@@ -366,6 +374,7 @@ class GenEditor(QMainWindow):
 
     def connect_actions(self):
         self.level_view.select_update.connect(self.action_update_info)
+        self.level_view.select_update.connect(self.select_from_3d_to_treeview)
         #self.pik_control.lineedit_coordinatex.textChanged.connect(self.create_field_edit_action("coordinatex"))
         #self.pik_control.lineedit_coordinatey.textChanged.connect(self.create_field_edit_action("coordinatey"))
         #self.pik_control.lineedit_coordinatez.textChanged.connect(self.create_field_edit_action("coordinatez"))
@@ -1000,6 +1009,49 @@ class GenEditor(QMainWindow):
     def update_3d(self):
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
         self.level_view.do_redraw()
+
+    def select_from_3d_to_treeview(self):
+        if self.level_file is not None:
+            selected = self.level_view.selected
+            if len(selected) == 1:
+                currentobj = selected[0]
+                item = None
+                if isinstance(currentobj, libbol.EnemyPoint):
+                    for i in range(self.leveldatatreeview.enemyroutes.childCount()):
+                        child = self.leveldatatreeview.enemyroutes.child(i)
+                        item = get_treeitem(child, currentobj)
+                        if item is not None:
+                            break
+
+                elif isinstance(currentobj, libbol.Checkpoint):
+                    for i in range(self.leveldatatreeview.checkpointgroups.childCount()):
+                        child = self.leveldatatreeview.checkpointgroups.child(i)
+                        item = get_treeitem(child, currentobj)
+                        if item is not None:
+                            break
+
+                elif isinstance(currentobj, libbol.RoutePoint):
+                    for i in range(self.leveldatatreeview.objectroutes.childCount()):
+                        child = self.leveldatatreeview.objectroutes.child(i)
+                        item = get_treeitem(child, currentobj)
+                        if item is not None:
+                            break
+
+                elif isinstance(currentobj, libbol.MapObject):
+                    item = get_treeitem(self.leveldatatreeview.objects, currentobj)
+                elif isinstance(currentobj, libbol.Camera):
+                    item = get_treeitem(self.leveldatatreeview.cameras, currentobj)
+                elif isinstance(currentobj, libbol.Area):
+                    item = get_treeitem(self.leveldatatreeview.areas, currentobj)
+                elif isinstance(currentobj, libbol.JugemPoint):
+                    item = get_treeitem(self.leveldatatreeview.respawnpoints, currentobj)
+                elif isinstance(currentobj, libbol.KartStartPoint):
+                    item = get_treeitem(self.leveldatatreeview.kartpoints, currentobj)
+
+                assert item is not None
+                if item is not None:
+                    self.leveldatatreeview.setCurrentItem(item)
+
 
     @catch_exception
     def action_update_info(self):
