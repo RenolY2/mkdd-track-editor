@@ -875,16 +875,19 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
             if vismenu.objects.is_visible():
                 for object in self.level_file.objects.objects:
-                    self.models.render_generic_position_rotation(object.position, object.rotation,
+                    self.models.render_generic_position_rotation_colored("objects",
+                                                                 object.position, object.rotation,
                                                                  object in select_optimize)
             if vismenu.kartstartpoints.is_visible():
                 for object in self.level_file.kartpoints.positions:
-                    self.models.render_generic_position_rotation(object.position, object.rotation,
-                                                                 object in select_optimize)
+                    self.models.render_generic_position_rotation_colored("startpoints",
+                                                                object.position, object.rotation,
+                                                                object in select_optimize)
             if vismenu.areas.is_visible():
                 for object in self.level_file.areas.areas:
-                    self.models.render_generic_position_rotation(object.position, object.rotation,
-                                                                 object in select_optimize)
+                    self.models.render_generic_position_rotation_colored("areas",
+                                                                object.position, object.rotation,
+                                                                object in select_optimize)
                     if object in select_optimize:
                         glColor4f(*colors_selection)
                     else:
@@ -893,12 +896,14 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                     self.models.draw_wireframe_cube(object.position, object.rotation, object.scale*100)
             if vismenu.cameras.is_visible():
                 for object in self.level_file.cameras:
-                    self.models.render_generic_position_rotation(object.position, object.rotation,
+                    self.models.render_generic_position_rotation_colored("camera",
+                                                                object.position, object.rotation,
                                                                  object in select_optimize)
 
             if vismenu.respawnpoints.is_visible():
                 for object in self.level_file.respawnpoints:
-                    self.models.render_generic_position_rotation(object.position, object.rotation,
+                    self.models.render_generic_position_rotation_colored("respawn",
+                                                                object.position, object.rotation,
                                                                  object in select_optimize)
 
             #glDisable(GL_TEXTURE_2D)

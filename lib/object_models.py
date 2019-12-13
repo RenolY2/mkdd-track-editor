@@ -23,6 +23,11 @@ class ObjectModels(object):
         self.checkpointright = Cube(colors["CheckpointRight"])
         self.itempoint = Cube(colors["ItemRoutes"])
         self.enemypoint = Cube(colors["EnemyRoutes"])
+        self.camera = GenericObject(colors["Camera"])
+        self.areas = GenericObject(colors["Areas"])
+        self.objects = GenericObject(colors["Objects"])
+        self.respawn = GenericObject(colors["Respawn"])
+        self.startpoints = GenericObject(colors["StartPoints"])
         #self.purplecube = Cube((0.7, 0.7, 1.0, 1.0))
 
 
@@ -60,7 +65,8 @@ class ObjectModels(object):
                     filename = os.path.basename(file)
                     objectname = filename.rsplit(".", 1)[0]
                     self.models[objectname] = TexturedModel.from_obj_path(os.path.join(dirpath, file), rotate=True)
-        for cube in (self.cube, self.checkpointleft, self.checkpointright, self.itempoint, self.enemypoint):
+        for cube in (self.cube, self.checkpointleft, self.checkpointright, self.itempoint, self.enemypoint,
+                     self.objects, self.areas, self.respawn, self.startpoints, self.camera):
             cube.generate_displists()
 
         self.generic.generate_displists()
@@ -133,6 +139,12 @@ class ObjectModels(object):
         self._render_generic_position(getattr(self, cubename), position, selected)
 
     def render_generic_position_rotation(self, position, rotation, selected):
+        self._render_generic_position_rotation("generic", position, rotation, selected)
+
+    def render_generic_position_rotation_colored(self, objecttype, position, rotation, selected):
+        self._render_generic_position_rotation(objecttype, position, rotation, selected)
+
+    def _render_generic_position_rotation(self, name, position, rotation, selected):
         glPushMatrix()
         glTranslatef(position.x, -position.z, position.y)
         mtx = rotation.mtx
@@ -152,7 +164,7 @@ class ObjectModels(object):
 
 
         #glMultMatrixf(rotation.mtx[])
-        self.generic.render(selected=selected)
+        getattr(self, name).render(selected=selected)
 
         glPopMatrix()
 

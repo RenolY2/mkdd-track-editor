@@ -13,6 +13,7 @@ with open("lib/color_coding.json") as f:
 
 selectioncolor = colors["SelectionColor"]
 
+
 def read_vertex(v_data):
     split = v_data.split("/")
     if len(split) >= 2:
@@ -514,13 +515,14 @@ class Cube(SelectableModel):
 
 
 class GenericObject(SelectableModel):
-    def __init__(self):
+    def __init__(self, bodycolor=(1.0, 1.0, 1.0, 1.0)):
         super().__init__()
 
         with open("resources/generic_object.obj", "r") as f:
             model = Model.from_obj(f, scale=200, rotate=True)
         self.mesh_list = model.mesh_list
         self.named_meshes = model.named_meshes
+        self.bodycolor = bodycolor
 
     def _render(self, selected=False):
         glEnable(GL_CULL_FACE)
@@ -540,7 +542,7 @@ class GenericObject(SelectableModel):
         glPopMatrix()
         glCullFace(GL_BACK)
 
-        glColor4f(1.0, 1.0, 1.0, 1.0)
+        glColor4f(*self.bodycolor)
         self.named_meshes["Cube"].render()
         glColor4ub(0x09, 0x93, 0x00, 0xFF)
         self.named_meshes["tip"].render()
