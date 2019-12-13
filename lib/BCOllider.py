@@ -89,8 +89,9 @@ class RacetrackCollision(object):
             v1 = read_int32(data, self.trianglesoffset+i*0x24 + 0x00)
             v2 = read_int32(data, self.trianglesoffset+i*0x24 + 0x04)
             v3 = read_int32(data, self.trianglesoffset+i*0x24 + 0x08)
+            collision_type = read_uint16(data, self.trianglesoffset+i*0x24 + 0x16)
             rest = read_array(data, self.trianglesoffset+i*0x24 + 0x0C, length=0x24-0xC)
-            self.triangles.append((v1,v2,v3,rest))
+            self.triangles.append((v1,v2,v3, collision_type, rest))
 
         # Parse vertices
         vertcount = (self.unknownoffset-self.verticesoffset) // 0xC
@@ -122,7 +123,6 @@ class RacetrackCollision(object):
         for i in range(self.entrycount):
             val1, val2, unk, int1, int2 = unpack_from(">BBHII", f.read(0xC), 0)
             self.matentries.append((val1, val2, unk, int1, int2))
-
 
 
 def read_gridtable_entry(data, offset):
