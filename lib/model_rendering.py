@@ -1,5 +1,5 @@
 import json
-
+from time import time
 from OpenGL.GL import *
 from .vectors import Vector3
 from struct import unpack
@@ -248,7 +248,7 @@ class TexturedModel(object):
     def __init__(self):
         self.mesh_list = []
 
-    def render(self, selected=False):
+    def render(self, selected=False, time=0.0):
         for mesh in self.mesh_list:
             mesh.render(selected)
 
@@ -876,3 +876,159 @@ class Grid(Mesh):
 
         glEnd()
         glEndList()
+
+
+def _compile_shader_with_error_report(shaderobj):
+    glCompileShader(shaderobj)
+    if not glGetShaderiv(shaderobj, GL_COMPILE_STATUS):
+        raise RuntimeError(str(glGetShaderInfoLog(shaderobj), encoding="ascii"))
+
+
+colortypes = {
+    0x00: (250, 213, 160),
+    0x01: (128, 128, 128),
+    0x02: (128, 128, 128),
+    0x03: (76, 255, 0),
+    0x04: (0, 255, 255),
+    0x08: (255, 106, 0),
+    0x0C: (250, 213, 160),
+    0x0F: (0, 38, 255),
+    0x10: (250, 213, 160),
+    0x12: (64, 64, 64),
+    0x13: (250, 213, 160)
+}
+
+otherwise = (40, 40, 40)
+
+
+class CollisionModel(object):
+    def __init__(self, mkdd_collision):
+        meshes = {}
+        self.program = None
+        vertices = mkdd_collision.vertices
+        self._displists = []
+
+        for v1, v2, v3, coltype, rest in mkdd_collision.triangles:
+            vertex1 = Vector3(*vertices[v1])
+            vertex1.z = -vertex1.z
+            vertex2 = Vector3(*vertices[v2])
+            vertex2.z = -vertex2.z
+            vertex3 = Vector3(*vertices[v3])
+            vertex3.z = -vertex3.z
+
+            v1tov2 = vertex2 - vertex1
+            v1tov3 = vertex3 - vertex1
+
+            normal = v1tov2.cross(v1tov3)
+            if normal.norm() != 0.0:
+                normal.normalize()
+
+            if coltype not in meshes:
+                meshes[coltype] = []
+
+            shift = coltype >> 8
+
+            if shift in colortypes:
+                color = colortypes[shift]
+
+            else:
+                color = otherwise
+            color = (color[0]/255.0, color[1]/255.0, color[2]/255.0)
+            meshes[coltype].append((vertex1, vertex2, vertex3, normal, color))
+
+        self.meshes = meshes
+
+    def generate_displists(self):
+        if self.program is None:
+            self.create_shaders()
+
+        for meshtype, mesh in self.meshes.items():
+            displist = glGenLists(1)
+            glNewList(displist, GL_COMPILE)
+            glBegin(GL_TRIANGLES)
+
+            for v1, v2, v3, normal, color in mesh:
+                glVertexAttrib3f(3, normal.x, normal.y, normal.z)
+                glVertexAttrib3f(4, *color)
+                glVertex3f(v1.x, -v1.z, v1.y)
+                glVertexAttrib3f(3, normal.x, normal.y, normal.z)
+                glVertexAttrib3f(4, *color)
+                glVertex3f(v2.x, -v2.z, v2.y)
+                glVertexAttrib3f(3, normal.x, normal.y, normal.z)
+                glVertexAttrib3f(4, *color)
+                glVertex3f(v3.x, -v3.z, v3.y)
+
+
+
+            glEnd()
+            glEndList()
+
+            self._displists.append((meshtype, displist))
+
+    def create_shaders(self):
+        vertshader = """
+        #version 330 compatibility
+        layout(location = 0) in vec4 vert;
+        layout(location = 3) in vec3 normal;
+        layout(location = 4) in vec3 color;
+        uniform float interpolate;
+        out vec3 vecNormal;
+        out vec3 vecColor;
+        vec3 selectedcol = vec3(1.0, 0.0, 0.0);
+        vec3 lightvec = normalize(vec3(0.3, 0.0, -1.0));
+        
+        void main(void)
+        {
+            vecNormal = normal;
+            vec3 col = (1-interpolate) * color + interpolate*selectedcol;
+            vecColor = col*clamp(1.0-dot(lightvec, normal), 0.3, 1.0);
+            gl_Position = gl_ModelViewProjectionMatrix * vert;
+            
+        }
+        
+        """
+
+        fragshader = """
+        #version 330
+        in vec3 vecNormal;
+        in vec3 vecColor;
+        out vec4 finalColor;
+        
+        void main (void)
+        {   
+            finalColor = vec4(vecColor, 1.0);
+        }"""
+
+        vertexShaderObject = glCreateShader(GL_VERTEX_SHADER)
+        fragmentShaderObject = glCreateShader(GL_FRAGMENT_SHADER)
+        # glShaderSource(vertexShaderObject, 1, vertshader, len(vertshader))
+        # glShaderSource(fragmentShaderObject, 1, fragshader, len(fragshader))
+        glShaderSource(vertexShaderObject, vertshader)
+        glShaderSource(fragmentShaderObject, fragshader)
+
+        _compile_shader_with_error_report(vertexShaderObject)
+        _compile_shader_with_error_report(fragmentShaderObject)
+
+        program = glCreateProgram()
+
+        glAttachShader(program, vertexShaderObject)
+        glAttachShader(program, fragmentShaderObject)
+
+        glLinkProgram(program)
+        self.program = program
+
+    def render(self, selected=False, selectedPart=None):
+        if self.program is None:
+            self.generate_displists()
+        factorval = glGetUniformLocation(self.program, "interpolate")
+
+        glUseProgram(self.program)
+
+        for colltype, displist in self._displists:
+            if colltype == selectedPart:
+                glUniform1f(factorval, 1.0)
+            else:
+                glUniform1f(factorval, 0.0)
+            glCallList(displist)
+
+        glUseProgram(0)
