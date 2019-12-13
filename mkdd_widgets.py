@@ -4,6 +4,7 @@ from time import sleep
 from timeit import default_timer
 from io import StringIO
 from math import sin, cos, atan2, radians, degrees, pi, tan
+import json
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -44,6 +45,11 @@ MODE_3D = 1
 
 #colors = [(1.0, 0.0, 0.0), (0.0, 0.5, 0.0), (0.0, 0.0, 1.0), (1.0, 1.0, 0.0)]
 colors = [(0.0,191/255.0,255/255.0), (30/255.0,144/255.0,255/255.0), (0.0,0.0,255/255.0), (0.0,0.0,139/255.0)]
+
+with open("lib/color_coding.json", "r") as f:
+    colors_json = json.load(f)
+    colors_selection = colors_json["SelectionColor"]
+    colors_area  = colors_json["Areas"]
 
 
 class SelectionQueue(list):
@@ -148,6 +154,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         #self.setContextMenuPolicy(Qt.CustomContextMenu)
 
         self.spawnpoint = None
+        self.alternative_mesh = None
+        self.highlight_colltype = None
 
         self.shift_is_pressed = False
         self.rotation_is_pressed = False
@@ -387,6 +395,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             self.update()
 
     def reset(self, keep_collision=False):
+        self.highlight_colltype = None
         self.overlapping_wp_index = 0
         self.shift_is_pressed = False
         self.SIZEX = 1024
@@ -710,7 +719,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             else:
                 glPushMatrix()
                 glScalef(1.0, -1.0, 1.0)
-                self.alternative_mesh.render()
+                self.alternative_mesh.render(selectedPart=self.highlight_colltype)
                 glPopMatrix()
 
         glDisable(GL_TEXTURE_2D)
@@ -748,7 +757,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                     glEnd()
 
             if vismenu.enemyroute.is_visible():
-                for group in self.level_file.enemypointgroups.groups.values():
+                for group in self.level_file.enemypointgroups.groups:
                     for point in group.points:
                         self.models.render_generic_position_colored(point.position, point in select_optimize, "enemypoint")
 
@@ -762,7 +771,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
                 groups = self.level_file.enemypointgroups.groups
                 links = {}
-                for group in groups.values():
+                for group in groups:
                     for point in group.points:
                         if point.link != -1:
 
@@ -876,6 +885,12 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                 for object in self.level_file.areas.areas:
                     self.models.render_generic_position_rotation(object.position, object.rotation,
                                                                  object in select_optimize)
+                    if object in select_optimize:
+                        glColor4f(*colors_selection)
+                    else:
+                        glColor4f(*colors_area)
+
+                    self.models.draw_wireframe_cube(object.position, object.rotation, object.scale*100)
             if vismenu.cameras.is_visible():
                 for object in self.level_file.cameras:
                     self.models.render_generic_position_rotation(object.position, object.rotation,

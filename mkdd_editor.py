@@ -26,11 +26,11 @@ import mkdd_widgets # as mkddwidgets
 from widgets.side_widget import PikminSideWidget
 from widgets.editor_widgets import open_error_dialog, catch_exception_with_dialog
 from mkdd_widgets import BolMapViewer, MODE_TOPDOWN
-from lib.libbol import BOL, MGEntry
+from lib.libbol import BOL, MGEntry, Route, get_full_name
 import lib.libbol as libbol
 from lib.rarc import Archive
 from lib.BCOllider import RacetrackCollision
-from lib.model_rendering import TexturedModel
+from lib.model_rendering import TexturedModel, CollisionModel
 from widgets.editor_widgets import ErrorAnalyzer
 
 from widgets.file_select import FileSelect
@@ -282,6 +282,11 @@ class GenEditor(QMainWindow):
         self.analyze_action = QAction("Analyze for common mistakes", self)
         self.analyze_action.triggered.connect(self.analyze_for_mistakes)
         self.misc_menu.addAction(self.analyze_action)
+
+
+
+
+
         self.change_to_topdownview_action = QAction("Topdown View", self)
         self.change_to_topdownview_action.triggered.connect(self.change_to_topdownview)
         self.misc_menu.addAction(self.change_to_topdownview_action)
@@ -295,6 +300,11 @@ class GenEditor(QMainWindow):
         self.change_to_3dview_action.setCheckable(True)
         self.change_to_3dview_action.setShortcut("Ctrl+2")
 
+        self.choose_bco_area = QAction("Highlight Collision Area (BCO)")
+        self.choose_bco_area.triggered.connect(self.action_choose_bco_area)
+        self.misc_menu.addAction(self.choose_bco_area)
+        self.choose_bco_area.setShortcut("Ctrl+3")
+
         self.menubar.addAction(self.file_menu.menuAction())
         self.menubar.addAction(self.visibility_menu.menuAction())
         self.menubar.addAction(self.collision_menu.menuAction())
@@ -303,6 +313,20 @@ class GenEditor(QMainWindow):
 
 
         self.last_obj_select_pos = 0
+
+    def action_choose_bco_area(self):
+        areas = []
+        if isinstance(self.level_view.alternative_mesh, CollisionModel):
+            for area in self.level_view.alternative_mesh.meshes.keys():
+                areas.append(str(hex(area)))
+        areas.sort(key=lambda x: int(x, 16))
+        areas.insert(0, "None")
+
+        result, pos = FileSelect.open_file_list(self, areas, "Select Collision Area")
+        if result != "None":
+            self.level_view.highlight_colltype = int(result, 16)
+        else:
+            self.level_view.highlight_colltype = None
 
     def analyze_for_mistakes(self):
         if self.analyzer_window is not None:
@@ -552,10 +576,10 @@ class GenEditor(QMainWindow):
                 for vert in bco_coll.vertices:
                     verts.append(vert)
 
-                for v1, v2, v3, rest in bco_coll.triangles:
+                for v1, v2, v3, collision_type, rest in bco_coll.triangles:
                     faces.append(((v1+1, None), (v2+1, None), (v3+1, None)))
-
-                self.setup_collision(verts, faces, filepath)
+                model = CollisionModel(bco_coll)
+                self.setup_collision(verts, faces, filepath, alternative_mesh=model)
 
         except Exception as e:
             traceback.print_exc()
@@ -645,7 +669,7 @@ class GenEditor(QMainWindow):
     @catch_exception
     def action_add_object_3d(self, x, y, z):
         object, group, position = self.object_to_be_added
-        if position < 0:
+        if position is not None and position < 0:
             position = 99999999 # this forces insertion at the end of the list
 
         if isinstance(object, libbol.Checkpoint):
@@ -891,7 +915,10 @@ class GenEditor(QMainWindow):
                         break
             elif isinstance(obj, libbol.Route):
                 self.level_file.routes.remove(obj)
-
+            elif isinstance(obj, libbol.LightParam):
+                self.level_file.lightparams.remove(obj)
+            elif isinstance(obj, libbol.MGEntry):
+                self.level_file.mgentries.remove(obj)
         self.level_view.selected = []
         self.level_view.selected_positions = []
         self.level_view.selected_rotations = []
@@ -980,7 +1007,21 @@ class GenEditor(QMainWindow):
             selected = self.level_view.selected
             if len(selected) == 1:
                 currentobj = selected[0]
-                self.pik_control.set_info(currentobj, self.update_3d)
+                if isinstance(currentobj, Route):
+                    objects = []
+                    index = self.level_file.routes.index(currentobj)
+                    for object in self.level_file.objects.objects:
+                        if object.pathid == index:
+                            objects.append(get_full_name(object.objectid))
+                    for i, camera in enumerate(self.level_file.cameras):
+                        if camera.route == index:
+                            objects.append("Camera {0}".format(i))
+
+
+                    self.pik_control.set_info(currentobj, self.update_3d, objects)
+                else:
+                    self.pik_control.set_info(currentobj, self.update_3d)
+
                 self.pik_control.update_info()
             else:
                 self.pik_control.reset_info("{0} objects selected".format(len(self.level_view.selected)))

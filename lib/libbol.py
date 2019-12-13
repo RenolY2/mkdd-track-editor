@@ -263,13 +263,13 @@ class EnemyPoint(object):
         f.write(pack(">Hhf", self.pointsetting, self.link, self.scale))
         f.write(pack(">HBBBH", self.groupsetting, self.group, self.pointsetting2, self.unk1, self.unk2))
         f.write(b"\x00"*5)
-        assert f.tell() - start == self._size
+        #assert f.tell() - start == self._size
 
 
 class EnemyPointGroup(object):
     def __init__(self):
         self.points = []
-        self.index = None
+        self.id = None
 
     @classmethod
     def new(cls):
@@ -285,7 +285,8 @@ class EnemyPointGroup(object):
 
 class EnemyPointGroups(object):
     def __init__(self):
-        self.groups = {}
+        self.groups = []
+        self._group_ids = {}
 
     @classmethod
     def from_file(cls, f, count, old_bol=False):
@@ -295,19 +296,20 @@ class EnemyPointGroups(object):
         for i in range(count):
             enemypoint = EnemyPoint.from_file(f, old_bol)
             print("Point", i, "in group", enemypoint.group, "links to", enemypoint.link)
-            if enemypoint.group not in enemypointgroups.groups:
+            if enemypoint.group not in enemypointgroups._group_ids:
                 # start of group
                 curr_group = EnemyPointGroup()
-                curr_group.index = enemypoint.group
-                enemypointgroups.groups[enemypoint.group] = curr_group
+                curr_group.id = enemypoint.group
+                enemypointgroups._group_ids[enemypoint.group] = curr_group
                 curr_group.points.append(enemypoint)
+                enemypointgroups.groups.append(curr_group)
             else:
-                enemypointgroups.groups[enemypoint.group].points.append(enemypoint)
+                enemypointgroups._group_ids[enemypoint.group].points.append(enemypoint)
 
         return enemypointgroups
 
     def points(self):
-        for group in self.groups.values():
+        for group in self.groups:
             for point in group.points:
                 yield point
 
@@ -784,11 +786,11 @@ class JugemPoint(object):
 # LightParam
 class LightParam(object):
     def __init__(self):
-        self.unk1 = 0
-        self.unk2 = 0
+        self.color1 = ColorRGBA(0x64, 0x64, 0x64, 0xFF)
+        self.color2 = ColorRGBA(0x64, 0x64, 0x64, 0x00)
         self.unkvec = Vector3(0.0, 0.0, 0.0)
-        self.unk3 = 0
-        self.unk4 = 0
+
+
 
     @classmethod
     def new(cls):
@@ -797,18 +799,16 @@ class LightParam(object):
     @classmethod
     def from_file(cls, f):
         lp = cls()
-        lp.unk1 = read_int16(f)
-        lp.unk2 = read_int16(f)
+        lp.color1 = ColorRGBA.from_file(f)
         lp.unkvec = Vector3(*unpack(">fff", f.read(12)))
-        lp.unk3 = read_int16(f)
-        lp.unk4 = read_int16(f)
+        lp.color2 = ColorRGBA.from_file(f)
 
         return lp
 
     def write(self, f):
-        f.write(pack(">hh", self.unk1, self.unk2))
+        self.color1.write(f)
         f.write(pack(">fff", self.unkvec.x, self.unkvec.y, self.unkvec.z))
-        f.write(pack(">hh", self.unk3, self.unk4))
+        self.color2.write(f)
 
 
 # Section 11
@@ -1042,8 +1042,8 @@ class BOL(object):
         f.write(b"\x00"*12) # padding
 
         offsets.append(f.tell())
-        for groupindex in sorted(self.enemypointgroups.groups.keys()):
-            group = self.enemypointgroups.groups[groupindex]
+        for group in self.enemypointgroups.groups:
+            #group = self.enemypointgroups.groups[groupindex]
             for point in group.points:
                 point.write(f)
 

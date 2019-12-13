@@ -41,8 +41,8 @@ class EnemyPointGroup(ObjectGroup):
         self.update_name()
 
     def update_name(self):
-        #index = self.parent().indexOfChild(self)
-        self.setText(0, "Enemy point group {0}".format(self.bound_to.index))
+        index = self.parent().indexOfChild(self)
+        self.setText(0, "Enemy point group {0} (ID: {1})".format(index, self.bound_to.id))
 
 
 class CheckpointGroup(ObjectGroup):
@@ -67,10 +67,11 @@ class ObjectPointGroup(ObjectGroup):
 
 # Entries in groups or entries without groups
 class NamedItem(QTreeWidgetItem):
-    def __init__(self, parent, name, bound_to):
+    def __init__(self, parent, name, bound_to, index=None):
         super().__init__(parent)
         self.setText(0, name)
         self.bound_to = bound_to
+        self.index = index
         self.update_name()
 
     def update_name(self):
@@ -118,6 +119,7 @@ class ObjectEntry(NamedItem):
     def __lt__(self, other):
         return self.bound_to.objectid < other.bound_to.objectid
 
+
 class KartpointEntry(NamedItem):
     def update_name(self):
         playerid = self.bound_to.playerid
@@ -135,7 +137,7 @@ class AreaEntry(NamedItem):
 
 class CameraEntry(NamedItem):
     def update_name(self):
-        self.setText(0, "Camera (Type: {0})".format(self.bound_to.camtype))
+        self.setText(0, "Camera {0} (Type: {1})".format(self.index, self.bound_to.camtype))
 
 
 class RespawnEntry(NamedItem):
@@ -145,7 +147,7 @@ class RespawnEntry(NamedItem):
 
 class LightParamEntry(NamedItem):
     def update_name(self):
-        self.setText(0, "LightParam")
+        self.setText(0, "LightParam {0}".format(self.index))
 
 
 class MGEntry(NamedItem):
@@ -198,8 +200,7 @@ class LevelDataTreeView(QTreeWidget):
     def set_objects(self, boldata: BOL):
         self.reset()
 
-        for key in sorted(boldata.enemypointgroups.groups.keys()):
-            group = boldata.enemypointgroups.groups[key]
+        for group in boldata.enemypointgroups.groups:
             group_item = EnemyPointGroup(self.enemyroutes, group)
 
             for point in group.points:
@@ -231,11 +232,11 @@ class LevelDataTreeView(QTreeWidget):
         for respawn in boldata.respawnpoints:
             item = RespawnEntry(self.respawnpoints, "Respawn", respawn)
 
-        for camera in boldata.cameras:
-            item = CameraEntry(self.cameras, "Camera", camera)
+        for i, camera in enumerate(boldata.cameras):
+            item = CameraEntry(self.cameras, "Camera", camera, i)
 
-        for lightparam in boldata.lightparams:
-            item = LightParamEntry(self.lightparams, "LightParam", lightparam)
+        for i, lightparam in enumerate(boldata.lightparams):
+            item = LightParamEntry(self.lightparams, "LightParam", lightparam, i)
 
         for mg in boldata.mgentries:
             item = MGEntry(self.mgentries, "MG", mg)
