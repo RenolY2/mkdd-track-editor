@@ -1,12 +1,36 @@
 from collections import OrderedDict
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QCheckBox, QLineEdit, QComboBox, QSizePolicy
-from PyQt5.QtGui import QIntValidator, QDoubleValidator
+from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator
 from math import inf
 from lib.libbol import (EnemyPoint, CheckpointGroup, Checkpoint, Route, RoutePoint,
                         MapObject, KartStartPoint, Area, Camera, BOL, JugemPoint, MapObject,
                         LightParam, MGEntry, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS)
 
 from PyQt5.QtCore import pyqtSignal
+
+
+class PythonIntValidator(QValidator):
+    def __init__(self, min, max, parent):
+        super().__init__(parent)
+        self.min = min
+        self.max = max
+
+    def validate(self, p_str, p_int):
+        if p_str == "" or p_str == "-":
+            return QValidator.Intermediate, p_str, p_int
+
+        try:
+            result = int(p_str)
+        except:
+            return QValidator.Invalid, p_str, p_int
+
+        if self.min <= result <= self.max:
+            return QValidator.Acceptable, p_str, p_int
+        else:
+            return QValidator.Invalid, p_str, p_int
+
+    def fixup(self, s):
+        pass
 
 
 class DataEditor(QWidget):
@@ -78,9 +102,10 @@ class DataEditor(QWidget):
         line_edit = QLineEdit(self)
         layout = self.create_labeled_widget(self, text, line_edit)
 
-        line_edit.setValidator(QIntValidator(min_val, max_val, self))
+        line_edit.setValidator(PythonIntValidator(min_val, max_val, line_edit))
 
         def input_edited():
+            print("Hmmmm")
             text = line_edit.text()
             print("input:", text)
 
@@ -89,7 +114,7 @@ class DataEditor(QWidget):
         line_edit.editingFinished.connect(input_edited)
 
         self.vbox.addLayout(layout)
-
+        print("created for", text, attribute)
         return line_edit
 
     def add_integer_input_index(self, text, attribute, index, min_val, max_val):
@@ -715,25 +740,24 @@ class RespawnPointEdit(DataEditor):
 
 class LightParamEdit(DataEditor):
     def setup_widgets(self):
-        self.unk1 = self.add_integer_input("Unknown 1", "unk1",
-                                           MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
-
-        self.unk2 = self.add_integer_input("Unknown 2", "unk2",
-                                           MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.color1 = self.add_multiple_integer_input("RGBA 1", "color1", ["r", "g", "b", "a"],
+                                                        MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.unkvec = self.add_multiple_decimal_input("Vector", "unkvec", ["x", "y", "z"],
                                                       -inf, +inf)
-        self.unk3 = self.add_integer_input("Unknown 3", "unk3",
-                                           MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
-
-        self.unk4 = self.add_integer_input("Unknown 4", "unk4",
-                                           MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.color2 = self.add_multiple_integer_input("RGBA 2", "color2", ["r", "g", "b", "a"],
+                                                      MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
 
     def update_data(self):
         obj: LightParam = self.bound_to
-        self.unk1.setText(str(obj.unk1))
-        self.unk2.setText(str(obj.unk2))
-        self.unk3.setText(str(obj.unk3))
-        self.unk4.setText(str(obj.unk4))
+        self.color1[0].setText(str(obj.color1.r))
+        self.color1[1].setText(str(obj.color1.g))
+        self.color1[2].setText(str(obj.color1.b))
+        self.color1[3].setText(str(obj.color1.a))
+
+        self.color2[0].setText(str(obj.color2.r))
+        self.color2[1].setText(str(obj.color2.g))
+        self.color2[2].setText(str(obj.color2.b))
+        self.color2[3].setText(str(obj.color2.a))
 
         self.unkvec[0].setText(str(obj.unkvec.x))
         self.unkvec[1].setText(str(obj.unkvec.y))
