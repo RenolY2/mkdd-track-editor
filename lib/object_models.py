@@ -47,6 +47,9 @@ class ObjectModels(object):
         with open("resources/unitcylinder.obj", "r") as f:
             self.cylinder = Model.from_obj(f, rotate=True)
 
+        with open("resources/unitcube_wireframe.obj", "r") as f:
+            self.wireframe_cube = Model.from_obj(f, rotate=True)
+
         with open("resources/arrow_head.obj", "r") as f:
             self.arrow_head = Model.from_obj(f, rotate=True, scale=300.0)
 
@@ -104,6 +107,15 @@ class ObjectModels(object):
         glScalef(radius, height, radius)
 
         self.cylinder.render()
+        glPopMatrix()
+
+    def draw_wireframe_cube(self, position, rotation, scale):
+        glPushMatrix()
+        glTranslatef(position.x, -position.z, position.y)
+        mtx = rotation.mtx
+        glMultMatrixf(mtx)
+        glScalef(-scale.z, scale.x, scale.y)
+        self.wireframe_cube.render()
         glPopMatrix()
 
     def draw_cylinder_last_position(self, radius, height):
