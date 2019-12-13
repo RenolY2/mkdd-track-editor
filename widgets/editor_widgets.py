@@ -17,6 +17,7 @@ import lib.libbol as libbol
 from widgets.data_editor import choose_data_editor
 from lib.libbol import get_full_name
 
+
 def catch_exception(func):
     def handle(*args, **kwargs):
         try:
@@ -162,8 +163,9 @@ class ErrorAnalyzer(QMdiSubWindow):
                                                                         camera.route))
         text = results.getvalue()
         if not text:
-            text = "No common errors detected!"
+            text = "No known common errors detected!"
         self.text_widget.setText(results.getvalue())
+
 
 class AddPikObjectWindow(QMdiSubWindow):
     triggered = pyqtSignal(object)
