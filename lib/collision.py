@@ -108,8 +108,8 @@ def cross_product(v1, v2):
     return cross_x, cross_y, cross_z
 
 
-MAX_X = 20000
-MAX_Z = 20000
+MAX_X = 200000
+MAX_Z = 200000
 
 
 class Collision(object):
@@ -129,7 +129,7 @@ class Collision(object):
 
             self.triangles.append(Triangle(v1,v2,v3))
 
-        cell_size = 100
+        cell_size = 1000
 
         box_size_x = cell_size
         box_size_z = cell_size
@@ -155,8 +155,8 @@ class Collision(object):
         print(grid_size_x, grid_size_z)
 
     def collide_ray_downwards(self, x, z, y=99999999):
-        grid_x = int((x+MAX_X) // 100)
-        grid_z = int((z+MAX_Z) // 100)
+        grid_x = int((x+MAX_X) // 1000)
+        grid_z = int((z+MAX_Z) // 1000)
 
         if grid_x not in self.grid or grid_z not in self.grid[grid_x]:
             return None
