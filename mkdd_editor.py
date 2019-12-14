@@ -1052,7 +1052,6 @@ class GenEditor(QMainWindow):
                 if item is not None:
                     self.leveldatatreeview.setCurrentItem(item)
 
-
     @catch_exception
     def action_update_info(self):
         if self.level_file is not None:
@@ -1068,7 +1067,6 @@ class GenEditor(QMainWindow):
                     for i, camera in enumerate(self.level_file.cameras):
                         if camera.route == index:
                             objects.append("Camera {0}".format(i))
-
 
                     self.pik_control.set_info(currentobj, self.update_3d, objects)
                 else:
@@ -1161,6 +1159,9 @@ if __name__ == "__main__":
     #import sys
     import platform
     import argparse
+    from PyQt5.QtCore import QLocale
+
+    QLocale.setDefault(QLocale(QLocale.English))
 
     sys.excepthook = except_hook
 
