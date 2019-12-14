@@ -1,3 +1,6 @@
+import os
+import json
+
 from collections import OrderedDict
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QCheckBox, QLineEdit, QComboBox, QSizePolicy
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator
@@ -5,8 +8,21 @@ from math import inf
 from lib.libbol import (EnemyPoint, CheckpointGroup, Checkpoint, Route, RoutePoint,
                         MapObject, KartStartPoint, Area, Camera, BOL, JugemPoint, MapObject,
                         LightParam, MGEntry, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS)
-
+from lib.vectors import Vector3
 from PyQt5.QtCore import pyqtSignal
+
+
+def load_parameter_names(objectname):
+    try:
+        with open(os.path.join("object_parameters", objectname+".json"), "r") as f:
+            data = json.load(f)
+            parameter_names = data["Object Parameters"]
+            if len(parameter_names) != 8:
+                raise RuntimeError("Not enough or too many parameters: {0} (should be 8)".format(len(parameter_names)))
+            return parameter_names
+    except Exception as err:
+        print(err)
+        return None
 
 
 class PythonIntValidator(QValidator):
@@ -240,6 +256,88 @@ class DataEditor(QWidget):
         self.vbox.addLayout(layout)
 
         return line_edits
+
+    def update_rotation(self, forwardedits, upedits):
+        rotation = self.bound_to.rotation
+        forward, up, left = rotation.get_vectors()
+
+        for attr in ("x", "y", "z"):
+            if getattr(forward, attr) == 0.0:
+                setattr(forward, attr, 0.0)
+
+        for attr in ("x", "y", "z"):
+            if getattr(up, attr) == 0.0:
+                setattr(up, attr, 0.0)
+
+        forwardedits[0].setText(str(round(forward.x, 4)))
+        forwardedits[1].setText(str(round(forward.y, 4)))
+        forwardedits[2].setText(str(round(forward.z, 4)))
+
+        upedits[0].setText(str(round(up.x, 4)))
+        upedits[1].setText(str(round(up.y, 4)))
+        upedits[2].setText(str(round(up.z, 4)))
+
+    def add_rotation_input(self):
+        rotation = self.bound_to.rotation
+        forward_edits = []
+        up_edits = []
+
+        for attr in ("x", "y", "z"):
+            line_edit = QLineEdit(self)
+            validator = QDoubleValidator(-1.0, 1.0, 9999, self)
+            validator.setNotation(QDoubleValidator.StandardNotation)
+            line_edit.setValidator(validator)
+
+            forward_edits.append(line_edit)
+
+        for attr in ("x", "y", "z"):
+            line_edit = QLineEdit(self)
+            validator = QDoubleValidator(-1.0, 1.0, 9999, self)
+            validator.setNotation(QDoubleValidator.StandardNotation)
+            line_edit.setValidator(validator)
+
+            up_edits.append(line_edit)
+
+        def change_forward():
+            forward, up, left = rotation.get_vectors()
+
+            newforward = Vector3(*[float(v.text()) for v in forward_edits])
+            if newforward.norm() == 0.0:
+                newforward = left.cross(up)
+            newforward.normalize()
+            up = newforward.cross(left)
+            up.normalize()
+            left = up.cross(newforward)
+            left.normalize()
+
+            rotation.set_vectors(newforward, up, left)
+            self.update_rotation(forward_edits, up_edits)
+
+        def change_up():
+            print("finally changing up")
+            forward, up, left = rotation.get_vectors()
+            newup = Vector3(*[float(v.text()) for v in up_edits])
+            if newup.norm() == 0.0:
+                newup = forward.cross(left)
+            newup.normalize()
+            forward = left.cross(newup)
+            forward.normalize()
+            left = newup.cross(forward)
+            left.normalize()
+
+            rotation.set_vectors(forward, newup, left)
+            self.update_rotation(forward_edits, up_edits)
+
+        for edit in forward_edits:
+            edit.editingFinished.connect(change_forward)
+        for edit in up_edits:
+            edit.editingFinished.connect(change_up)
+
+        layout = self.create_labeled_widgets(self, "Forward dir", forward_edits)
+        self.vbox.addLayout(layout)
+        layout = self.create_labeled_widgets(self, "Up dir", up_edits)
+        self.vbox.addLayout(layout)
+        return forward_edits, up_edits
 
     def set_value(self, field, val):
         field.setText(str(val))
@@ -509,6 +607,7 @@ class ObjectEdit(DataEditor):
                                                         -inf, +inf)
         self.scale = self.add_multiple_decimal_input("Scale", "scale", ["x", "y", "z"],
                                                     -inf, +inf)
+        self.rotation = self.add_rotation_input()
         self.objectid = self.add_dropdown_input("Object Type", "objectid", REVERSEOBJECTNAMES)
 
         self.pathid = self.add_integer_input("Path ID", "pathid",
@@ -539,6 +638,17 @@ class ObjectEdit(DataEditor):
         for widget in self.position:
             widget.editingFinished.connect(self.catch_text_update)
 
+        self.objectid.currentTextChanged.connect(self.rename_object_parameters)
+
+    def rename_object_parameters(self, current):
+        parameter_names = load_parameter_names(current)
+        if parameter_names is None:
+            for i in range(8):
+                self.userdata[i][0].setText("Obj Data {0}".format(i+1))
+        else:
+            for i in range(8):
+                self.userdata[i][0].setText(parameter_names[i])
+
     def update_name(self):
         if self.bound_to.widget is None:
             return
@@ -555,6 +665,8 @@ class ObjectEdit(DataEditor):
         self.scale[0].setText(str(round(obj.scale.x, 3)))
         self.scale[1].setText(str(round(obj.scale.y, 3)))
         self.scale[2].setText(str(round(obj.scale.z, 3)))
+
+        self.update_rotation(*self.rotation)
 
         if obj.objectid not in OBJECTNAMES:
             name = "INVALID"
@@ -578,6 +690,7 @@ class KartStartPointEdit(DataEditor):
     def setup_widgets(self):
         self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
                                                         -inf, +inf)
+        self.rotation = self.add_rotation_input()
         self.scale = self.add_multiple_decimal_input("Scale", "scale", ["x", "y", "z"],
                                                      -inf, +inf)
 
@@ -597,6 +710,8 @@ class KartStartPointEdit(DataEditor):
         self.position[1].setText(str(round(obj.position.y, 3)))
         self.position[2].setText(str(round(obj.position.z, 3)))
 
+        self.update_rotation(*self.rotation)
+
         self.scale[0].setText(str(obj.scale.x))
         self.scale[1].setText(str(obj.scale.y))
         self.scale[2].setText(str(obj.scale.z))
@@ -612,6 +727,7 @@ class AreaEdit(DataEditor):
                                                         -inf, +inf)
         self.scale = self.add_multiple_decimal_input("Scale", "scale", ["x", "y", "z"],
                                                      -inf, +inf)
+        self.rotation = self.add_rotation_input()
         self.check_flag = self.add_integer_input("Check Flag", "check_flag",
                                                  MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.area_type = self.add_integer_input("Area Type", "area_type",
@@ -641,6 +757,8 @@ class AreaEdit(DataEditor):
         self.scale[1].setText(str(round(obj.scale.y, 3)))
         self.scale[2].setText(str(round(obj.scale.z, 3)))
 
+        self.update_rotation(*self.rotation)
+
         self.check_flag.setText(str(obj.check_flag))
         self.area_type.setText(str(obj.area_type))
         self.camera_index.setText(str(obj.camera_index))
@@ -660,7 +778,7 @@ class CameraEdit(DataEditor):
                                                         -inf, +inf)
         self.position3 = self.add_multiple_decimal_input("Position 3", "position 3", ["x", "y", "z"],
                                                         -inf, +inf)
-
+        self.rotation = self.add_rotation_input()
         self.unkbyte = self.add_integer_input("Unknown 1", "unkbyte",
                                               MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.camtype = self.add_integer_input("Camera Type", "camtype",
@@ -699,6 +817,8 @@ class CameraEdit(DataEditor):
         self.position3[1].setText(str(round(obj.position3.y, 3)))
         self.position3[2].setText(str(round(obj.position3.z, 3)))
 
+        self.update_rotation(*self.rotation)
+
         self.unkbyte.setText(str(obj.unkbyte))
         self.camtype.setText(str(obj.camtype))
         self.startzoom.setText(str(obj.startzoom))
@@ -717,6 +837,7 @@ class RespawnPointEdit(DataEditor):
     def setup_widgets(self):
         self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
                                                         -inf, +inf)
+        self.rotation = self.add_rotation_input()
         self.respawn_id = self.add_integer_input("Respawn ID", "respawn_id",
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.unk1 = self.add_integer_input("Unknown 1", "unk1",
@@ -731,7 +852,7 @@ class RespawnPointEdit(DataEditor):
         self.position[0].setText(str(round(obj.position.x, 3)))
         self.position[1].setText(str(round(obj.position.y, 3)))
         self.position[2].setText(str(round(obj.position.z, 3)))
-
+        self.update_rotation(*self.rotation)
         self.respawn_id.setText(str(obj.respawn_id))
         self.unk1.setText(str(obj.unk1))
         self.unk2.setText(str(obj.unk2))

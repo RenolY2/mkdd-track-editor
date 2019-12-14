@@ -146,6 +146,31 @@ class Rotation(object):
             read_int16(f), read_int16(f), read_int16(f)
         )
 
+    def get_vectors(self):
+        forward = Vector3(self.mtx[0][0], self.mtx[0][2], -self.mtx[0][1])
+        up = Vector3(self.mtx[2][0], self.mtx[2][2], -self.mtx[2][1])
+        left = Vector3(self.mtx[1][0], self.mtx[1][2], -self.mtx[1][1])
+        return forward, up, left
+
+    def set_vectors(self, forward, up, left):
+        self.mtx[0][0] = forward.x
+        self.mtx[0][1] = -forward.z
+        self.mtx[0][2] = forward.y
+        self.mtx[0][3] = 0.0
+
+        self.mtx[1][0] = left.x
+        self.mtx[1][1] = -left.z
+        self.mtx[1][2] = left.y
+        self.mtx[1][3] = 0.0
+
+        self.mtx[2][0] = up.x
+        self.mtx[2][1] = -up.z
+        self.mtx[2][2] = up.y
+        self.mtx[2][3] = 0.0
+
+        self.mtx[3][0] = self.mtx[3][1] = self.mtx[3][2] = 0.0
+        self.mtx[3][3] = 1.0
+
     def write(self, f):
         forward = Vector3(self.mtx[0][0], self.mtx[0][2], -self.mtx[0][1])
         up = Vector3(self.mtx[2][0], self.mtx[2][2], -self.mtx[2][1])
@@ -1123,13 +1148,13 @@ for key in sorted(MUSIC_IDS.keys()):
     REVERSE_MUSIC_IDS[MUSIC_IDS[key]] = key
 
 
-
-
 def get_full_name(id):
     if id not in OBJECTNAMES:
-        return "Unknown {0}".format(id)
-    else:
-        return OBJECTNAMES[id]
+        OBJECTNAMES[id] = "Unknown {0}".format(id)
+        REVERSEOBJECTNAMES[OBJECTNAMES[id]] = id
+        #return
+    #else:
+    return OBJECTNAMES[id]
 
 
 def temp_add_invalid_id(id):
