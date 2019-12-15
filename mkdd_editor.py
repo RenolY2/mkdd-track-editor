@@ -768,7 +768,7 @@ class GenEditor(QMainWindow):
             if isinstance(object, libbol.EnemyPoint):
                 self.level_file.enemypointgroups.groups[group].points.insert(position, placeobject)
             elif isinstance(object, libbol.RoutePoint):
-                self.level_file.routes[group].insert(position, placeobject)
+                self.level_file.routes[group].points.insert(position, placeobject)
             elif isinstance(object, libbol.MapObject):
                 self.level_file.objects.objects.append(placeobject)
             elif isinstance(object, libbol.KartStartPoint):

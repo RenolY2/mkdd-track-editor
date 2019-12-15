@@ -87,7 +87,7 @@ class ErrorAnalyzer(QMdiSubWindow):
 
         # Check enemy point linkage errors
         links = {}
-        for group_index, group in bol.enemypointgroups.groups.items():
+        for group_index, group in enumerate(bol.enemypointgroups.groups):
             for i, point in enumerate(group.points):
                 if point.link == -1:
                     continue
@@ -103,7 +103,7 @@ class ErrorAnalyzer(QMdiSubWindow):
                 write_line("Point {0} in enemy point group {1} has link {2}; No other point has link {2}".format(
                     i, group_index, point.link
                 ))
-        for group_index, group in bol.enemypointgroups.groups.items():
+        for group_index, group in enumerate(bol.enemypointgroups.groups):
             print(group.points[0].link, group.points[-1].link)
             if group.points[0].link == -1:
                 write_line("Start point of enemy point group {0} has no valid link to form a loop".format(group_index))
@@ -161,10 +161,17 @@ class ErrorAnalyzer(QMdiSubWindow):
             if camera.route < -1 or camera.route + 1 > len(bol.routes):
                 write_line("Camera {0} uses invalid path id {1}".format(i,
                                                                         camera.route))
+
+        if len(bol.checkpoints.groups) == 0:
+            write_line("You need at least one checkpoint group!")
+
+        if len(bol.enemypointgroups.groups) == 0:
+            write_line("You need at least one enemy point group!")
+
         text = results.getvalue()
         if not text:
             text = "No known common errors detected!"
-        self.text_widget.setText(results.getvalue())
+        self.text_widget.setText(text)
 
 
 class AddPikObjectWindow(QMdiSubWindow):

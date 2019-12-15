@@ -261,7 +261,7 @@ class EnemyPoint(object):
     def new(cls):
         return cls(
             Vector3(0.0, 0.0, 0.0),
-            0, 0, 0.0, 0, 0, 0
+            0, -1, 1000.0, 0, 0, 0
         )
 
     @classmethod
