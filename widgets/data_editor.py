@@ -628,12 +628,12 @@ class ObjectEdit(DataEditor):
 
         self.unk_2a = self.add_integer_input("Unknown 0x2A", "unk_2a",
                                              MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-        self.presence_filter = self.add_integer_input("Presence Filter", "presence_filter",
+        self.presence_filter = self.add_integer_input("Presence Mask", "presence_filter",
                                                       MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.presence = self.add_integer_input("Presence", "presence",
                                                MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.flag = self.add_integer_input("Flag", "unk_flag",
-                                           MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.flag = self.add_checkbox("Collision", "unk_flag",
+                                        off_value=0, on_value=1)
         self.unk_2f = self.add_integer_input("Unknown 0x2F", "unk_2f",
                                              MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.userdata = []
@@ -691,7 +691,7 @@ class ObjectEdit(DataEditor):
         self.unk_2f.setText(str(obj.unk_2f))
         self.presence_filter.setText(str(obj.presence_filter))
         self.presence.setText(str(obj.presence))
-        self.flag.setText(str(obj.unk_flag))
+        self.flag.setChecked(obj.unk_flag != 0)
         for i in range(8):
             self.userdata[i][1].setText(str(obj.userdata[i]))
 
