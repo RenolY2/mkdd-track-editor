@@ -516,7 +516,7 @@ class MapObject(object):
         self.pathid = -1
         self.unk_28 = 0
         self.unk_2a = 0
-        self.presence_filter = 0
+        self.presence_filter = 255
         self.presence = 0x3
         self.unk_flag = 0
         self.unk_2f = 0
@@ -565,7 +565,7 @@ class MapObject(object):
 
         for i in range(8):
             f.write(pack(">h", self.userdata[i]))
-        assert f.tell() - start == self._size
+        #assert f.tell() - start == self._size
 
 
 class MapObjects(object):
