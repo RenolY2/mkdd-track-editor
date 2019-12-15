@@ -171,6 +171,10 @@ class AddPikObjectWindow(QMdiSubWindow):
     triggered = pyqtSignal(object)
     closing = pyqtSignal()
 
+    def closeEvent(self, event):
+        self.closing.emit()
+        super().closeEvent(event)
+
     @catch_exception
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

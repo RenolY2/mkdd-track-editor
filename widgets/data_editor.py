@@ -5,7 +5,7 @@ from collections import OrderedDict
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QCheckBox, QLineEdit, QComboBox, QSizePolicy
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator
 from math import inf
-from lib.libbol import (EnemyPoint, CheckpointGroup, Checkpoint, Route, RoutePoint,
+from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint, Route, RoutePoint,
                         MapObject, KartStartPoint, Area, Camera, BOL, JugemPoint, MapObject,
                         LightParam, MGEntry, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS)
 from lib.vectors import Vector3
@@ -385,6 +385,8 @@ MAX_UNSIGNED_INT = 2**32 - 1
 def choose_data_editor(obj):
     if isinstance(obj, EnemyPoint):
         return EnemyPointEdit
+    elif isinstance(obj, EnemyPointGroup):
+        return EnemyPointGroupEdit
     elif isinstance(obj, CheckpointGroup):
         return CheckpointGroupEdit
     elif isinstance(obj, MapObject):
@@ -411,6 +413,14 @@ def choose_data_editor(obj):
         return MGEntryEdit
     else:
         return None
+
+
+class EnemyPointGroupEdit(DataEditor):
+    def setup_widgets(self):
+        self.groupid = self.add_integer_input("Group ID", "id", MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+
+    def update_data(self):
+        self.groupid.setText(str(self.bound_to.id))
 
 
 class EnemyPointEdit(DataEditor):

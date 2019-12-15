@@ -294,7 +294,7 @@ class EnemyPoint(object):
 class EnemyPointGroup(object):
     def __init__(self):
         self.points = []
-        self.id = None
+        self.id = 0
 
     @classmethod
     def new(cls):
@@ -1038,7 +1038,7 @@ class BOL(object):
         f.write(pack(">BB", self.lap_count, self.music_id))
 
         enemypoints = 0
-        for index, group in self.enemypointgroups.groups.items():
+        for group in self.enemypointgroups.groups:
             enemypoints += len(group.points)
         write_uint16(f, enemypoints)
         write_uint16(f, len(self.checkpoints.groups))

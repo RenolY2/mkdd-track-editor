@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 from lib.libbol import BOL, get_full_name
-
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import QAction, QMenu
 
 class BolHeader(QTreeWidgetItem):
     def __init__(self):
@@ -156,6 +157,9 @@ class MGEntry(NamedItem):
 
 
 class LevelDataTreeView(QTreeWidget):
+    select_all = pyqtSignal(ObjectGroup)
+    reverse = pyqtSignal(ObjectGroup)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
         self.setMaximumWidth(250)
@@ -176,6 +180,35 @@ class LevelDataTreeView(QTreeWidget):
         self.respawnpoints = self._add_group("Respawn points")
         self.lightparams = self._add_group("Light param entries")
         self.mgentries = self._add_group("MG entries")
+
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.run_context_menu)
+
+    def run_context_menu(self, pos):
+        item = self.itemAt(pos)
+
+        if not isinstance(item, (EnemyPointGroup, ObjectPointGroup, CheckpointGroup)):
+            return
+
+        context_menu = QMenu(self)
+        select_all_action = QAction("Select All", self)
+        reverse_action = QAction("Reverse", self)
+
+        def emit_current_selectall():
+            item = self.itemAt(pos)
+            self.select_all.emit(item)
+
+        def emit_current_reverse():
+            item = self.itemAt(pos)
+            self.reverse.emit(item)
+        select_all_action.triggered.connect(emit_current_selectall)
+        reverse_action.triggered.connect(emit_current_reverse)
+
+        context_menu.addAction(select_all_action)
+        context_menu.addAction(reverse_action)
+        context_menu.exec(self.mapToGlobal(pos))
+        context_menu.destroy()
+        del context_menu
 
     def _add_group(self, name, customgroup=None):
         if customgroup is None:

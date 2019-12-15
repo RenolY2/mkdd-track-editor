@@ -150,7 +150,6 @@ class GenEditor(QMainWindow):
         self.tree_select_object(item)
         print(self.level_view.selected_positions)
         if len(self.level_view.selected_positions) > 0:
-
             position = self.level_view.selected_positions[0]
 
             if self.level_view.mode == MODE_TOPDOWN:
@@ -186,7 +185,7 @@ class GenEditor(QMainWindow):
             bound_to = item.bound_to
             self.level_view.selected = [bound_to]
             self.level_view.selected_positions = [bound_to.start, bound_to.end]
-        elif isinstance(item, (tree_view.CheckpointGroup, tree_view.ObjectPointGroup)):
+        elif isinstance(item, (tree_view.EnemyPointGroup, tree_view.CheckpointGroup, tree_view.ObjectPointGroup)):
             self.level_view.selected = [item.bound_to]
         elif isinstance(item, tree_view.BolHeader) and self.level_file is not None:
             self.level_view.selected = [self.level_file]
@@ -406,6 +405,39 @@ class GenEditor(QMainWindow):
         redo_shortcut.activated.connect(self.action_redo)
 
         self.level_view.rotate_current.connect(self.action_rotate_object)
+        self.leveldatatreeview.select_all.connect(self.select_all_of_group)
+        self.leveldatatreeview.reverse.connect(self.reverse_all_of_group)
+
+    def reverse_all_of_group(self, item):
+        group = item.bound_to
+        if isinstance(group, libbol.CheckpointGroup):
+            group.points.reverse()
+            for point in group.points:
+                start = point.start
+                point.start = point.end
+                point.end = start
+        elif isinstance(group, libbol.EnemyPointGroup):
+            group.points.reverse()
+        elif isinstance(group, libbol.Route):
+            group.points.reverse()
+
+        self.leveldatatreeview.set_objects(self.level_file)
+        self.update_3d()
+
+    def select_all_of_group(self, item):
+        group = item.bound_to
+        self.level_view.selected = []
+        self.level_view.selected_positions = []
+        self.level_view.selected_rotations = []
+        for point in group.points:
+            self.level_view.selected.append(point)
+
+            if isinstance(group, libbol.CheckpointGroup):
+                self.level_view.selected_positions.append(point.start)
+                self.level_view.selected_positions.append(point.end)
+            else:
+                self.level_view.selected_positions.append(point.position)
+        self.update_3d()
 
     def action_open_rotationedit_window(self):
         if self.edit_spawn_window is None:
@@ -620,14 +652,15 @@ class GenEditor(QMainWindow):
             self.add_object_window = AddPikObjectWindow()
             self.add_object_window.button_savetext.pressed.connect(self.button_add_item_window_save)
             self.add_object_window.closing.connect(self.button_add_item_window_close)
+            print("hmmm")
             if self.addobjectwindow_last_selected is not None:
                 self.add_object_window.category_menu.setCurrentIndex(self.addobjectwindow_last_selected_category)
                 self.add_object_window.template_menu.setCurrentIndex(self.addobjectwindow_last_selected)
 
             self.add_object_window.show()
 
-        elif self.pikmin_gen_view.mousemode == pikwidgets.MOUSE_MODE_ADDWP:
-            self.pikmin_gen_view.set_mouse_mode(pikwidgets.MOUSE_MODE_NONE)
+        elif self.level_view.mousemode == mkdd_widgets.MOUSE_MODE_ADDWP:
+            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
             self.pik_control.button_add_object.setChecked(False)
 
     def shortcut_open_add_item_window(self):
@@ -635,6 +668,7 @@ class GenEditor(QMainWindow):
             self.add_object_window = AddPikObjectWindow()
             self.add_object_window.button_savetext.pressed.connect(self.button_add_item_window_save)
             self.add_object_window.closing.connect(self.button_add_item_window_close)
+            print("object")
             if self.addobjectwindow_last_selected is not None:
                 self.add_object_window.category_menu.setCurrentIndex(self.addobjectwindow_last_selected_category)
                 self.add_object_window.template_menu.setCurrentIndex(self.addobjectwindow_last_selected)
@@ -644,10 +678,34 @@ class GenEditor(QMainWindow):
 
     @catch_exception
     def button_add_item_window_save(self):
+        print("ohai")
         if self.add_object_window is not None:
             self.object_to_be_added = self.add_object_window.get_content()
+            if self.object_to_be_added is None:
+                return
 
-            if self.object_to_be_added is not None:
+            obj = self.object_to_be_added[0]
+
+            if isinstance(obj, (libbol.EnemyPointGroup, libbol.CheckpointGroup, libbol.Route,
+                                                    libbol.LightParam, libbol.MGEntry)):
+                if isinstance(obj, libbol.EnemyPointGroup):
+                    self.level_file.enemypointgroups.groups.append(obj)
+                elif isinstance(obj, libbol.CheckpointGroup):
+                    self.level_file.checkpoints.groups.append(obj)
+                elif isinstance(obj, libbol.Route):
+                    self.level_file.routes.append(obj)
+                elif isinstance(obj, libbol.LightParam):
+                    self.level_file.lightparams.append(obj)
+                elif isinstance(obj, libbol.MGEntry):
+                    self.level_file.lightparams.append(obj)
+
+                self.addobjectwindow_last_selected_category = self.add_object_window.category_menu.currentIndex()
+                self.object_to_be_added = None
+                self.add_object_window.destroy()
+                self.add_object_window = None
+                self.leveldatatreeview.set_objects(self.level_file)
+
+            elif self.object_to_be_added is not None:
                 self.addobjectwindow_last_selected_category = self.add_object_window.category_menu.currentIndex()
                 self.pik_control.button_add_object.setChecked(True)
                 #self.pik_control.button_move_object.setChecked(False)
@@ -656,10 +714,10 @@ class GenEditor(QMainWindow):
                 self.add_object_window = None
                 #self.pikmin_gen_view.setContextMenuPolicy(Qt.DefaultContextMenu)
 
-
     @catch_exception
     def button_add_item_window_close(self):
         # self.add_object_window.destroy()
+        print("Hmmm")
         self.add_object_window = None
         self.pik_control.button_add_object.setChecked(False)
         self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
@@ -697,6 +755,7 @@ class GenEditor(QMainWindow):
                 self.level_file.checkpoints.groups[group].points.insert(position, placeobject)
                 self.pikmin_gen_view.do_redraw()
                 self.set_has_unsaved_changes(True)
+                self.leveldatatreeview.set_objects(self.level_file)
             else:
                 self.last_position_clicked = [(x, y, z)]
 
@@ -707,7 +766,7 @@ class GenEditor(QMainWindow):
             placeobject.position.z = z
 
             if isinstance(object, libbol.EnemyPoint):
-                self.level_file.enemypointgroups.groups[group].insert(position, placeobject)
+                self.level_file.enemypointgroups.groups[group].points.insert(position, placeobject)
             elif isinstance(object, libbol.RoutePoint):
                 self.level_file.routes[group].insert(position, placeobject)
             elif isinstance(object, libbol.MapObject):
@@ -888,9 +947,9 @@ class GenEditor(QMainWindow):
         tobedeleted = []
         for obj in self.level_view.selected:
             if isinstance(obj, libbol.EnemyPoint):
-                for group, objlist in self.level_file.enemypointgroups.groups.items():
-                    if obj in objlist.points:
-                        objlist.points.remove(obj)
+                for group in self.level_file.enemypointgroups.groups:
+                    if obj in group.points:
+                        group.points.remove(obj)
                         break
 
             elif isinstance(obj, libbol.RoutePoint):
@@ -918,10 +977,7 @@ class GenEditor(QMainWindow):
             elif isinstance(obj, libbol.CheckpointGroup):
                 self.level_file.checkpoints.groups.remove(obj)
             elif isinstance(obj, libbol.EnemyPointGroup):
-                for key in self.level_file.enemypointgroups.groups:
-                    if self.level_file.enemypointgroups.groups[key] == obj:
-                        self.level_file.enemypointgroups.pop(key)
-                        break
+                self.level_file.enemypointgroups.groups.remove(obj)
             elif isinstance(obj, libbol.Route):
                 self.level_file.routes.remove(obj)
             elif isinstance(obj, libbol.LightParam):
@@ -1048,7 +1104,7 @@ class GenEditor(QMainWindow):
                 elif isinstance(currentobj, libbol.KartStartPoint):
                     item = get_treeitem(self.leveldatatreeview.kartpoints, currentobj)
 
-                assert item is not None
+                #assert item is not None
                 if item is not None:
                     self.leveldatatreeview.setCurrentItem(item)
 
