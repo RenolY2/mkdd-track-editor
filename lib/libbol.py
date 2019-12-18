@@ -401,8 +401,8 @@ class Checkpoint(object):
         end = Vector3(*unpack(">fff", f.read(12)))
         unk1, unk2, unk3, unk4 = unpack(">BBBB", f.read(4))
         #print(start, end)
-        #print(unk2, unk3, unk4)
-        assert unk2 == unk4 == 0
+        assert unk4 == 0
+        assert unk2 == 0 or unk2 == 1
         assert unk3 == 0 or unk3 == 1
         return cls(start, end, unk1, unk2, unk3, unk4)
 
@@ -1022,6 +1022,7 @@ class BOL(object):
         bol.respawnpoints = ObjectContainer.from_file(f, sectioncounts[RESPAWNPOINT], JugemPoint)
 
         f.seek(sectionoffsets[LIGHTPARAM])
+
         bol.lightparams = ObjectContainer.from_file(f, sectioncounts[LIGHTPARAM], LightParam)
 
         f.seek(sectionoffsets[MINIGAME])

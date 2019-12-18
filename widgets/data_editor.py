@@ -491,7 +491,9 @@ class CheckpointEdit(DataEditor):
 
         self.unk1 = self.add_integer_input("Unknown", "unk1",
                                            MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.unk3 = self.add_checkbox("Unknown Flag", "unk3",
+        self.unk2 = self.add_checkbox("Unknown Flag", "unk2",
+                                      0, 1)
+        self.unk3 = self.add_checkbox("Unknown Flag 2", "unk3",
                                            0, 1)
 
     def update_data(self):
@@ -505,6 +507,7 @@ class CheckpointEdit(DataEditor):
         self.end[2].setText(str(round(obj.end.z, 3)))
 
         self.unk1.setText(str(obj.unk1))
+        self.unk2.setChecked(obj.unk2 != 0)
         self.unk3.setChecked(obj.unk3 != 0)
 
 
