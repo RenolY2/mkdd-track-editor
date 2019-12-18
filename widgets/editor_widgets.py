@@ -230,8 +230,8 @@ class AddPikObjectWindow(QMdiSubWindow):
         self.group_edit = QLineEdit(self.centralwidget)
         self.position_edit = QLineEdit(self.centralwidget)
 
-        self.group_edit.setValidator(QtGui.QIntValidator(0, 2**32-1))
-        self.position_edit.setValidator(QtGui.QIntValidator(-1, 2**32-1))
+        self.group_edit.setValidator(QtGui.QIntValidator(0, 2**31-1))
+        self.position_edit.setValidator(QtGui.QIntValidator(-1, 2**31-1))
 
         self.hbox1.setAlignment(Qt.AlignRight)
         self.hbox2.setAlignment(Qt.AlignRight)
