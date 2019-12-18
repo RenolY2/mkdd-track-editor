@@ -375,7 +375,7 @@ class CheckpointGroup(object):
 
         f.write(pack(">HH", self._pointcount, self.grouplink))
         f.write(pack(">hhhh", *self.prevgroup))
-        f.write(pack(">hhhh", *self.prevgroup))
+        f.write(pack(">hhhh", *self.nextgroup))
 
 
 class Checkpoint(object):
