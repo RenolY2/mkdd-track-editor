@@ -249,7 +249,7 @@ class TexturedModel(object):
     def __init__(self):
         self.mesh_list = []
 
-    def render(self, selected=False, time=0.0):
+    def render(self, selected=False, selectedPart=None):
         for mesh in self.mesh_list:
             mesh.render(selected)
 
