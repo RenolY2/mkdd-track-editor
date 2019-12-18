@@ -166,6 +166,11 @@ class GenEditor(QMainWindow):
             print("heyyy")
             self.level_view.do_redraw()
 
+    def tree_select_arrowkey(self):
+        current = self.leveldatatreeview.selectedItems()
+        if len(current) == 1:
+            self.tree_select_object(current[0])
+
     def tree_select_object(self, item):
         print("Selected:", item)
         self.level_view.selected = []
@@ -210,8 +215,9 @@ class GenEditor(QMainWindow):
         self.centralwidget = self.horizontalLayout
         self.setCentralWidget(self.horizontalLayout)
         self.leveldatatreeview = LevelDataTreeView(self.centralwidget)
-        self.leveldatatreeview.itemClicked.connect(self.tree_select_object)
+        #self.leveldatatreeview.itemClicked.connect(self.tree_select_object)
         self.leveldatatreeview.itemDoubleClicked.connect(self.do_goto_action)
+        self.leveldatatreeview.itemSelectionChanged.connect(self.tree_select_arrowkey)
 
         self.level_view = BolMapViewer(self.centralwidget)
 
@@ -753,7 +759,7 @@ class GenEditor(QMainWindow):
                 placeobject.end.z = z
                 self.last_position_clicked = []
                 self.level_file.checkpoints.groups[group].points.insert(position, placeobject)
-                self.pikmin_gen_view.do_redraw()
+                self.level_view.do_redraw()
                 self.set_has_unsaved_changes(True)
                 self.leveldatatreeview.set_objects(self.level_file)
             else:
