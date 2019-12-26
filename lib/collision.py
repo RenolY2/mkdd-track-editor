@@ -118,7 +118,6 @@ class Collision(object):
         self.faces = faces
         self.triangles = []
         for v1i, v2i, v3i in self.faces:
-            print(v1i, v2i, v3i)
             #print(v1i, v2i, v3i, len(self.verts))
             x, y, z = verts[v1i[0]-1]
             v1 = Vector3(x, -z, y)
@@ -177,8 +176,8 @@ class Collision(object):
         return result
 
     def collide_ray_closest(self, x, z, y):
-        grid_x = int((x + MAX_X) // 100)
-        grid_z = int((z + MAX_Z) // 100)
+        grid_x = int((x + MAX_X) // 1000)
+        grid_z = int((z + MAX_Z) // 1000)
 
         if grid_x not in self.grid or grid_z not in self.grid[grid_x]:
             return None
