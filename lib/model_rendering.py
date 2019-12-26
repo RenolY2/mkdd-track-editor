@@ -230,7 +230,6 @@ class Model(object):
                 # no triangulation yet.
                 if len(args) == 5:
                     #raise RuntimeError("Model needs to be triangulated! Only faces with 3 vertices are supported.")
-                    print(args)
                     v1, v2, v3, v4 = map(read_vertex, args[1:5])
                     curr_mesh.triangles.append(((v1[0] - 1, None), (v3[0] - 1, None), (v2[0] - 1, None)))
                     curr_mesh.triangles.append(((v3[0] - 1, None), (v1[0] - 1, None), (v4[0] - 1, None)))
@@ -320,10 +319,10 @@ class TexturedModel(object):
                                     lasttex = None
 
                                 lastmat = " ".join(mtlargs[1:])
-                            elif mtlargs[0] == "Kd":
+                            elif mtlargs[0].lower() == "Kd":
                                 r, g, b = map(float, mtlargs[1:4])
                                 lastdiffuse = (r,g,b)
-                            elif mtlargs[0] == "map_Kd":
+                            elif mtlargs[0].lower() == "map_kd":
                                 lasttex = " ".join(mtlargs[1:])
                                 if lasttex.strip() == "":
                                     lasttex = None
