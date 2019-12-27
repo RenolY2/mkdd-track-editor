@@ -92,9 +92,6 @@ class TexturedMesh(object):
         glNewList(displist, GL_COMPILE)
         glBegin(GL_TRIANGLES)
 
-        if self.material.tex is not None:
-            glBindTexture(GL_TEXTURE_2D, self.material.tex)
-
         for triangle in self.triangles:
             assert len(triangle) == 3
             for vi, ti in triangle:
@@ -112,6 +109,7 @@ class TexturedMesh(object):
 
         if self.material.tex is not None:
             glEnable(GL_TEXTURE_2D)
+            glBindTexture(GL_TEXTURE_2D, self.material.tex)
         else:
             glDisable(GL_TEXTURE_2D)
 
