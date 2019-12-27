@@ -62,11 +62,11 @@ class GenEditor(QMainWindow):
             self.configuration = make_default_config()
 
         self.level_view.level_file = self.level_file
-        self.level_view.set_editorconfig(self.configuration["gen editor"])
+        self.level_view.set_editorconfig(self.configuration["editor"])
         self.level_view.visibility_menu = self.visibility_menu
 
         self.pathsconfig = self.configuration["default paths"]
-        self.editorconfig = self.configuration["gen editor"]
+        self.editorconfig = self.configuration["editor"]
         self.current_gen_path = None
 
         self.current_coordinates = None

@@ -4,7 +4,7 @@ import configparser
 def read_config():
     print("reading")
     cfg = configparser.ConfigParser()
-    with open("piktool.ini", "r") as f:
+    with open("editor_config.ini", "r") as f:
         cfg.read_file(f)
     print("read")
     return cfg
@@ -19,30 +19,18 @@ def make_default_config():
         "gen": ""
     }
 
-    cfg["routes editor"] = {
-        "DefaultRadius": "50",
+    cfg["editor"] = {
         "InvertZoom": "False",
-        "GroundWaypointsWhenMoving": "False"
+        "wasdscrolling_speed": "1250",
+        "wasdscrolling_speedupfactor": "5"
     }
 
-    cfg["gen editor"] = {
-        "InvertZoom": "False",
-        "GroundObjectsWhenMoving": "False",
-        "GroundObjectsWhenAdding": "True",
-        "wasdscrolling_speed": "200",
-        "wasdscrolling_speedupfactor": "3"
-    }
-    cfg["model render"] = {
-        "Width": "2000",
-        "Height": "2000"
-    }
-
-    with open("piktool.ini", "w") as f:
+    with open("editor_config.ini", "w") as f:
         cfg.write(f)
 
     return cfg
 
 
 def save_cfg(cfg):
-    with open("piktool.ini", "w") as f:
+    with open("editor_config.ini", "w") as f:
         cfg.write(f)
