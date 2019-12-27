@@ -520,7 +520,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             camera_height = height*zf
 
             glOrtho(-camera_width / 2 - offset_x, camera_width / 2 - offset_x,
-                    -camera_height / 2 + offset_z, camera_height / 2 + offset_z, -80000.0, 80000.0)
+                    -camera_height / 2 + offset_z, camera_height / 2 + offset_z, -120000.0, 80000.0)
 
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
@@ -530,7 +530,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
             glMatrixMode(GL_PROJECTION)
             glLoadIdentity()
-            gluPerspective(75, width / height, 100.0, 128000.0)
+            gluPerspective(75, width / height, 256.0, 160000.0)
 
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
