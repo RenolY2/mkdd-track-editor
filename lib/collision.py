@@ -128,10 +128,10 @@ class Collision(object):
 
             self.triangles.append(Triangle(v1,v2,v3))
 
-        cell_size = 1000
+        self.cell_size = 2000
 
-        box_size_x = cell_size
-        box_size_z = cell_size
+        box_size_x = self.cell_size
+        box_size_z = self.cell_size
 
         smallest_x =-MAX_X#max(-6000.0, smallest_x)
         smallest_z = -MAX_Z#max(-6000.0, smallest_z)
@@ -149,13 +149,13 @@ class Collision(object):
 
         self.grid = {}
         triangles = [(i, face) for i, face in enumerate(faces)]
-        subdivide_grid(start_x, start_z, 0, grid_size_x, 0, grid_size_z, cell_size, triangles, self.verts, self.grid)
+        subdivide_grid(start_x, start_z, 0, grid_size_x, 0, grid_size_z, self.cell_size, triangles, self.verts, self.grid)
         print("finished generating triangles")
         print(grid_size_x, grid_size_z)
 
     def collide_ray_downwards(self, x, z, y=99999999):
-        grid_x = int((x+MAX_X) // 1000)
-        grid_z = int((z+MAX_Z) // 1000)
+        grid_x = int((x+MAX_X) // self.cell_size)
+        grid_z = int((z+MAX_Z) // self.cell_size)
 
         if grid_x not in self.grid or grid_z not in self.grid[grid_x]:
             return None
@@ -176,8 +176,8 @@ class Collision(object):
         return result
 
     def collide_ray_closest(self, x, z, y):
-        grid_x = int((x + MAX_X) // 1000)
-        grid_z = int((z + MAX_Z) // 1000)
+        grid_x = int((x + MAX_X) // self.cell_size)
+        grid_z = int((z + MAX_Z) // self.cell_size)
 
         if grid_x not in self.grid or grid_z not in self.grid[grid_x]:
             return None
