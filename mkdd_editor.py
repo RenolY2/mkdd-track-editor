@@ -35,6 +35,7 @@ from widgets.editor_widgets import ErrorAnalyzer
 
 from widgets.file_select import FileSelect
 from PyQt5.QtWidgets import QTreeWidgetItem
+from lib.bmd_render import clear_temp_folder, load_textured_bmd
 PIKMIN2GEN = "Generator files (defaultgen.txt;initgen.txt;plantsgen.txt;*.txt)"
 
 
@@ -87,6 +88,8 @@ class GenEditor(QMainWindow):
         self.last_position_clicked = []
 
         self.analyzer_window = None
+
+        self._dontselectfromtree = False
 
 
     @catch_exception
@@ -172,6 +175,10 @@ class GenEditor(QMainWindow):
             self.tree_select_object(current[0])
 
     def tree_select_object(self, item):
+        if self._dontselectfromtree:
+            self._dontselectfromtree = False
+            return
+
         print("Selected:", item)
         self.level_view.selected = []
         self.level_view.selected_positions = []
@@ -278,6 +285,9 @@ class GenEditor(QMainWindow):
         self.collision_load_grid_action = QAction("Load BCO", self)
         self.collision_load_grid_action.triggered.connect(self.button_load_collision_bco)
         self.collision_menu.addAction(self.collision_load_grid_action)
+        self.collision_load_bmd_action = QAction("Load BMD", self)
+        self.collision_load_bmd_action.triggered.connect(self.button_load_collision_bmd)
+        self.collision_menu.addAction(self.collision_load_bmd_action)
 
 
         # Misc
@@ -589,6 +599,40 @@ class GenEditor(QMainWindow):
             with open(filepath, "r") as f:
                 verts, faces, normals = py_obj.read_obj(f)
             alternative_mesh = TexturedModel.from_obj_path(filepath, rotate=True)
+
+            self.setup_collision(verts, faces, filepath, alternative_mesh)
+
+        except Exception as e:
+            traceback.print_exc()
+            open_error_dialog(str(e), self)
+
+    def button_load_collision_bmd(self):
+        try:
+            filepath, choosentype = QFileDialog.getOpenFileName(
+                self, "Open File",
+                self.pathsconfig["collision"],
+                "Course Model (*.bmd);;Archived files (*.arc);;All files (*)")
+
+            if not filepath:
+                return
+            bmdpath = filepath
+            clear_temp_folder()
+            if choosentype == "Archived files (*.arc)" or filepath.endswith(".arc"):
+                with open(filepath, "rb") as f:
+                    rarc = Archive.from_file(f)
+
+                root_name = rarc.root.name
+                bmd_filename = find_file(rarc.root, "_course.bmd")
+                bmd = rarc[root_name][bmd_filename]
+                with open("lib/temp/temp.bmd", "wb") as f:
+                    f.write(bmd.getvalue())
+
+                bmdpath = "lib/temp/temp.bmd"
+                
+
+            alternative_mesh = load_textured_bmd(bmdpath)
+            with open("lib/temp/temp.obj", "r") as f:
+                verts, faces, normals = py_obj.read_obj(f)
 
             self.setup_collision(verts, faces, filepath, alternative_mesh)
 
@@ -1085,12 +1129,12 @@ class GenEditor(QMainWindow):
                         if item is not None:
                             break
 
-                elif isinstance(currentobj, libbol.Checkpoint):
+                    """elif isinstance(currentobj, libbol.Checkpoint):
                     for i in range(self.leveldatatreeview.checkpointgroups.childCount()):
                         child = self.leveldatatreeview.checkpointgroups.child(i)
                         item = get_treeitem(child, currentobj)
                         if item is not None:
-                            break
+                            break"""
 
                 elif isinstance(currentobj, libbol.RoutePoint):
                     for i in range(self.leveldatatreeview.objectroutes.childCount()):
@@ -1112,6 +1156,7 @@ class GenEditor(QMainWindow):
 
                 #assert item is not None
                 if item is not None:
+                    self._dontselectfromtree = True
                     self.leveldatatreeview.setCurrentItem(item)
 
     @catch_exception
