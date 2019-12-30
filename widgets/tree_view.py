@@ -3,6 +3,7 @@ from lib.libbol import BOL, get_full_name
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QAction, QMenu
 
+
 class BolHeader(QTreeWidgetItem):
     def __init__(self):
         super().__init__()
@@ -91,12 +92,23 @@ class EnemyRoutePoint(NamedItem):
 
 class Checkpoint(NamedItem):
     def update_name(self):
+        offset = 0
         group_item = self.parent()
+        groups_item = group_item.parent()
+        for i in range(groups_item.childCount()):
+            other_group_item = groups_item.child(i)
+            if other_group_item == group_item:
+                break
+            else:
+                print("Hmmm,",other_group_item.text(0), len(other_group_item.bound_to.points), offset)
+                group_object = other_group_item.bound_to
+                offset += len(group_object.points)
+
         group = group_item.bound_to
 
         index = group.points.index(self.bound_to)
 
-        self.setText(0, "Checkpoint {0}".format(index))
+        self.setText(0, "Checkpoint {0} (pos={1})".format(index+1+offset, index))
 
 
 class ObjectRoutePoint(NamedItem):
