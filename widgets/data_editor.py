@@ -9,6 +9,7 @@ from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint
                         MapObject, KartStartPoint, Area, Camera, BOL, JugemPoint, MapObject,
                         LightParam, MGEntry, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS)
 from lib.vectors import Vector3
+from lib.model_rendering import Minimap
 from PyQt5.QtCore import pyqtSignal
 
 
@@ -411,6 +412,8 @@ def choose_data_editor(obj):
         return LightParamEdit
     elif isinstance(obj, MGEntry):
         return MGEntryEdit
+    elif isinstance(obj, Minimap):
+        return MinimapEdit
     else:
         return None
 
@@ -915,3 +918,24 @@ class MGEntryEdit(DataEditor):
         self.unk2.setText(str(obj.unk2))
         self.unk3.setText(str(obj.unk3))
         self.unk4.setText(str(obj.unk4))
+
+
+class MinimapEdit(DataEditor):
+    def setup_widgets(self):
+        self.topleft = self.add_multiple_decimal_input("TopLeft", "corner1", ["x", "y", "z"],
+                                                       -inf, +inf)
+        self.bottomright = self.add_multiple_decimal_input("BottomRight", "corner2", ["x", "y", "z"],
+                                                           -inf, +inf)
+        self.orientation = self.add_integer_input("Orientation", "orientation",
+                                                  0, 3)
+
+    def update_data(self):
+        obj: Minimap = self.bound_to
+        self.topleft[0].setText(str(round(obj.corner1.x, 3)))
+        self.topleft[1].setText(str(round(obj.corner1.y, 3)))
+        self.topleft[2].setText(str(round(obj.corner1.z, 3)))
+        self.bottomright[0].setText(str(round(obj.corner2.x, 3)))
+        self.bottomright[1].setText(str(round(obj.corner2.y, 3)))
+        self.bottomright[2].setText(str(round(obj.corner2.z, 3)))
+
+        self.orientation.setText(str(obj.orientation))

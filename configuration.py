@@ -14,7 +14,6 @@ def make_default_config():
     cfg = configparser.ConfigParser()
 
     cfg["default paths"] = {
-        "routes": "",
         "collision": "",
         "gen": ""
     }

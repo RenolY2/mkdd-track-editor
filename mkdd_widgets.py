@@ -27,7 +27,7 @@ from libpiktxt import PikminTxt
 from opengltext import draw_collision
 from lib.vectors import Matrix4x4, Vector3, Line, Plane, Triangle
 import pikmingen
-from lib.model_rendering import TexturedPlane, Model, Grid, GenericObject, Material
+from lib.model_rendering import TexturedPlane, Model, Grid, GenericObject, Material, Minimap
 from gizmo import Gizmo
 from lib.object_models import ObjectModels
 from editor_controls import UserControl
@@ -222,6 +222,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.projectionmatrix = None
 
         self.arrow = None
+        self.minimap = Minimap(Vector3(-1000.0, 0.0, -1000.0), Vector3(1000.0, 0.0, 1000.0), 0,
+                               None)
 
     @catch_exception_with_dialog
     def initializeGL(self):
@@ -237,6 +239,9 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
         self.models.init_gl()
         self.arrow = Material(texturepath="resources/arrow.png")
+
+        self.minimap = Minimap(Vector3(-1000.0, 0.0, -1000.0), Vector3(1000.0, 0.0, 1000.0), 0,
+                               "resources/arrow.png")
 
     def resizeGL(self, width, height):
         # Called upon window resizing: reinitialize the viewport.
@@ -566,7 +571,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.gizmo_scale = gizmo_scale
 
         #print(self.gizmo.position, campos)
-
+        vismenu: FilterViewMenu = self.visibility_menu
         while len(self.selectionqueue) > 0:
             glClearColor(1.0, 1.0, 1.0, 1.0)
             #
@@ -595,12 +600,19 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                 #    self.models.render_object_coloredid(pikminobject, i)
 
                 id = 0x100000
-                vismenu: FilterViewMenu = self.visibility_menu
+
                 objlist = []
+                offset = 0
+                if self.minimap is not None and vismenu.minimap.is_selectable():
+                    objlist.append((self.minimap, self.minimap.corner1, self.minimap.corner2, None))
+                    self.models.render_generic_position_colored_id(self.minimap.corner1, id + (offset) * 4)
+                    self.models.render_generic_position_colored_id(self.minimap.corner2, id + (offset) * 4 + 1)
+                    offset = 1
+
                 if vismenu.enemyroute.is_selectable():
                     for i, obj in enumerate(self.level_file.enemypointgroups.points()):
                         objlist.append((obj, obj.position, None, None))
-                        self.models.render_generic_position_colored_id(obj.position, id + i * 4)
+                        self.models.render_generic_position_colored_id(obj.position, id + (offset+i) * 4)
 
                 offset = len(objlist)
 
@@ -727,6 +739,13 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.grid.render()
         if self.mode == MODE_TOPDOWN:
             glClear(GL_DEPTH_BUFFER_BIT)
+
+            if self.minimap is not None and vismenu.minimap.is_visible():
+                self.minimap.render()
+                glClear(GL_DEPTH_BUFFER_BIT)
+        else:
+            if self.minimap is not None and vismenu.minimap.is_visible():
+                self.minimap.render()
         #    glDisable(GL_DEPTH_TEST)
 
 
@@ -905,7 +924,9 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                     self.models.render_generic_position_rotation_colored("respawn",
                                                                 object.position, object.rotation,
                                                                  object in select_optimize)
-
+            if self.minimap is not None:
+                self.models.render_generic_position(self.minimap.corner1, self.minimap.corner1 in positions)
+                self.models.render_generic_position(self.minimap.corner2, self.minimap.corner2 in positions)
             #glDisable(GL_TEXTURE_2D)
 
         glColor3f(0.0, 0.0, 0.0)
@@ -1111,22 +1132,25 @@ class FilterViewMenu(QMenu):
         self.cameras = ObjectViewSelectionToggle("Cameras", self)
         self.respawnpoints = ObjectViewSelectionToggle("Respawn Points", self)
         self.kartstartpoints = ObjectViewSelectionToggle("Kart Start Points", self)
-
+        self.minimap = ObjectViewSelectionToggle("Minimap", self)
         for action in (self.enemyroute, self.itemroutes, self.checkpoints, self.objects,
-                       self.areas, self.cameras, self.respawnpoints, self.kartstartpoints):
+                       self.areas, self.cameras, self.respawnpoints, self.kartstartpoints,
+                       self.minimap):
             action.action_view_toggle.triggered.connect(self.emit_update)
             action.action_select_toggle.triggered.connect(self.emit_update)
 
     def handle_show_all(self):
         for action in (self.enemyroute, self.itemroutes, self.checkpoints, self.objects,
-                       self.areas, self.cameras, self.respawnpoints, self.kartstartpoints):
+                       self.areas, self.cameras, self.respawnpoints, self.kartstartpoints,
+                       self.minimap):
             action.action_view_toggle.setChecked(True)
             action.action_select_toggle.setChecked(True)
         self.filter_update.emit()
 
     def handle_hide_all(self):
         for action in (self.enemyroute, self.itemroutes, self.checkpoints, self.objects,
-                       self.areas, self.cameras, self.respawnpoints, self.kartstartpoints):
+                       self.areas, self.cameras, self.respawnpoints, self.kartstartpoints,
+                       self.minimap):
             action.action_view_toggle.setChecked(False)
             action.action_select_toggle.setChecked(False)
         self.filter_update.emit()

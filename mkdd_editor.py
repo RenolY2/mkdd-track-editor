@@ -3,6 +3,7 @@ from timeit import default_timer
 from copy import deepcopy
 from io import TextIOWrapper, BytesIO, StringIO
 from math import sin, cos, atan2
+import json
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from PyQt5.QtCore import Qt
@@ -30,9 +31,9 @@ from lib.libbol import BOL, MGEntry, Route, get_full_name
 import lib.libbol as libbol
 from lib.rarc import Archive
 from lib.BCOllider import RacetrackCollision
-from lib.model_rendering import TexturedModel, CollisionModel
+from lib.model_rendering import TexturedModel, CollisionModel, Minimap
 from widgets.editor_widgets import ErrorAnalyzer
-
+from lib.dolreader import DolFile, read_float, write_float, read_load_immediate_r0, write_load_immediate_r0
 from widgets.file_select import FileSelect
 from PyQt5.QtWidgets import QTreeWidgetItem
 from lib.bmd_render import clear_temp_folder, load_textured_bmd
@@ -289,6 +290,24 @@ class GenEditor(QMainWindow):
         self.collision_load_bmd_action.triggered.connect(self.button_load_collision_bmd)
         self.collision_menu.addAction(self.collision_load_bmd_action)
 
+        self.minimap_menu = QMenu(self.menubar)
+        self.minimap_menu.setTitle("Minimap")
+        load_minimap = QAction("Load Minimap Image", self)
+        load_coordinates_dol = QAction("Load Data from DOL", self)
+        save_coordinates_dol = QAction("Save Data to DOL", self)
+        load_coordinates_json = QAction("Load Data from JSON", self)
+        save_coordinates_json = QAction("Save Data to JSON", self)
+
+
+        load_minimap.triggered.connect(self.action_load_minimap_image)
+        load_coordinates_dol.triggered.connect(self.action_load_dol)
+        load_coordinates_json.triggered.connect(self.action_load_coordinates_json)
+        save_coordinates_json.triggered.connect(self.action_save_coordinates_json)
+        self.minimap_menu.addAction(load_minimap)
+        self.minimap_menu.addAction(load_coordinates_dol)
+        self.minimap_menu.addAction(save_coordinates_dol)
+        self.minimap_menu.addAction(load_coordinates_json)
+        self.minimap_menu.addAction(save_coordinates_json)
 
         # Misc
         self.misc_menu = QMenu(self.menubar)
@@ -305,10 +324,6 @@ class GenEditor(QMainWindow):
         self.analyze_action = QAction("Analyze for common mistakes", self)
         self.analyze_action.triggered.connect(self.analyze_for_mistakes)
         self.misc_menu.addAction(self.analyze_action)
-
-
-
-
 
         self.change_to_topdownview_action = QAction("Topdown View", self)
         self.change_to_topdownview_action.triggered.connect(self.change_to_topdownview)
@@ -331,11 +346,144 @@ class GenEditor(QMainWindow):
         self.menubar.addAction(self.file_menu.menuAction())
         self.menubar.addAction(self.visibility_menu.menuAction())
         self.menubar.addAction(self.collision_menu.menuAction())
+        self.menubar.addAction(self.minimap_menu.menuAction())
         self.menubar.addAction(self.misc_menu.menuAction())
         self.setMenuBar(self.menubar)
 
-
         self.last_obj_select_pos = 0
+
+    def action_load_minimap_image(self):
+        filepath, choosentype = QFileDialog.getOpenFileName(
+            self, "Open File",
+            self.pathsconfig["gen"],
+            "Image (*.png);;All files (*)")
+
+        if filepath:
+            self.level_view.minimap.set_texture(filepath)
+
+    @catch_exception_with_dialog
+    def action_load_dol(self, val):
+        filepath, choosentype = QFileDialog.getOpenFileName(
+            self, "Open File",
+            self.pathsconfig["gen"],
+            "Game Executable (*.dol);;All files (*)")
+
+        if filepath:
+            with open("lib/minimap_locations.json", "r") as f:
+                addresses_json = json.load(f)
+
+                addresses = addresses_json[addresses_json["UseVersion"]]
+
+            item_list = ["None"]
+            item_list.extend(addresses.keys())
+            result, pos = FileSelect.open_file_list(self, item_list, "Select Track Slot")
+
+            if result == "None":
+                return
+
+            corner1x, corner1z, corner2x, corner2z, orientation = addresses[result]
+            with open(filepath, "rb") as f:
+                dol = DolFile(f)
+
+                dol.seek(int(orientation, 16))
+                orientation = read_load_immediate_r0(dol)
+                if orientation not in (0, 1, 2, 3):
+                    raise RuntimeError("Wrong Address, orientation value in DOL isn't in 0-3 range: {0}. Maybe you are using"
+                                       " a dol from a different version?".format(orientation))
+                self.level_view.minimap.orientation = orientation
+                dol.seek(int(corner1x, 16))
+                self.level_view.minimap.corner1.x = read_float(dol)
+                dol.seek(int(corner1z, 16))
+                self.level_view.minimap.corner1.z = read_float(dol)
+                dol.seek(int(corner2x, 16))
+                self.level_view.minimap.corner2.x = read_float(dol)
+                dol.seek(int(corner2z, 16))
+                self.level_view.minimap.corner2.z = read_float(dol)
+
+    @catch_exception_with_dialog
+    def action_save_to_dol(self, val):
+        filepath, choosentype = QFileDialog.getOpenSaveName(
+            self, "Save to File",
+            self.pathsconfig["gen"],
+            "Game Executable (*.dol);;All files (*)")
+
+        if filepath:
+            with open("lib/minimap_locations.json", "r") as f:
+                addresses_json = json.load(f)
+
+                addresses = addresses_json[addresses_json["UseVersion"]]
+
+            item_list = ["None"]
+            item_list.extend(addresses.keys())
+            result, pos = FileSelect.open_file_list(self, item_list, "Select Track Slot")
+
+            if result == "None":
+                return
+
+            corner1x, corner1z, corner2x, corner2z, orientation = addresses[result]
+            with open(filepath, "rb") as f:
+                dol = DolFile(f)
+
+            orientation = self.level_view.minimap.orientation
+            if orientation not in (0, 1, 2, 3):
+                raise RuntimeError(
+                    "Invalid Orientation value: Must be in the range 0-3 but is {0}".format(orientation))
+
+            dol.seek(int(orientation, 16))
+            orientation = read_load_immediate_r0(dol)
+            if orientation not in (0, 1, 2, 3):
+                raise RuntimeError(
+                    "Wrong Address, orientation value in DOL isn't in 0-3 range: {0}. Maybe you are using"
+                    " a dol from a different game version?".format(orientation))
+
+            dol.seek(int(orientation, 16))
+            write_load_immediate_r0(dol, orientation)
+            dol.seek(int(corner1x, 16))
+            write_float(dol, self.level_view.minimap.corner1.x)
+            dol.seek(int(corner1z, 16))
+            write_float(dol, self.level_view.minimap.corner1.z)
+            dol.seek(int(corner2x, 16))
+            write_float(dol, self.level_view.minimap.corner2.x)
+            dol.seek(int(corner2z, 16))
+            write_float(dol, self.level_view.minimap.corner2.z)
+
+            with open(filepath, "wb") as f:
+                dol.save(f)
+
+
+
+    @catch_exception_with_dialog
+    def action_load_coordinates_json(self, val):
+        filepath, choosentype = QFileDialog.getOpenFileName(
+            self, "Open File",
+            self.pathsconfig["gen"],
+            "Json File (*.json);;All files (*)")
+
+        if filepath:
+            with open(filepath, "r") as f:
+                data = json.load(f)
+                self.level_view.minimap.corner1.x = data["Top Left Corner X"]
+                self.level_view.minimap.corner1.z = data["Top Left Corner Z"]
+                self.level_view.minimap.corner2.x = data["Bottom Right Corner X"]
+                self.level_view.minimap.corner2.z = data["Bottom Right Corner Z"]
+                self.level_view.minimap.orientation = data["Orientation"]
+
+    @catch_exception_with_dialog
+    def action_save_coordinates_json(self, val):
+        filepath, choosentype = QFileDialog.getSaveFileName(
+            self, "Save File",
+            self.pathsconfig["gen"],
+            "Json File (*.json);;All files (*)")
+
+        if filepath:
+            data = {"Top Left Corner X": self.level_view.minimap.corner1.x,
+                    "Top Left Corner Z": self.level_view.minimap.corner1.z,
+                    "Bottom Right Corner X": self.level_view.minimap.corner2.x,
+                    "Bottom Right Corner Z": self.level_view.minimap.corner2.z,
+                    "Orientation": self.level_view.minimap.orientation}
+
+            with open(filepath, "w") as f:
+                json.dump(data, f, indent=4)
 
     def action_choose_bco_area(self):
         areas = []

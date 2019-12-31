@@ -837,6 +837,66 @@ class TexturedPlane(object):
         glEnd()
 
 
+ORIENTATIONS = {
+    0: [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)],
+    1: [(1.0, 0.0), (0.0, 0.0), (0.0, 1.0), (1.0, 1.0)],
+    2: [(1.0, 1.0), (1.0, 0.0), (0.0, 0.0), (0.0, 1.0)],
+    3: [(0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0)]
+}
+
+class Minimap(object):
+    def __init__(self, corner1, corner2, orientation, texpath=None):
+        self.ID = None
+        if texpath is not None:
+            self.set_texture(texpath)
+
+        self.corner1 = corner1
+        self.corner2 = corner2
+        self.orientation = orientation
+        print("fully initialized")
+
+    def set_texture(self, path):
+        qimage = QtGui.QImage(path, "png")
+        qimage = qimage.convertToFormat(QtGui.QImage.Format_ARGB32)
+        ID = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, ID)
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0)
+
+        imgdata = bytes(qimage.bits().asarray(qimage.width() * qimage.height() * 4))
+        glTexImage2D(GL_TEXTURE_2D, 0, 4, qimage.width(), qimage.height(), 0, GL_BGRA, GL_UNSIGNED_BYTE, imgdata)
+        self.ID = ID
+
+    def render(self):
+        if self.ID is None:
+            return
+
+        corner1, corner2 = self.corner1, self.corner2
+        glDisable(GL_ALPHA_TEST)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glEnable(GL_BLEND)
+        #glEnable(GL_DEPTH_TEST)
+        glColor4f(1.0, 1.0, 1.0, 0.70)
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, self.ID)
+        glBegin(GL_TRIANGLE_FAN)
+
+        glTexCoord2f(*ORIENTATIONS[self.orientation][0])
+        glVertex3f(corner1.x, -corner1.z, corner1.y)
+        glTexCoord2f(*ORIENTATIONS[self.orientation][1])
+        glVertex3f(corner1.x, -corner2.z, corner1.y)
+        glTexCoord2f(*ORIENTATIONS[self.orientation][2])
+        glVertex3f(corner2.x, -corner2.z, corner1.y)
+        glTexCoord2f(*ORIENTATIONS[self.orientation][3])
+        glVertex3f(corner2.x, -corner1.z, corner1.y)
+        glEnd()
+
+        glColor4f(1.0, 1.0, 1.0, 1.0)
+        #glDisable(GL_DEPTH_TEST)
+        glDisable(GL_BLEND)
+        glEnable(GL_ALPHA_TEST)
+
 class Grid(Mesh):
     def __init__(self, width, length, step):
         super().__init__("Grid")
@@ -886,7 +946,7 @@ def _compile_shader_with_error_report(shaderobj):
 colortypes = {
     0x00: (250, 213, 160),
     0x01: (128, 128, 128),
-    0x02: (128, 128, 128),
+    0x02: (192, 192, 192),
     0x03: (76, 255, 0),
     0x04: (0, 255, 255),
     0x08: (255, 106, 0),
