@@ -844,6 +844,7 @@ ORIENTATIONS = {
     3: [(0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0)]
 }
 
+
 class Minimap(object):
     def __init__(self, corner1, corner2, orientation, texpath=None):
         self.ID = None
@@ -855,7 +856,13 @@ class Minimap(object):
         self.orientation = orientation
         print("fully initialized")
 
+    def is_available(self):
+        return self.ID is not None
+
     def set_texture(self, path):
+        if self.ID is not None:
+            glDeleteTextures(1, self.ID)
+
         qimage = QtGui.QImage(path, "png")
         qimage = qimage.convertToFormat(QtGui.QImage.Format_ARGB32)
         ID = glGenTextures(1)
@@ -873,6 +880,7 @@ class Minimap(object):
             return
 
         corner1, corner2 = self.corner1, self.corner2
+
         glDisable(GL_ALPHA_TEST)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glEnable(GL_BLEND)
@@ -895,7 +903,10 @@ class Minimap(object):
         glColor4f(1.0, 1.0, 1.0, 1.0)
         #glDisable(GL_DEPTH_TEST)
         glDisable(GL_BLEND)
+        glBlendFunc(GL_ZERO, GL_ONE)
+        glDisable(GL_TEXTURE_2D)
         glEnable(GL_ALPHA_TEST)
+
 
 class Grid(Mesh):
     def __init__(self, width, length, step):
