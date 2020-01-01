@@ -965,6 +965,7 @@ class GenEditor(QMainWindow):
             placeobject.position.z = z
 
             if isinstance(object, libbol.EnemyPoint):
+                placeobject.group = group
                 self.level_file.enemypointgroups.groups[group].points.insert(position, placeobject)
             elif isinstance(object, libbol.RoutePoint):
                 self.level_file.routes[group].points.insert(position, placeobject)
