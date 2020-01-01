@@ -301,6 +301,7 @@ class GenEditor(QMainWindow):
 
         load_minimap.triggered.connect(self.action_load_minimap_image)
         load_coordinates_dol.triggered.connect(self.action_load_dol)
+        save_coordinates_dol.triggered.connect(self.action_save_to_dol)
         load_coordinates_json.triggered.connect(self.action_load_coordinates_json)
         save_coordinates_json.triggered.connect(self.action_save_coordinates_json)
         self.minimap_menu.addAction(load_minimap)
@@ -402,7 +403,7 @@ class GenEditor(QMainWindow):
 
     @catch_exception_with_dialog
     def action_save_to_dol(self, val):
-        filepath, choosentype = QFileDialog.getOpenSaveName(
+        filepath, choosentype = QFileDialog.getSaveFileName(
             self, "Save to File",
             self.pathsconfig["gen"],
             "Game Executable (*.dol);;All files (*)")
@@ -424,20 +425,20 @@ class GenEditor(QMainWindow):
             with open(filepath, "rb") as f:
                 dol = DolFile(f)
 
-            orientation = self.level_view.minimap.orientation
-            if orientation not in (0, 1, 2, 3):
+            orientation_val = self.level_view.minimap.orientation
+            if orientation_val not in (0, 1, 2, 3):
                 raise RuntimeError(
-                    "Invalid Orientation value: Must be in the range 0-3 but is {0}".format(orientation))
+                    "Invalid Orientation value: Must be in the range 0-3 but is {0}".format(orientation_val))
 
             dol.seek(int(orientation, 16))
-            orientation = read_load_immediate_r0(dol)
-            if orientation not in (0, 1, 2, 3):
+            orientation_val = read_load_immediate_r0(dol)
+            if orientation_val not in (0, 1, 2, 3):
                 raise RuntimeError(
                     "Wrong Address, orientation value in DOL isn't in 0-3 range: {0}. Maybe you are using"
-                    " a dol from a different game version?".format(orientation))
+                    " a dol from a different game version?".format(orientation_val))
 
             dol.seek(int(orientation, 16))
-            write_load_immediate_r0(dol, orientation)
+            write_load_immediate_r0(dol, orientation_val)
             dol.seek(int(corner1x, 16))
             write_float(dol, self.level_view.minimap.corner1.x)
             dol.seek(int(corner1z, 16))
