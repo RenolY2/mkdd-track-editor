@@ -603,7 +603,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
                 objlist = []
                 offset = 0
-                if self.minimap is not None and vismenu.minimap.is_selectable():
+                if self.minimap is not None and vismenu.minimap.is_selectable() and self.minimap.is_available():
                     objlist.append((self.minimap, self.minimap.corner1, self.minimap.corner2, None))
                     self.models.render_generic_position_colored_id(self.minimap.corner1, id + (offset) * 4)
                     self.models.render_generic_position_colored_id(self.minimap.corner2, id + (offset) * 4 + 1)
@@ -740,14 +740,13 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         if self.mode == MODE_TOPDOWN:
             glClear(GL_DEPTH_BUFFER_BIT)
 
-            if self.minimap is not None and vismenu.minimap.is_visible():
+            if self.minimap is not None and vismenu.minimap.is_visible() and self.minimap.is_available():
                 self.minimap.render()
                 glClear(GL_DEPTH_BUFFER_BIT)
-        else:
-            if self.minimap is not None and vismenu.minimap.is_visible():
-                self.minimap.render()
+        #else:
+        #    if self.minimap is not None and vismenu.minimap.is_visible():
+        #        self.minimap.render()
         #    glDisable(GL_DEPTH_TEST)
-
 
         glEnable(GL_ALPHA_TEST)
         glAlphaFunc(GL_GEQUAL, 0.5)
@@ -924,7 +923,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                     self.models.render_generic_position_rotation_colored("respawn",
                                                                 object.position, object.rotation,
                                                                  object in select_optimize)
-            if self.minimap is not None:
+            if self.minimap is not None and self.minimap.is_available():
                 self.models.render_generic_position(self.minimap.corner1, self.minimap.corner1 in positions)
                 self.models.render_generic_position(self.minimap.corner2, self.minimap.corner2 in positions)
             #glDisable(GL_TEXTURE_2D)
