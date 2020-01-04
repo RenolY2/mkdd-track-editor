@@ -865,7 +865,7 @@ class MGEntry(object):
 
 class BOL(object):
     def __init__(self):
-        self.roll = False
+        self.roll = 0
         self.rgb_ambient = ColorRGB(0x64, 0x64, 0x64)
         self.rgba_light = ColorRGBA(0xFF, 0xFF, 0xFF, 0xFF)
         self.lightsource = Vector3(0.0, 0.0, 0.0)
@@ -943,7 +943,7 @@ class BOL(object):
         assert magic == b"0015" or magic == b"0012"
         old_bol = magic == b"0012"
 
-        bol.roll = read_uint8(f) > 0
+        bol.roll = read_uint8(f)
         bol.rgb_ambient = ColorRGB.from_file(f)
 
         if not old_bol:
