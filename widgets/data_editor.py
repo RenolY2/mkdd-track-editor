@@ -632,14 +632,14 @@ class ObjectEdit(DataEditor):
         self.unk_28 = self.add_integer_input("Unknown 0x28", "unk_28",
                                              MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
 
-        self.unk_2a = self.add_integer_input("Unknown 0x2A", "unk_2a",
-                                             MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.unk_2a = self.add_integer_input("Path Point ID", "unk_2a",
+                                             MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.presence_filter = self.add_integer_input("Presence Mask", "presence_filter",
                                                       MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.presence = self.add_integer_input("Presence", "presence",
                                                MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.flag = self.add_checkbox("Collision", "unk_flag",
-                                        off_value=0, on_value=1)
+                                      off_value=0, on_value=1)
         self.unk_2f = self.add_integer_input("Unknown 0x2F", "unk_2f",
                                              MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.userdata = []

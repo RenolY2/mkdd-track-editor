@@ -543,7 +543,7 @@ class MapObject(object):
         obj.rotation = Rotation.from_mkdd_rotation(fx, fy, fz, ux, uy, uz)
         obj.pathid = read_int16(f)
         obj.unk_28 = read_uint16(f)
-        obj.unk_2a = read_uint16(f)
+        obj.unk_2a = read_int16(f)
         obj.presence_filter = read_uint8(f)
         obj.presence = read_uint8(f)
         obj.unk_flag = read_uint8(f)
@@ -560,7 +560,7 @@ class MapObject(object):
         f.write(pack(">fff", self.scale.x, self.scale.y, self.scale.z))
         self.rotation.write(f)
 
-        f.write(pack(">hhHH", self.objectid, self.pathid, self.unk_28, self.unk_2a))
+        f.write(pack(">hhHh", self.objectid, self.pathid, self.unk_28, self.unk_2a))
         f.write(pack(">BBBB", self.presence_filter, self.presence, self.unk_flag, self.unk_2f))
 
         for i in range(8):
