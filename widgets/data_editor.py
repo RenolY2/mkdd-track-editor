@@ -18,12 +18,13 @@ def load_parameter_names(objectname):
         with open(os.path.join("object_parameters", objectname+".json"), "r") as f:
             data = json.load(f)
             parameter_names = data["Object Parameters"]
+            assets = data["Assets"]
             if len(parameter_names) != 8:
                 raise RuntimeError("Not enough or too many parameters: {0} (should be 8)".format(len(parameter_names)))
-            return parameter_names
+            return parameter_names, assets
     except Exception as err:
         print(err)
-        return None
+        return None, None
 
 
 class PythonIntValidator(QValidator):
@@ -657,14 +658,21 @@ class ObjectEdit(DataEditor):
 
         self.objectid.currentTextChanged.connect(self.rename_object_parameters)
 
+        self.assets = self.add_label("Required Assets: Unknown")
+
     def rename_object_parameters(self, current):
-        parameter_names = load_parameter_names(current)
+        parameter_names, assets = load_parameter_names(current)
         if parameter_names is None:
             for i in range(8):
                 self.userdata[i][0].setText("Obj Data {0}".format(i+1))
+            self.assets.setText("Required Assets: Unknown")
         else:
             for i in range(8):
                 self.userdata[i][0].setText(parameter_names[i])
+            if len(assets) == 0:
+                self.assets.setText("Required Assets: None")
+            else:
+                self.assets.setText("Required Assets: {0}".format(", ".join(assets)))
 
     def update_name(self):
         if self.bound_to.widget is None:
