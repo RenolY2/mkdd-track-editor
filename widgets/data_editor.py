@@ -2,7 +2,7 @@ import os
 import json
 
 from collections import OrderedDict
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QCheckBox, QLineEdit, QComboBox, QSizePolicy
+from PyQt5.QtWidgets import QSizePolicy, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QCheckBox, QLineEdit, QComboBox, QSizePolicy
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator
 from math import inf
 from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint, Route, RoutePoint,
@@ -659,6 +659,10 @@ class ObjectEdit(DataEditor):
         self.objectid.currentTextChanged.connect(self.rename_object_parameters)
 
         self.assets = self.add_label("Required Assets: Unknown")
+        self.assets.setWordWrap(True)
+        hint = self.assets.sizePolicy()
+        hint.setVerticalPolicy(QSizePolicy.Minimum)
+        self.assets.setSizePolicy(hint)
 
     def rename_object_parameters(self, current):
         parameter_names, assets = load_parameter_names(current)
