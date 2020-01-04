@@ -1134,7 +1134,10 @@ with open("lib/mkddobjects.json", "r") as f:
     del tmp
 
 REVERSEOBJECTNAMES = OrderedDict()
-for key in sorted(OBJECTNAMES.keys()):
+valpairs = [(x, y) for x, y in OBJECTNAMES.items()]
+valpairs.sort(key=lambda x: x[1])
+
+for key, val in valpairs:
     REVERSEOBJECTNAMES[OBJECTNAMES[key]] = key
 
 with open("lib/music_ids.json", "r") as f:
