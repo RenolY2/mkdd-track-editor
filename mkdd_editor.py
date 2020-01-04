@@ -176,9 +176,10 @@ class GenEditor(QMainWindow):
             self.tree_select_object(current[0])
 
     def tree_select_object(self, item):
-        if self._dontselectfromtree:
-            self._dontselectfromtree = False
-            return
+        """if self._dontselectfromtree:
+            #print("hmm")
+            #self._dontselectfromtree = False
+            return"""
 
         print("Selected:", item)
         self.level_view.selected = []
@@ -1306,7 +1307,7 @@ class GenEditor(QMainWindow):
 
                 #assert item is not None
                 if item is not None:
-                    self._dontselectfromtree = True
+                    #self._dontselectfromtree = True
                     self.leveldatatreeview.setCurrentItem(item)
 
     @catch_exception
