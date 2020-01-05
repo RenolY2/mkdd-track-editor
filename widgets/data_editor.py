@@ -543,10 +543,15 @@ class ObjectRoutePointEdit(DataEditor):
         self.unknown.setText(str(obj.unk))
 
 
+ROLL_OPTIONS = OrderedDict()
+ROLL_OPTIONS["Disabled"] = 0
+ROLL_OPTIONS["Only Sky+Items"] = 1
+ROLL_OPTIONS["Entire Track"] = 2
+
+
 class BOLEdit(DataEditor):
     def setup_widgets(self):
-        self.roll = self.add_integer_input("Stage Tilt", "roll",
-                                           MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.roll = self.add_dropdown_input("Tilt", "roll", ROLL_OPTIONS)
         self.rgb_ambient = self.add_multiple_integer_input("RGB Ambient", "rgb_ambient", ["r", "g", "b"],
                                                            MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.rgba_light = self.add_multiple_integer_input("RGBA Light", "rgba_light", ["r", "g", "b", "a"],
@@ -583,7 +588,8 @@ class BOLEdit(DataEditor):
 
     def update_data(self):
         obj: BOL = self.bound_to
-        self.roll.setChecked(obj.roll)
+        #self.roll.setText(str(obj.roll))
+        self.roll.setCurrentIndex(obj.roll)
         self.rgb_ambient[0].setText(str(obj.rgb_ambient.r))
         self.rgb_ambient[1].setText(str(obj.rgb_ambient.g))
         self.rgb_ambient[2].setText(str(obj.rgb_ambient.b))
