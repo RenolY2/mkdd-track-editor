@@ -1151,13 +1151,6 @@ REVERSE_MUSIC_IDS = OrderedDict()
 for key in sorted(MUSIC_IDS.keys()):
     REVERSE_MUSIC_IDS[MUSIC_IDS[key]] = key
 
-with open("lib/object_height_offsets.json", "r") as f:
-    data = json.load(f)
-
-OBJECT_HEIGHT_OFFSETS = {}
-for key, item in data.items():
-    OBJECT_HEIGHT_OFFSETS[int(key)] = item
-
 
 def get_full_name(id):
     if id not in OBJECTNAMES:
