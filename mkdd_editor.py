@@ -439,7 +439,7 @@ class GenEditor(QMainWindow):
                     " a dol from a different game version?".format(orientation_val))
 
             dol.seek(int(orientation, 16))
-            write_load_immediate_r0(dol, orientation_val)
+            write_load_immediate_r0(dol, self.level_view.minimap.orientation)
             dol.seek(int(corner1x, 16))
             write_float(dol, self.level_view.minimap.corner1.x)
             dol.seek(int(corner1z, 16))
