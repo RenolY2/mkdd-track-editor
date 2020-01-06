@@ -650,6 +650,7 @@ class ObjectEdit(DataEditor):
                                       off_value=0, on_value=1)
         self.unk_2f = self.add_integer_input("Unknown 0x2F", "unk_2f",
                                              MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+
         self.userdata = []
         for i in range(8):
             self.userdata.append(
@@ -675,10 +676,22 @@ class ObjectEdit(DataEditor):
         if parameter_names is None:
             for i in range(8):
                 self.userdata[i][0].setText("Obj Data {0}".format(i+1))
+                self.userdata[i][0].setVisible(True)
+                self.userdata[i][1].setVisible(True)
             self.assets.setText("Required Assets: Unknown")
         else:
             for i in range(8):
-                self.userdata[i][0].setText(parameter_names[i])
+                if parameter_names[i] == "Unused":
+                    self.userdata[i][0].setVisible(False)
+                    self.userdata[i][1].setVisible(False)
+                    if self.bound_to.userdata[i] != 0:
+                        Warning("Parameter with index {0} in object {1} is marked as Unused but has value {2}".format(
+                            i, current, self.bound_to.userdata[i]
+                        ))
+                else:
+                    self.userdata[i][0].setVisible(True)
+                    self.userdata[i][1].setVisible(True)
+                    self.userdata[i][0].setText(parameter_names[i])
             if len(assets) == 0:
                 self.assets.setText("Required Assets: None")
             else:
