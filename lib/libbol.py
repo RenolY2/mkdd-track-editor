@@ -1155,7 +1155,7 @@ with open("lib/object_height_offsets.json", "r") as f:
     data = json.load(f)
 
 OBJECT_HEIGHT_OFFSETS = {}
-for key, item in data:
+for key, item in data.items():
     OBJECT_HEIGHT_OFFSETS[int(key)] = item
 
 

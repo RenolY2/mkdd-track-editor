@@ -928,7 +928,7 @@ class GenEditor(QMainWindow):
         object, group, position = self.object_to_be_added
         #if self.editorconfig.getboolean("GroundObjectsWhenAdding") is True:
         if isinstance(object, libbol.Checkpoint):
-            y = object.position.y
+            y = object.start.y
         else:
             if self.level_view.collision is not None:
                 y_collided = self.level_view.collision.collide_ray_downwards(x, z)
