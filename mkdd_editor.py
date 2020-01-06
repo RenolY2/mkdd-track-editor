@@ -27,7 +27,7 @@ import mkdd_widgets # as mkddwidgets
 from widgets.side_widget import PikminSideWidget
 from widgets.editor_widgets import open_error_dialog, catch_exception_with_dialog
 from mkdd_widgets import BolMapViewer, MODE_TOPDOWN
-from lib.libbol import BOL, MGEntry, Route, get_full_name
+from lib.libbol import BOL, MGEntry, Route, get_full_name, OBJECT_HEIGHT_OFFSETS
 import lib.libbol as libbol
 from lib.rarc import Archive
 from lib.BCOllider import RacetrackCollision
@@ -925,7 +925,11 @@ class GenEditor(QMainWindow):
     @catch_exception
     def action_add_object(self, x, z):
         y = 0
-        if self.editorconfig.getboolean("GroundObjectsWhenAdding") is True:
+        object, group, position = self.object_to_be_added
+        #if self.editorconfig.getboolean("GroundObjectsWhenAdding") is True:
+        if isinstance(object, libbol.Checkpoint):
+            y = object.position.y
+        else:
             if self.level_view.collision is not None:
                 y_collided = self.level_view.collision.collide_ray_downwards(x, z)
                 if y_collided is not None:
@@ -971,6 +975,8 @@ class GenEditor(QMainWindow):
             elif isinstance(object, libbol.RoutePoint):
                 self.level_file.routes[group].points.insert(position, placeobject)
             elif isinstance(object, libbol.MapObject):
+                if object.objectid in OBJECT_HEIGHT_OFFSETS:
+                    placeobject.position.y += OBJECT_HEIGHT_OFFSETS[object.objectid]
                 self.level_file.objects.objects.append(placeobject)
             elif isinstance(object, libbol.KartStartPoint):
                 self.level_file.kartpoints.positions.append(placeobject)
@@ -1138,6 +1144,11 @@ class GenEditor(QMainWindow):
 
             if height is not None:
                 pos.y = height
+
+        for obj in self.level_view.selected:
+            if isinstance(obj, libbol.MapObject):
+                if obj.objectid in OBJECT_HEIGHT_OFFSETS:
+                    obj.position.y += OBJECT_HEIGHT_OFFSETS[obj.objectid]
 
         self.pik_control.update_info()
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
