@@ -1,4 +1,5 @@
 import traceback
+import os
 from timeit import default_timer
 from copy import deepcopy
 from io import TextIOWrapper, BytesIO, StringIO
@@ -640,7 +641,6 @@ class GenEditor(QMainWindow):
                         self.leveldatatreeview.set_objects(bol_data)
                         self.current_gen_path = filepath
                         self.loaded_archive_file = coursename
-
                     except Exception as error:
                         print("Error appeared while loading:", error)
                         traceback.print_exc()
@@ -648,6 +648,25 @@ class GenEditor(QMainWindow):
                         self.loaded_archive = None
                         self.loaded_archive_file = None
                         return
+
+                    try:
+                        additional_files = []
+                        bmdfile = get_file_safe(self.loaded_archive.root, "_course.bmd")
+                        collisionfile = get_file_safe(self.loaded_archive.root, "_course.bco")
+
+                        if bmdfile is not None:
+                            additional_files.append(os.path.basename(bmdfile.name) + " (3D Model)")
+                        if collisionfile is not None:
+                            additional_files.append(os.path.basename(collisionfile.name) + " (3D Collision)")
+
+                        if len(additional_files) > 0:
+                            additional_files.append("None")
+                            self.load_optional_3d_file_arc(additional_files, bmdfile, collisionfile, filepath)
+                    except Exception as error:
+                        print("Error appeared while loading:", error)
+                        traceback.print_exc()
+                        open_error_dialog(str(error), self)
+
             else:
                 with open(filepath, "rb") as f:
                     try:
@@ -656,10 +675,81 @@ class GenEditor(QMainWindow):
                         self.leveldatatreeview.set_objects(bol_file)
                         self.current_gen_path = filepath
 
+                        if filepath.endswith("_course.bol"):
+                            filepath_base = filepath[:-11]
+                            additional_files = []
+                            bmdfile = filepath_base+"_course.bmd"
+                            collisionfile = filepath_base+"_course.bco"
+                            if os.path.exists(bmdfile):
+                                additional_files.append(os.path.basename(bmdfile) + " (3D Model)")
+                            if os.path.exists(collisionfile):
+                                additional_files.append(os.path.basename(collisionfile) + " (3D Collision)")
+
+                            if len(additional_files) > 0:
+                                additional_files.append("None")
+                                self.load_optional_3d_file(additional_files, bmdfile, collisionfile)
+
                     except Exception as error:
                         print("Error appeared while loading:", error)
                         traceback.print_exc()
                         open_error_dialog(str(error), self)
+
+    def load_optional_3d_file(self, additional_files, bmdfile, collisionfile):
+        choice, pos = FileSelect.open_file_list(self, additional_files,
+                                                "Select additional file to load", startat=0)
+
+        if choice.endswith("(3D Model)"):
+            alternative_mesh = load_textured_bmd(bmdfile)
+            with open("lib/temp/temp.obj", "r") as f:
+                verts, faces, normals = py_obj.read_obj(f)
+
+            self.setup_collision(verts, faces, bmdfile, alternative_mesh)
+
+        elif choice.endswith("(3D Collision)"):
+            bco_coll = RacetrackCollision()
+            verts = []
+            faces = []
+
+            with open(collisionfile, "rb") as f:
+                bco_coll.load_file(f)
+
+            for vert in bco_coll.vertices:
+                verts.append(vert)
+
+            for v1, v2, v3, collision_type, rest in bco_coll.triangles:
+                faces.append(((v1 + 1, None), (v2 + 1, None), (v3 + 1, None)))
+            model = CollisionModel(bco_coll)
+            self.setup_collision(verts, faces, collisionfile, alternative_mesh=model)
+
+    def load_optional_3d_file_arc(self, additional_files, bmdfile, collisionfile, arcfilepath):
+        choice, pos = FileSelect.open_file_list(self, additional_files,
+                                                "Select additional file to load", startat=0)
+
+        if choice.endswith("(3D Model)"):
+            with open("lib/temp/temp.bmd", "wb") as f:
+                f.write(bmdfile.getvalue())
+
+            bmdpath = "lib/temp/temp.bmd"
+            alternative_mesh = load_textured_bmd(bmdpath)
+            with open("lib/temp/temp.obj", "r") as f:
+                verts, faces, normals = py_obj.read_obj(f)
+
+            self.setup_collision(verts, faces, arcfilepath, alternative_mesh)
+
+        elif choice.endswith("(3D Collision)"):
+            bco_coll = RacetrackCollision()
+            verts = []
+            faces = []
+
+            bco_coll.load_file(collisionfile)
+
+            for vert in bco_coll.vertices:
+                verts.append(vert)
+
+            for v1, v2, v3, collision_type, rest in bco_coll.triangles:
+                faces.append(((v1 + 1, None), (v2 + 1, None), (v3 + 1, None)))
+            model = CollisionModel(bco_coll)
+            self.setup_collision(verts, faces, arcfilepath, alternative_mesh=model)
 
     def setup_bol_file(self, bol_file, filepath):
         self.level_file = bol_file
@@ -1410,6 +1500,14 @@ def find_file(rarc_folder, ending):
         if filename.endswith(ending):
             return filename
     raise RuntimeError("No Course File found!")
+
+
+def get_file_safe(rarc_folder, ending):
+    for filename in rarc_folder.files.keys():
+        if filename.endswith(ending):
+            return rarc_folder.files[filename]
+    return None
+
 
 import sys
 def except_hook(cls, exception, traceback):
