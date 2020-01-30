@@ -885,8 +885,8 @@ class BOL(object):
 
         self.sections = {}
 
-        self.lap_count = 0
-        self.music_id = 0
+        self.lap_count = 3
+        self.music_id = 0x21
 
         self.enemypointgroups = EnemyPointGroups()
         self.checkpoints = CheckpointGroups()
