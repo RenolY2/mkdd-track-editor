@@ -192,6 +192,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.camera_vertical = -pi*(1/4)
         self.camera_height = 1000
         self.last_move = None
+        self.backgroundcolor = (255, 255, 255, 255)
 
         #self.selection_queue = []
         self.selectionqueue = SelectionQueue()
@@ -256,6 +257,11 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.editorconfig = config
         self._wasdscrolling_speed = config.getfloat("wasdscrolling_speed")
         self._wasdscrolling_speedupfactor = config.getfloat("wasdscrolling_speedupfactor")
+        backgroundcolor = config["3d_background"].split(" ")
+        self.backgroundcolor = (int(backgroundcolor[0])/255.0,
+                                int(backgroundcolor[1])/255.0,
+                                int(backgroundcolor[2])/255.0,
+                                1.0)
 
     def change_from_topdown_to_3d(self):
         if self.mode == MODE_3D:
@@ -513,6 +519,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
         #start = default_timer()
         glClearColor(1.0, 1.0, 1.0, 0.0)
+        #glClearColor(*self.backgroundcolor)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         width, height = self.canvas_width, self.canvas_height
 
@@ -719,8 +726,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                     gizmo_scale = (self.gizmo.position - campos).norm() / 130.0
                 #print("total time taken", default_timer() - start)
         #print("gizmo status", self.gizmo.was_hit_at_all)
-        glClearColor(1.0, 1.0, 1.0, 0.0)
-
+        #glClearColor(1.0, 1.0, 1.0, 0.0)
+        glClearColor(*self.backgroundcolor)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glEnable(GL_DEPTH_TEST)
         glDisable(GL_TEXTURE_2D)
