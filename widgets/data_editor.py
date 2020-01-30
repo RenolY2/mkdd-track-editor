@@ -573,8 +573,8 @@ class BOLEdit(DataEditor):
                                                -inf, +inf)
         self.unk1 = self.add_integer_input("Unknown 1", "unk1",
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-        self.unk2 = self.add_integer_input("Unknown 2", "unk2",
-                                           MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.unk2 = self.add_checkbox("Sherbet Land Env. Effects", "unk2",
+                                           off_value=0, on_value=1)
         self.unk3 = self.add_integer_input("Unknown 3", "unk3",
                                            MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.shadow_color = self.add_multiple_integer_input("Shadow Color", "shadow_color", ["r", "g", "b"],
@@ -608,7 +608,7 @@ class BOLEdit(DataEditor):
         self.fog_startz.setText(str(obj.fog_startz))
         self.fog_endz.setText(str(obj.fog_endz))
         self.unk1.setText(str(obj.unk1))
-        self.unk2.setText(str(obj.unk2))
+        self.unk2.setChecked(obj.unk2 != 0)
         self.unk3.setText(str(obj.unk3))
         self.unk4.setText(str(obj.unk4))
         self.unk5.setText(str(obj.unk5))
