@@ -888,7 +888,7 @@ class RespawnPointEdit(DataEditor):
         self.rotation = self.add_rotation_input()
         self.respawn_id = self.add_integer_input("Respawn ID", "respawn_id",
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-        self.unk1 = self.add_integer_input("Unknown 1", "unk1",
+        self.unk1 = self.add_integer_input("Next Enemy Point", "unk1",
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.unk2 = self.add_integer_input("Unknown 2", "unk2",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
