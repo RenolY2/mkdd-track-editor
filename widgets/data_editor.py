@@ -162,7 +162,7 @@ class DataEditor(QWidget):
         def input_edited():
             text = line_edit.text()
             print("input:", text)
-
+            self.catch_text_update()
             setattr(self.bound_to, attribute, float(text))
 
         line_edit.editingFinished.connect(input_edited)
@@ -214,7 +214,7 @@ class DataEditor(QWidget):
 
             line_edit.setValidator(QIntValidator(min_val, max_val, self))
 
-            input_edited = create_setter(line_edit, self.bound_to, attribute, subattr, isFloat=False)
+            input_edited = create_setter(line_edit, self.bound_to, attribute, subattr, self.catch_text_update, isFloat=False)
 
             line_edit.editingFinished.connect(input_edited)
             line_edits.append(line_edit)
@@ -232,7 +232,7 @@ class DataEditor(QWidget):
 
             line_edit.setValidator(QDoubleValidator(min_val, max_val, 6, self))
 
-            input_edited = create_setter(line_edit, self.bound_to, attribute, subattr, isFloat=True)
+            input_edited = create_setter(line_edit, self.bound_to, attribute, subattr, self.catch_text_update, isFloat=True)
             line_edit.editingFinished.connect(input_edited)
             line_edits.append(line_edit)
 
@@ -278,6 +278,7 @@ class DataEditor(QWidget):
         upedits[0].setText(str(round(up.x, 4)))
         upedits[1].setText(str(round(up.y, 4)))
         upedits[2].setText(str(round(up.z, 4)))
+        self.catch_text_update()
 
     def add_rotation_input(self):
         rotation = self.bound_to.rotation
@@ -354,13 +355,14 @@ def create_setter_list(lineedit, bound_to, attribute, index):
     return input_edited
 
 
-def create_setter(lineedit, bound_to, attribute, subattr, isFloat):
+def create_setter(lineedit, bound_to, attribute, subattr, update3dview, isFloat):
     if isFloat:
         def input_edited():
             text = lineedit.text()
             mainattr = getattr(bound_to, attribute)
 
             setattr(mainattr, subattr, float(text))
+            update3dview()
         return input_edited
     else:
         def input_edited():
@@ -368,7 +370,7 @@ def create_setter(lineedit, bound_to, attribute, subattr, isFloat):
             mainattr = getattr(bound_to, attribute)
 
             setattr(mainattr, subattr, int(text))
-
+            update3dview()
         return input_edited
 
 MIN_SIGNED_BYTE = -128
@@ -532,7 +534,7 @@ class ObjectRoutePointEdit(DataEditor):
     def setup_widgets(self):
         self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
                                                         -inf, +inf)
-        self.unknown = self.add_integer_input("Unknown", "unk",
+        self.unknown = self.add_integer_input("Object Action", "unk",
                                               MIN_UNSIGNED_INT, MAX_UNSIGNED_INT)
 
     def update_data(self):
@@ -822,9 +824,9 @@ class CameraEdit(DataEditor):
     def setup_widgets(self):
         self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
                                                         -inf, +inf)
-        self.position2 = self.add_multiple_decimal_input("Position 2", "position2", ["x", "y", "z"],
+        self.position2 = self.add_multiple_decimal_input("End Point", "position2", ["x", "y", "z"],
                                                         -inf, +inf)
-        self.position3 = self.add_multiple_decimal_input("Position 3", "position3", ["x", "y", "z"],
+        self.position3 = self.add_multiple_decimal_input("Start Point", "position3", ["x", "y", "z"],
                                                         -inf, +inf)
         self.rotation = self.add_rotation_input()
         self.unkbyte = self.add_integer_input("Unknown 1", "unkbyte",
