@@ -231,7 +231,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.rotation_visualizer = glGenLists(1)
         glNewList(self.rotation_visualizer, GL_COMPILE)
         glColor4f(0.0, 0.0, 1.0, 1.0)
-        glLineWidth(2.0)
+        
         glBegin(GL_LINES)
         glVertex3f(0.0, 0.0, 0.0)
         glVertex3f(0.0, 40.0, 0.0)
