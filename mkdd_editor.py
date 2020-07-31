@@ -34,11 +34,39 @@ from lib.rarc import Archive
 from lib.BCOllider import RacetrackCollision
 from lib.model_rendering import TexturedModel, CollisionModel, Minimap
 from widgets.editor_widgets import ErrorAnalyzer
-from lib.dolreader import DolFile, read_float, write_float, read_load_immediate_r0, write_load_immediate_r0
+from lib.dolreader import DolFile, read_float, write_float, read_load_immediate_r0, write_load_immediate_r0, UnmappedAddress
 from widgets.file_select import FileSelect
 from PyQt5.QtWidgets import QTreeWidgetItem
 from lib.bmd_render import clear_temp_folder, load_textured_bmd
 PIKMIN2GEN = "Generator files (defaultgen.txt;initgen.txt;plantsgen.txt;*.txt)"
+
+
+def detect_dol_region(dol):
+    try:
+        dol.seek(0x803CDD38)
+    except UnmappedAddress:
+        pass
+    finally:
+        if dol.read(5) == b"title":
+            return "US"
+
+    try:
+        dol.seek(0x803D7B78)
+    except UnmappedAddress:
+        pass
+    finally:
+        if dol.read(5) == b"title":
+            return "PAL"
+
+    try:
+        dol.seek(0x803E8358)
+    except UnmappedAddress:
+        pass
+    finally:
+        if dol.read(5) == b"title":
+            return "JP"
+
+    raise RuntimeError("Unsupported DOL version/region")
 
 
 def get_treeitem(root:QTreeWidgetItem, obj):
@@ -375,7 +403,11 @@ class GenEditor(QMainWindow):
             with open("lib/minimap_locations.json", "r") as f:
                 addresses_json = json.load(f)
 
-                addresses = addresses_json[addresses_json["UseVersion"]]
+            with open(filepath, "rb") as f:
+                dol = DolFile(f)
+                region = detect_dol_region(dol)
+
+            addresses = addresses_json[region]
 
             item_list = ["None"]
             item_list.extend(addresses.keys())
@@ -414,7 +446,11 @@ class GenEditor(QMainWindow):
             with open("lib/minimap_locations.json", "r") as f:
                 addresses_json = json.load(f)
 
-                addresses = addresses_json[addresses_json["UseVersion"]]
+            with open(filepath, "rb") as f:
+                dol = DolFile(f)
+                region = detect_dol_region(dol)
+
+            addresses = addresses_json[region]
 
             item_list = ["None"]
             item_list.extend(addresses.keys())
