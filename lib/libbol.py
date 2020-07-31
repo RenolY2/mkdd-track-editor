@@ -654,7 +654,7 @@ class Area(object):
         self.rotation = Rotation.default()
         self.check_flag = 0
         self.area_type = 0
-        self.camera_index = 0xFFFF
+        self.camera_index = -1
         self.unk1 = 0
         self.unk2 = 0
         self.unkfixedpoint = 0
