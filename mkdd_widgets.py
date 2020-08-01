@@ -96,7 +96,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._zoom_factor = 10
+        self._zoom_factor = 80
         self.setFocusPolicy(Qt.ClickFocus)
 
         self.SIZEX = 1024#768#1024
@@ -478,7 +478,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         return self._zoom_factor/10.0
 
     def zoom(self, fac):
-        if self.zoom_factor <= 40:
+        if self.zoom_factor <= 60:
             mult = 20.0
         else:
             mult = 40.0
@@ -930,7 +930,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                     self.models.render_generic_position_rotation_colored("respawn",
                                                                 object.position, object.rotation,
                                                                  object in select_optimize)
-            if self.minimap is not None and self.minimap.is_available():
+            if self.minimap is not None and self.minimap.is_available() and vismenu.minimap.is_visible():
                 self.models.render_generic_position(self.minimap.corner1, self.minimap.corner1 in positions)
                 self.models.render_generic_position(self.minimap.corner2, self.minimap.corner2 in positions)
             #glDisable(GL_TEXTURE_2D)
