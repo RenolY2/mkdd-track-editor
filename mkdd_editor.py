@@ -46,7 +46,7 @@ def detect_dol_region(dol):
         dol.seek(0x803CDD38)
     except UnmappedAddress:
         pass
-    finally:
+    else:
         if dol.read(5) == b"title":
             return "US"
 
@@ -54,7 +54,7 @@ def detect_dol_region(dol):
         dol.seek(0x803D7B78)
     except UnmappedAddress:
         pass
-    finally:
+    else:
         if dol.read(5) == b"title":
             return "PAL"
 
@@ -62,7 +62,7 @@ def detect_dol_region(dol):
         dol.seek(0x803E8358)
     except UnmappedAddress:
         pass
-    finally:
+    else:
         if dol.read(5) == b"title":
             return "JP"
 
@@ -386,17 +386,20 @@ class GenEditor(QMainWindow):
     def action_load_minimap_image(self):
         filepath, choosentype = QFileDialog.getOpenFileName(
             self, "Open File",
-            self.pathsconfig["gen"],
+            self.pathsconfig["minimap_png"],
             "Image (*.png);;All files (*)")
 
         if filepath:
             self.level_view.minimap.set_texture(filepath)
 
+            self.pathsconfig["minimap_png"] = filepath
+            save_cfg(self.configuration)
+
     @catch_exception_with_dialog
     def action_load_dol(self, val):
         filepath, choosentype = QFileDialog.getOpenFileName(
             self, "Open File",
-            self.pathsconfig["gen"],
+            self.pathsconfig["dol"],
             "Game Executable (*.dol);;All files (*)")
 
         if filepath:
@@ -435,11 +438,13 @@ class GenEditor(QMainWindow):
                 dol.seek(int(corner2z, 16))
                 self.level_view.minimap.corner2.z = read_float(dol)
 
+            self.pathsconfig["dol"] = filepath
+
     @catch_exception_with_dialog
     def action_save_to_dol(self, val):
         filepath, choosentype = QFileDialog.getSaveFileName(
             self, "Save to File",
-            self.pathsconfig["gen"],
+            self.pathsconfig["dol"],
             "Game Executable (*.dol);;All files (*)")
 
         if filepath:
@@ -489,13 +494,15 @@ class GenEditor(QMainWindow):
             with open(filepath, "wb") as f:
                 dol.save(f)
 
+            self.pathsconfig["dol"] = filepath
+            save_cfg(self.configuration)
 
 
     @catch_exception_with_dialog
     def action_load_coordinates_json(self, val):
         filepath, choosentype = QFileDialog.getOpenFileName(
             self, "Open File",
-            self.pathsconfig["gen"],
+            self.pathsconfig["minimap_json"],
             "Json File (*.json);;All files (*)")
 
         if filepath:
@@ -507,11 +514,13 @@ class GenEditor(QMainWindow):
                 self.level_view.minimap.corner2.z = data["Bottom Right Corner Z"]
                 self.level_view.minimap.orientation = data["Orientation"]
 
+            self.pathsconfig["minimap_json"] = filepath
+
     @catch_exception_with_dialog
     def action_save_coordinates_json(self, val):
         filepath, choosentype = QFileDialog.getSaveFileName(
             self, "Save File",
-            self.pathsconfig["gen"],
+            self.pathsconfig["minimap_json"],
             "Json File (*.json);;All files (*)")
 
         if filepath:
@@ -523,6 +532,9 @@ class GenEditor(QMainWindow):
 
             with open(filepath, "w") as f:
                 json.dump(data, f, indent=4)
+
+            self.pathsconfig["minimap_json"] = filepath
+            save_cfg(self.configuration)
 
     def action_choose_bco_area(self):
         areas = []
@@ -657,7 +669,7 @@ class GenEditor(QMainWindow):
     def button_load_level(self):
         filepath, choosentype = QFileDialog.getOpenFileName(
             self, "Open File",
-            self.pathsconfig["gen"],
+            self.pathsconfig["bol"],
             "BOL files (*.bol);;Archived files (*.arc);;All files (*)")
 
         if filepath:
@@ -797,7 +809,7 @@ class GenEditor(QMainWindow):
         # self.bw_map_screen.update()
         # path_parts = path.split(filepath)
         self.set_base_window_title(filepath)
-        self.pathsconfig["gen"] = filepath
+        self.pathsconfig["bol"] = filepath
         save_cfg(self.configuration)
         self.current_gen_path = filepath
 
@@ -831,7 +843,7 @@ class GenEditor(QMainWindow):
     def button_save_level_as(self, *args, **kwargs):
         filepath, choosentype = QFileDialog.getSaveFileName(
             self, "Save File",
-            self.pathsconfig["gen"],
+            self.pathsconfig["bol"],
             "MKDD Track Data (*.bol);;Archived files (*.arc);;All files (*)")
         if filepath:
             if choosentype == "Archived files (*.arc)" or filepath.endswith(".arc"):
@@ -858,7 +870,7 @@ class GenEditor(QMainWindow):
                     self.set_has_unsaved_changes(False)
 
             self.current_gen_path = filepath
-            self.pathsconfig["gen"] = filepath
+            self.pathsconfig["bol"] = filepath
             save_cfg(self.configuration)
             self.statusbar.showMessage("Saved to {0}".format(filepath))
 
@@ -1236,19 +1248,20 @@ class GenEditor(QMainWindow):
             elif deltarotation.z != 0:
                 rot.rotate_around_x(deltarotation.z)
 
-        middle = self.level_view.gizmo.position
+        if self.rotation_mode.isChecked():
+            middle = self.level_view.gizmo.position
 
-        for position in self.level_view.selected_positions:
-            diff = position - middle
-            diff.y = 0.0
+            for position in self.level_view.selected_positions:
+                diff = position - middle
+                diff.y = 0.0
 
-            length = diff.norm()
-            if length > 0:
-                diff.normalize()
-                angle = atan2(diff.x, diff.z)
-                angle += deltarotation.y
-                position.x = middle.x + length * sin(angle)
-                position.z = middle.z + length * cos(angle)
+                length = diff.norm()
+                if length > 0:
+                    diff.normalize()
+                    angle = atan2(diff.x, diff.z)
+                    angle += deltarotation.y
+                    position.x = middle.x + length * sin(angle)
+                    position.z = middle.z + length * cos(angle)
 
         """
         if len(self.pikmin_gen_view.selected) == 1:

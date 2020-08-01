@@ -15,7 +15,10 @@ def make_default_config():
 
     cfg["default paths"] = {
         "collision": "",
-        "gen": ""
+        "bol": "",
+        "dol": "",
+        "minimap_png": "",
+        "minimap_json": ""
     }
 
     cfg["editor"] = {
