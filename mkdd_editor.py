@@ -439,6 +439,7 @@ class GenEditor(QMainWindow):
                 self.level_view.minimap.corner2.z = read_float(dol)
 
             self.pathsconfig["dol"] = filepath
+            save_cfg(self.configuration)
 
     @catch_exception_with_dialog
     def action_save_to_dol(self, val):
@@ -497,7 +498,6 @@ class GenEditor(QMainWindow):
             self.pathsconfig["dol"] = filepath
             save_cfg(self.configuration)
 
-
     @catch_exception_with_dialog
     def action_load_coordinates_json(self, val):
         filepath, choosentype = QFileDialog.getOpenFileName(
@@ -515,6 +515,7 @@ class GenEditor(QMainWindow):
                 self.level_view.minimap.orientation = data["Orientation"]
 
             self.pathsconfig["minimap_json"] = filepath
+            save_cfg(self.configuration)
 
     @catch_exception_with_dialog
     def action_save_coordinates_json(self, val):
