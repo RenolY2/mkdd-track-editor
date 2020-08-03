@@ -474,7 +474,7 @@ class Cube(SelectableModel):
     def __init__(self, color=(1.0, 1.0, 1.0, 1.0)):
         super().__init__()
         with open("resources/cube.obj", "r") as f:
-            model = Model.from_obj(f, scale=200, rotate=True)
+            model = Model.from_obj(f, scale=150, rotate=True)
         self.mesh_list = model.mesh_list
         self.named_meshes = model.mesh_list
 
@@ -516,7 +516,7 @@ class GenericObject(SelectableModel):
         super().__init__()
 
         with open("resources/generic_object.obj", "r") as f:
-            model = Model.from_obj(f, scale=200, rotate=True)
+            model = Model.from_obj(f, scale=150, rotate=True)
         self.mesh_list = model.mesh_list
         self.named_meshes = model.named_meshes
         self.bodycolor = bodycolor
