@@ -294,7 +294,7 @@ class TexturedModel(object):
                 cmd = args[0]
 
                 if cmd == "mtllib":
-                    mtlpath = args[1]
+                    mtlpath = " ".join(args[1:])
                     if not os.path.isabs(mtlpath):
                         mtlpath = os.path.join(objpath, mtlpath)
 
