@@ -861,7 +861,7 @@ class Minimap(object):
 
     def set_texture(self, path):
         if self.ID is not None:
-            glDeleteTextures(self.ID)
+            glDeleteTextures(1, int(self.ID))
 
         qimage = QtGui.QImage(path, "png")
         qimage = qimage.convertToFormat(QtGui.QImage.Format_ARGB32)
