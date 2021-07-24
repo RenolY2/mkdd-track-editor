@@ -786,6 +786,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             if vismenu.enemyroute.is_visible():
                 for group in self.level_file.enemypointgroups.groups:
                     for point in group.points:
+                        if point in select_optimize:
+                            self.models.draw_sphere(point.position, point.scale)
                         self.models.render_generic_position_colored(point.position, point in select_optimize, "enemypoint")
 
                     glBegin(GL_LINE_STRIP)
