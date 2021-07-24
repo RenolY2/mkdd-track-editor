@@ -84,10 +84,22 @@ class EnemyRoutePoint(NamedItem):
     def update_name(self):
         group_item = self.parent()
         group = group_item.bound_to
+        offset = 0
+        groups_item = group_item.parent()
+
+        for i in range(groups_item.childCount()):
+            other_group_item = groups_item.child(i)
+            if other_group_item == group_item:
+                break
+            else:
+                #print("Hmmm,", other_group_item.text(0), len(other_group_item.bound_to.points), offset)
+                group_object = other_group_item.bound_to
+                offset += len(group_object.points)
+
 
         index = group.points.index(self.bound_to)
 
-        self.setText(0, "Enemy Route Point {0}".format(index))
+        self.setText(0, "Enemy Route Point {0} (pos={1})".format(index+offset, index))
 
 
 class Checkpoint(NamedItem):
