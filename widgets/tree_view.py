@@ -183,6 +183,7 @@ class MGEntry(NamedItem):
 class LevelDataTreeView(QTreeWidget):
     select_all = pyqtSignal(ObjectGroup)
     reverse = pyqtSignal(ObjectGroup)
+    duplicate = pyqtSignal(ObjectGroup)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
@@ -225,11 +226,24 @@ class LevelDataTreeView(QTreeWidget):
         def emit_current_reverse():
             item = self.itemAt(pos)
             self.reverse.emit(item)
+
+
+
         select_all_action.triggered.connect(emit_current_selectall)
         reverse_action.triggered.connect(emit_current_reverse)
 
         context_menu.addAction(select_all_action)
         context_menu.addAction(reverse_action)
+
+        if isinstance(item, EnemyPointGroup):
+            def emit_current_duplicate():
+                item = self.itemAt(pos)
+                self.duplicate.emit(item)
+
+            duplicate_action = QAction("Duplicate", self)
+            duplicate_action.triggered.connect(emit_current_duplicate)
+            context_menu.addAction(duplicate_action)
+
         context_menu.exec(self.mapToGlobal(pos))
         context_menu.destroy()
         del context_menu

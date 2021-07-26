@@ -623,6 +623,18 @@ class GenEditor(QMainWindow):
         self.level_view.rotate_current.connect(self.action_rotate_object)
         self.leveldatatreeview.select_all.connect(self.select_all_of_group)
         self.leveldatatreeview.reverse.connect(self.reverse_all_of_group)
+        self.leveldatatreeview.duplicate.connect(self.duplicate_group)
+
+    def duplicate_group(self, item):
+        group = item.bound_to
+        if isinstance(group, libbol.EnemyPointGroup):
+            new_id = len(self.level_file.enemypointgroups.groups)
+            new_group = group.copy_group(new_id)
+            self.level_file.enemypointgroups.groups.append(new_group)
+
+            self.leveldatatreeview.set_objects(self.level_file)
+            self.update_3d()
+            self.set_has_unsaved_changes(True)
 
     def reverse_all_of_group(self, item):
         group = item.bound_to

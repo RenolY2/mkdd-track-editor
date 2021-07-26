@@ -6,6 +6,7 @@ from math import cos, sin
 from .vectors import Vector3
 from collections import OrderedDict
 from io import BytesIO
+from copy import deepcopy
 
 def read_uint8(f):
     return unpack(">B", f.read(1))[0]
@@ -306,6 +307,16 @@ class EnemyPointGroup(object):
     def move_point(self, index, targetindex):
         point = self.points.pop(index)
         self.points.insert(targetindex, point)
+
+    def copy_group(self, new_id):
+        group = EnemyPointGroup()
+        group.id = new_id
+        for point in self.points:
+            new_point = deepcopy(point)
+            new_point.group = new_id
+            group.points.append(new_point)
+
+        return group
 
 
 class EnemyPointGroups(object):
