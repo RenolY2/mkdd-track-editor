@@ -624,6 +624,31 @@ class GenEditor(QMainWindow):
         self.leveldatatreeview.select_all.connect(self.select_all_of_group)
         self.leveldatatreeview.reverse.connect(self.reverse_all_of_group)
         self.leveldatatreeview.duplicate.connect(self.duplicate_group)
+        self.leveldatatreeview.split.connect(self.split_group)
+
+    def split_group(self, group_item, item):
+        group = group_item.bound_to
+        point = item.bound_to
+
+        if point == group.points[-1]:
+            return
+
+        # Get an unused link to connect the groups with
+        new_link = self.level_file.enemypointgroups.new_link_id()
+        if new_link >= 2**14:
+            raise RuntimeError("Too many links, cannot create more")
+
+        # Get new hopefully unused group id
+        new_id = self.level_file.enemypointgroups.new_group_id()
+        new_group = group.copy_group_after(new_id, point)
+        self.level_file.enemypointgroups.groups.append(new_group)
+        group.remove_after(point)
+
+        group.points[-1].link = new_group.points[0].link = new_link
+
+        self.leveldatatreeview.set_objects(self.level_file)
+        self.update_3d()
+        self.set_has_unsaved_changes(True)
 
     def duplicate_group(self, item):
         group = item.bound_to

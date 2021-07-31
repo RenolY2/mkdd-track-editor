@@ -318,6 +318,24 @@ class EnemyPointGroup(object):
 
         return group
 
+    def copy_group_after(self, new_id, point):
+        group = EnemyPointGroup()
+        group.id = new_id
+        pos = self.points.index(point)
+
+        # Check if the element is the last element
+        if not len(self.points)-1 == pos:
+            for point in self.points[pos+1:]:
+                new_point = deepcopy(point)
+                new_point.group = new_id
+                group.points.append(new_point)
+
+        return group
+
+    def remove_after(self, point):
+        pos = self.points.index(point)
+        self.points = self.points[:pos+1]
+
 
 class EnemyPointGroups(object):
     def __init__(self):
@@ -348,6 +366,36 @@ class EnemyPointGroups(object):
         for group in self.groups:
             for point in group.points:
                 yield point
+
+    def new_group_id(self):
+        return len(self.groups)
+
+    def used_links(self):
+        links = []
+        for group in self.groups:
+            for point in group.points:
+                point: EnemyPoint
+                if point.link != -1:
+                    if point.link not in links:
+                        links.append(point.link)
+
+        return links
+
+    def new_link_id(self):
+        existing_links = self.used_links()
+        existing_links.sort()
+        if len(existing_links) == 0:
+            return 0
+
+        max_link = existing_links[-1]
+
+        for i in range(max_link):
+            if i not in existing_links:
+                return i
+
+        return max_link+1
+
+
 
 # Enemy/Item Route Code End
 

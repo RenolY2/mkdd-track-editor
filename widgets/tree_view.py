@@ -184,6 +184,7 @@ class LevelDataTreeView(QTreeWidget):
     select_all = pyqtSignal(ObjectGroup)
     reverse = pyqtSignal(ObjectGroup)
     duplicate = pyqtSignal(ObjectGroup)
+    split = pyqtSignal(EnemyPointGroup, EnemyRoutePoint)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
@@ -212,41 +213,55 @@ class LevelDataTreeView(QTreeWidget):
     def run_context_menu(self, pos):
         item = self.itemAt(pos)
 
-        if not isinstance(item, (EnemyPointGroup, ObjectPointGroup, CheckpointGroup)):
-            return
+        if isinstance(item, (EnemyRoutePoint, )):
+            context_menu = QMenu(self)
+            split_action = QAction("Split Group At", self)
 
-        context_menu = QMenu(self)
-        select_all_action = QAction("Select All", self)
-        reverse_action = QAction("Reverse", self)
-
-        def emit_current_selectall():
-            item = self.itemAt(pos)
-            self.select_all.emit(item)
-
-        def emit_current_reverse():
-            item = self.itemAt(pos)
-            self.reverse.emit(item)
-
-
-
-        select_all_action.triggered.connect(emit_current_selectall)
-        reverse_action.triggered.connect(emit_current_reverse)
-
-        context_menu.addAction(select_all_action)
-        context_menu.addAction(reverse_action)
-
-        if isinstance(item, EnemyPointGroup):
-            def emit_current_duplicate():
+            def emit_current_split():
                 item = self.itemAt(pos)
-                self.duplicate.emit(item)
+                group_item = item.parent()
+                self.split.emit(group_item, item)
 
-            duplicate_action = QAction("Duplicate", self)
-            duplicate_action.triggered.connect(emit_current_duplicate)
-            context_menu.addAction(duplicate_action)
+            split_action.triggered.connect(emit_current_split)
 
-        context_menu.exec(self.mapToGlobal(pos))
-        context_menu.destroy()
-        del context_menu
+            context_menu.addAction(split_action)
+            context_menu.exec(self.mapToGlobal(pos))
+            context_menu.destroy()
+            del context_menu
+
+        elif isinstance(item, (EnemyPointGroup, ObjectPointGroup, CheckpointGroup)):
+            context_menu = QMenu(self)
+            select_all_action = QAction("Select All", self)
+            reverse_action = QAction("Reverse", self)
+
+            def emit_current_selectall():
+                item = self.itemAt(pos)
+                self.select_all.emit(item)
+
+            def emit_current_reverse():
+                item = self.itemAt(pos)
+                self.reverse.emit(item)
+
+
+
+            select_all_action.triggered.connect(emit_current_selectall)
+            reverse_action.triggered.connect(emit_current_reverse)
+
+            context_menu.addAction(select_all_action)
+            context_menu.addAction(reverse_action)
+
+            if isinstance(item, EnemyPointGroup):
+                def emit_current_duplicate():
+                    item = self.itemAt(pos)
+                    self.duplicate.emit(item)
+
+                duplicate_action = QAction("Duplicate", self)
+                duplicate_action.triggered.connect(emit_current_duplicate)
+                context_menu.addAction(duplicate_action)
+
+            context_menu.exec(self.mapToGlobal(pos))
+            context_menu.destroy()
+            del context_menu
 
     def _add_group(self, name, customgroup=None):
         if customgroup is None:
