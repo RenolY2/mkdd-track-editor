@@ -30,6 +30,15 @@ class ObjectModels(object):
         self.startpoints = GenericObject(colors["StartPoints"])
         #self.purplecube = Cube((0.7, 0.7, 1.0, 1.0))
 
+        self.playercolors = [Cube(color) for color in ((1.0, 0.0, 0.0, 1.0),
+                                                       (0.0, 0.0, 1.0, 1.0),
+                                                       (1.0, 1.0, 0.0, 1.0),
+                                                       (0.0, 1.0, 1.0, 1.0),
+                                                       (1.0, 0.0, 1.0, 1.0),
+                                                       (1.0, 0.5, 0.0, 1.0),
+                                                       (0.0, 0.5, 1.0, 1.0),
+                                                       (1.0, 0.0, 0.5, 1.0))]
+
 
         genericmodels = {
             "Chappy": self.generic_chappy,
@@ -67,6 +76,9 @@ class ObjectModels(object):
                     self.models[objectname] = TexturedModel.from_obj_path(os.path.join(dirpath, file), rotate=True)
         for cube in (self.cube, self.checkpointleft, self.checkpointright, self.itempoint, self.enemypoint,
                      self.objects, self.areas, self.respawn, self.startpoints, self.camera):
+            cube.generate_displists()
+
+        for cube in self.playercolors:
             cube.generate_displists()
 
         self.generic.generate_displists()
@@ -138,6 +150,9 @@ class ObjectModels(object):
     def render_generic_position_colored(self, position, selected, cubename):
         self._render_generic_position(getattr(self, cubename), position, selected)
 
+    def render_player_position_colored(self, position, selected, player):
+        self._render_generic_position(self.playercolors[player], position, selected)
+
     def render_generic_position_rotation(self, position, rotation, selected):
         self._render_generic_position_rotation("generic", position, rotation, selected)
 
@@ -190,7 +205,6 @@ class ObjectModels(object):
         self.generic.render_coloredid(id)
 
         glPopMatrix()
-
 
     def render_line(self, pos1, pos2):
         pass
