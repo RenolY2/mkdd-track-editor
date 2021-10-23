@@ -1130,6 +1130,7 @@ class BOL(object):
         for group in self.enemypointgroups.groups:
             #group = self.enemypointgroups.groups[groupindex]
             for point in group.points:
+                point.group = group.id
                 point.write(f)
 
         offsets.append(f.tell())
