@@ -472,7 +472,7 @@ class EnemyPointEdit(DataEditor):
 
 class CheckpointGroupEdit(DataEditor):
     def setup_widgets(self):
-        self.grouplink = self.add_integer_input("Group Link", "grouplink",
+        self.grouplink = self.add_integer_input("Group Setting", "grouplink",
                                                 MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.prevgroup = self.add_multiple_integer_input_list("Previous Groups", "prevgroup",
                                                               MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
