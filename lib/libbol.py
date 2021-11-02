@@ -396,7 +396,6 @@ class EnemyPointGroups(object):
         return max_link+1
 
 
-
 # Enemy/Item Route Code End
 
 
@@ -414,6 +413,34 @@ class CheckpointGroup(object):
     @classmethod
     def new(cls):
         return cls(0)
+
+    def copy_group(self, new_id):
+        group = CheckpointGroup(new_id)
+        group.grouplink = new_id
+        group.prevgroup = deepcopy(self.prevgroup)
+        group.nextgroup = deepcopy(self.nextgroup)
+
+        for point in self.points:
+            new_point = deepcopy(point)
+            group.points.append(new_point)
+
+        return group
+
+    def copy_group_after(self, new_id, point):
+        group = CheckpointGroup(new_id)
+        pos = self.points.index(point)
+
+        # Check if the element is the last element
+        if not len(self.points)-1 == pos:
+            for point in self.points[pos+1:]:
+                new_point = deepcopy(point)
+                group.points.append(new_point)
+
+        return group
+
+    def remove_after(self, point):
+        pos = self.points.index(point)
+        self.points = self.points[:pos+1]
 
     @classmethod
     def from_file(cls, f):
@@ -489,6 +516,9 @@ class CheckpointGroups(object):
                 group.points.append(checkpoint)
 
         return checkpointgroups
+
+    def new_group_id(self):
+        return len(self.groups)
 
     def points(self):
         for group in self.groups:
