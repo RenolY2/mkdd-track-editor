@@ -112,7 +112,7 @@ class Game(object):
         self.timer += delta
         if self.dolphin.memory is not None:
             kartctrlPtr = self.dolphin.read_uint32(0x803CC588)
-            if kartctrlPtr is None:
+            if kartctrlPtr is None or not self.dolphin.address_valid(kartctrlPtr):
                 self.dolphin.reset()
                 for i in range(8):
                     self.karts[i][0] = None
