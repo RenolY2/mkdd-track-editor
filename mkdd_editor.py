@@ -38,6 +38,7 @@ from lib.dolreader import DolFile, read_float, write_float, read_load_immediate_
 from widgets.file_select import FileSelect
 from PyQt5.QtWidgets import QTreeWidgetItem
 from lib.bmd_render import clear_temp_folder, load_textured_bmd
+from lib.game_visualizer import Game
 PIKMIN2GEN = "Generator files (defaultgen.txt;initgen.txt;plantsgen.txt;*.txt)"
 
 
@@ -121,6 +122,9 @@ class GenEditor(QMainWindow):
 
         self._dontselectfromtree = False
 
+        self.dolphin = Game()
+        self.level_view.dolphin = self.dolphin
+        self.last_chosen_type = ""
 
     @catch_exception
     def reset(self):
@@ -295,13 +299,18 @@ class GenEditor(QMainWindow):
         self.file_load_action.setShortcut("Ctrl+O")
         self.save_file_as_action.setShortcut("Ctrl+Alt+S")
 
+        self.save_file_copy_as_action = QAction("Save Copy As", self)
+
         self.file_load_action.triggered.connect(self.button_load_level)
         self.save_file_action.triggered.connect(self.button_save_level)
         self.save_file_as_action.triggered.connect(self.button_save_level_as)
+        self.save_file_copy_as_action.triggered.connect(self.button_save_level_copy_as)
+
 
         self.file_menu.addAction(self.file_load_action)
         self.file_menu.addAction(self.save_file_action)
         self.file_menu.addAction(self.save_file_as_action)
+        self.file_menu.addAction(self.save_file_copy_as_action)
 
         self.visibility_menu = mkdd_widgets.FilterViewMenu(self)
         self.visibility_menu.filter_update.connect(self.update_render)
@@ -382,6 +391,33 @@ class GenEditor(QMainWindow):
         self.setMenuBar(self.menubar)
 
         self.last_obj_select_pos = 0
+
+
+        self.dolphin_action = QAction("Hook into Dolphin", self)
+        self.dolphin_action.triggered.connect(self.action_hook_into_dolphion)
+        self.misc_menu.addAction(self.dolphin_action)
+
+        self.camera_actions = [QAction("Unfollow", self)]
+
+        for i in range(8):
+            self.camera_actions.append(QAction("Follow Player {0}".format(i+1)))
+
+        def make_func(i):
+            def action_follow_player():
+                print("Now Following", i)
+                self.dolphin.stay_focused_on_player = i
+            return action_follow_player
+
+        for i in range(-1, 8):
+            action = self.camera_actions[i+1]
+            action.triggered.connect(make_func(i))
+
+            self.misc_menu.addAction(action)
+
+    def action_hook_into_dolphion(self):
+        error = self.dolphin.initialize()
+        if error != "":
+            open_error_dialog(error, self)
 
     def action_load_minimap_image(self):
         filepath, choosentype = QFileDialog.getOpenFileName(
@@ -625,6 +661,33 @@ class GenEditor(QMainWindow):
         self.leveldatatreeview.reverse.connect(self.reverse_all_of_group)
         self.leveldatatreeview.duplicate.connect(self.duplicate_group)
         self.leveldatatreeview.split.connect(self.split_group)
+        self.leveldatatreeview.split_checkpoint.connect(self.split_group_checkpoint)
+
+    def split_group_checkpoint(self, group_item, item):
+        group = group_item.bound_to
+        point = item.bound_to
+
+        if point == group.points[-1]:
+            return
+
+        """# Get an unused link to connect the groups with
+        new_link = self.level_file.enemypointgroups.new_link_id()
+        if new_link >= 2**14:
+            raise RuntimeError("Too many links, cannot create more")
+        """
+
+        # Get new hopefully unused group id
+        new_id = self.level_file.checkpoints.new_group_id()
+        new_group = group.copy_group_after(new_id, point)
+        self.level_file.checkpoints.groups.append(new_group)
+        group.remove_after(point)
+        new_group.prevlinks = [group.grouplink, -1, -1, -1]
+        new_group.nextlinks = deepcopy(group.nextgroup)
+        group.nextgroup = [new_group.grouplink, -1, -1, -1]
+
+        self.leveldatatreeview.set_objects(self.level_file)
+        self.update_3d()
+        self.set_has_unsaved_changes(True)
 
     def split_group(self, group_item, item):
         group = group_item.bound_to
@@ -705,17 +768,19 @@ class GenEditor(QMainWindow):
 
     #@catch_exception
     def button_load_level(self):
-        filepath, choosentype = QFileDialog.getOpenFileName(
+        filepath, chosentype = QFileDialog.getOpenFileName(
             self, "Open File",
             self.pathsconfig["bol"],
-            "BOL files (*.bol);;Archived files (*.arc);;All files (*)")
+            "BOL files (*.bol);;Archived files (*.arc);;All files (*)",
+            self.last_chosen_type)
 
         if filepath:
+            self.last_chosen_type = chosentype
             print("Resetting editor")
             self.reset()
             print("Reset done")
-            print("Chosen file type:", choosentype)
-            if choosentype == "Archived files (*.arc)" or filepath.endswith(".arc"):
+            print("Chosen file type:", chosentype)
+            if chosentype == "Archived files (*.arc)" or filepath.endswith(".arc"):
                 with open(filepath, "rb") as f:
                     try:
                         self.loaded_archive = Archive.from_file(f)
@@ -877,12 +942,20 @@ class GenEditor(QMainWindow):
         else:
             self.button_save_level_as()
 
-    @catch_exception_with_dialog
     def button_save_level_as(self, *args, **kwargs):
+        self._button_save_level_as(True, *args, **kwargs)
+
+    def button_save_level_copy_as(self, *args, **kwargs):
+        self._button_save_level_as(False, *args, **kwargs)
+
+    @catch_exception_with_dialog
+    def _button_save_level_as(self, modify_current_path, *args, **kwargs):
         filepath, choosentype = QFileDialog.getSaveFileName(
             self, "Save File",
             self.pathsconfig["bol"],
-            "MKDD Track Data (*.bol);;Archived files (*.arc);;All files (*)")
+            "MKDD Track Data (*.bol);;Archived files (*.arc);;All files (*)",
+            self.last_chosen_type)
+
         if filepath:
             if choosentype == "Archived files (*.arc)" or filepath.endswith(".arc"):
                 if self.loaded_archive is None or self.loaded_archive_file is None:
@@ -907,10 +980,17 @@ class GenEditor(QMainWindow):
 
                     self.set_has_unsaved_changes(False)
 
-            self.current_gen_path = filepath
             self.pathsconfig["bol"] = filepath
             save_cfg(self.configuration)
+
+            if modify_current_path:
+                self.current_gen_path = filepath
+                self.set_base_window_title(filepath)
+
             self.statusbar.showMessage("Saved to {0}".format(filepath))
+
+
+
 
     def button_load_collision(self):
         try:
@@ -1194,6 +1274,7 @@ class GenEditor(QMainWindow):
             pos.x += deltax
             pos.y += deltay
             pos.z += deltaz
+
 
         #if len(self.pikmin_gen_view.selected) == 1:
         #    obj = self.pikmin_gen_view.selected[0]

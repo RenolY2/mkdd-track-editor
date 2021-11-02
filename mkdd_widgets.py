@@ -287,6 +287,9 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             self.offset_x *= -1
             self.do_redraw()
 
+    def logic(self, delta, diff):
+        self.dolphin.logic(self, delta, diff)
+
     @catch_exception
     def render_loop(self):
         now = default_timer()
@@ -298,6 +301,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             self.handle_arrowkey_scroll(timedelta)
         else:
             self.handle_arrowkey_scroll_3d(timedelta)
+
+        self.logic(timedelta, diff)
 
         if diff > 1 / 60.0:
             if self._frame_invalid:
@@ -431,9 +436,6 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             self.offset_x = 0
             self.offset_z = 0
             self._zoom_factor = 80
-            #self._zoom_i
-            #self._zoom_i
-            #self.waterboxes = []
 
         self.pikmin_generators = None
 
@@ -617,6 +619,14 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                     self.models.render_generic_position_colored_id(self.minimap.corner1, id + (offset) * 4)
                     self.models.render_generic_position_colored_id(self.minimap.corner2, id + (offset) * 4 + 1)
                     offset = 1
+                """
+                for ptr, pos in self.karts:
+                    objlist.append((ptr, pos, None, None))
+                    self.models.render_generic_position_colored_id(pos, id + (offset) * 4)
+                    offset += 1"""
+
+                self.dolphin.render_collision(self, objlist)
+                offset = len(objlist)
 
                 if vismenu.enemyroute.is_selectable():
                     for i, obj in enumerate(self.level_file.enemypointgroups.points()):
@@ -759,6 +769,14 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
         glEnable(GL_ALPHA_TEST)
         glAlphaFunc(GL_GEQUAL, 0.5)
+        p = 0
+
+        self.dolphin.render_visual(self, self.selected)
+
+        """for valid, kartpos in self.karts:
+            if valid:
+                self.models.render_player_position_colored(kartpos, valid in self.selected, p)
+            p += 1"""
 
         if self.level_file is not None:
             selected = self.selected
@@ -1002,7 +1020,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         glEnable(GL_DEPTH_TEST)
         glFinish()
         now = default_timer() - start
-        print("Frame time:", now, 1/now, "fps")
+        #print("Frame time:", now, 1/now, "fps")
 
     @catch_exception
     def mousePressEvent(self, event):
