@@ -185,6 +185,7 @@ class LevelDataTreeView(QTreeWidget):
     reverse = pyqtSignal(ObjectGroup)
     duplicate = pyqtSignal(ObjectGroup)
     split = pyqtSignal(EnemyPointGroup, EnemyRoutePoint)
+    split_checkpoint = pyqtSignal(CheckpointGroup, Checkpoint)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
@@ -228,7 +229,21 @@ class LevelDataTreeView(QTreeWidget):
             context_menu.exec(self.mapToGlobal(pos))
             context_menu.destroy()
             del context_menu
+        elif isinstance(item, (Checkpoint, )):
+            context_menu = QMenu(self)
+            split_action = QAction("Split Group At", self)
 
+            def emit_current_split():
+                item = self.itemAt(pos)
+                group_item = item.parent()
+                self.split_checkpoint.emit(group_item, item)
+
+            split_action.triggered.connect(emit_current_split)
+
+            context_menu.addAction(split_action)
+            context_menu.exec(self.mapToGlobal(pos))
+            context_menu.destroy()
+            del context_menu
         elif isinstance(item, (EnemyPointGroup, ObjectPointGroup, CheckpointGroup)):
             context_menu = QMenu(self)
             select_all_action = QAction("Select All", self)
