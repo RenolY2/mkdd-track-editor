@@ -8,7 +8,7 @@ from mkdd_widgets import MODE_TOPDOWN, MODE_3D
 EVERYTHING_OK = 0
 DOLPHIN_FOUND_NO_GAME = 1
 DOLPHIN_NOT_FOUND = 2
-
+WRONG_VERSION = 3
 
 def angle_diff(angle1, angle2):
     angle1 = (angle1+2*pi)%(2*pi)
@@ -47,8 +47,16 @@ class Game(object):
         self.dolphin.reset()
         if self.dolphin.find_dolphin():
             if self.dolphin.init_shared_memory():
-                print("Success!")
-                return ""
+                gameid = bytes(self.dolphin.read_ram(0, 4))
+                print(gameid)
+                if gameid in (b"GM4P", b"GM4J"):
+                    return "PAL/NTSC-J version of MKDD currently isn't supported for Dolphin hooking."
+                elif gameid != b"GM4E":
+                    return "Game doesn't seem to be MKDD: Found Game ID '{0}'.".format(str(gameid, encoding="ascii"))
+                else:
+                    print("Success!")
+                    
+                    return ""
             else:
                 self.dolphin.reset()
                 return "Dolphin found but game isn't running."
@@ -101,12 +109,13 @@ class Game(object):
             p += 1
 
     def render_collision(self, renderer: BolMapViewer, objlist):
-        idbase = 0x100000
-        offset = len(objlist)
-        for ptr, pos in self.karts:
-            objlist.append((ptr, pos, None, None))
-            renderer.models.render_generic_position_colored_id(pos, idbase + (offset) * 4)
-            offset += 1
+        if self.dolphin.memory is not None:
+            idbase = 0x100000
+            offset = len(objlist)
+            for ptr, pos in self.karts:
+                objlist.append((ptr, pos, None, None))
+                renderer.models.render_generic_position_colored_id(pos, idbase + (offset) * 4)
+                offset += 1
 
     def logic(self, renderer: BolMapViewer, delta, diff):
         self.timer += delta
