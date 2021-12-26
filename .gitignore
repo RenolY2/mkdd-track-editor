@@ -5,3 +5,4 @@ build/*
 /piktool.ini
 object_templates/pikmin3/*
 lib/examples/*
+editor_config.ini
