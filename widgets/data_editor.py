@@ -59,7 +59,6 @@ class DataEditor(QWidget):
 
         self.bound_to = bound_to
         self.vbox = QVBoxLayout(self)
-        self.setLayout(self.vbox)
 
         self.description = self.add_label("Object")
 
@@ -85,7 +84,7 @@ class DataEditor(QWidget):
         return label
 
     def create_labeled_widget(self, parent, text, widget):
-        layout = QHBoxLayout(parent)
+        layout = QHBoxLayout()
         label = self.create_label(text)
         label.setText(text)
         layout.addWidget(label)
@@ -93,7 +92,7 @@ class DataEditor(QWidget):
         return layout
 
     def create_labeled_widgets(self, parent, text, widgetlist):
-        layout = QHBoxLayout(parent)
+        layout = QHBoxLayout()
         label = self.create_label(text)
         label.setText(text)
         layout.addWidget(label)

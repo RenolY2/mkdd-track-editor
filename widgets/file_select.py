@@ -5,7 +5,6 @@ class FileSelect(QDialog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         layout = QVBoxLayout(self)
-        self.setLayout(layout)
         self.listbox = QListWidget(self)
         layout.addWidget(self.listbox)
 

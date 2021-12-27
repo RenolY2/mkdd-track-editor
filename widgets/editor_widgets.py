@@ -245,8 +245,8 @@ class AddPikObjectWindow(QMdiSubWindow):
 
 
 
-        self.hbox1 = QHBoxLayout(self.centralwidget)
-        self.hbox2 = QHBoxLayout(self.centralwidget)
+        self.hbox1 = QHBoxLayout()
+        self.hbox2 = QHBoxLayout()
 
 
         self.label1 = QLabel(self.centralwidget)
