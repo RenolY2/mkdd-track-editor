@@ -23,6 +23,8 @@ def catch_exception(func):
     def handle(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        except KeyboardInterrupt:
+            QtWidgets.QApplication.quit()
         except:
             traceback.print_exc()
             #raise
