@@ -116,7 +116,7 @@ class RacetrackCollision(object):
             if z < smallestz:
                 smallestz = z
             #print(x,y,z)
-        print("smallest/smallest vertex coordinates:",smallestx, smallestz, biggestx, biggestz)
+        print("smallest/biggest vertex coordinates:",smallestx, smallestz, biggestx, biggestz)
         f.seek(self.unknownoffset)
         self.matentries = []
 
