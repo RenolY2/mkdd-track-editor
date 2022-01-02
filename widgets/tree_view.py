@@ -120,7 +120,7 @@ class Checkpoint(NamedItem):
 
         index = group.points.index(self.bound_to)
 
-        self.setText(0, "Checkpoint {0} (pos={1})".format(index+1+offset, index))
+        self.setText(0, "Checkpoint {0} (pos={1})".format(index+offset, index))
 
 
 class ObjectRoutePoint(NamedItem):
