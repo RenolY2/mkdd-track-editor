@@ -980,6 +980,8 @@ class CollisionModel(object):
         self.program = None
         vertices = mkdd_collision.vertices
         self._displists = []
+        self.hidden_collision_types = set()
+        self.hidden_collision_type_groups = set()
 
         for v1, v2, v3, coltype, rest in mkdd_collision.triangles:
             vertex1 = Vector3(*vertices[v1])
@@ -1098,6 +1100,10 @@ class CollisionModel(object):
         glUseProgram(self.program)
 
         for colltype, displist in self._displists:
+            if (colltype in self.hidden_collision_types
+                    or colltype & 0xFF00 in self.hidden_collision_type_groups):
+                continue
+
             if colltype == selectedPart:
                 glUniform1f(factorval, 1.0)
             else:

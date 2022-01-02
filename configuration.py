@@ -25,7 +25,9 @@ def make_default_config():
         "InvertZoom": "False",
         "wasdscrolling_speed": "1250",
         "wasdscrolling_speedupfactor": "5",
-        "3d_background": "255 255 255"
+        "3d_background": "255 255 255",
+        "hidden_collision_types": "",
+        "hidden_collision_type_groups": "",
     }
 
     with open("editor_config.ini", "w") as f:
