@@ -894,7 +894,31 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
                     glEnd()
 
+                checkpoints_to_highlight = set()
+                for respawn_point in self.level_file.respawnpoints:
+                    if respawn_point not in select_optimize:
+                        continue
+                    preceding_checkpoint_index = respawn_point.unk3
+                    if preceding_checkpoint_index != -1:
+                        checkpoints_to_highlight.add(preceding_checkpoint_index)
+                    # What about unk2? In Daisy Cruiser, a respawn point has its unk2 set instead.
+                    # Was that an oversight by the original maker?
 
+                if checkpoints_to_highlight:
+                    glLineWidth(4.0)
+                    point_index = 0
+                    for i, group in enumerate(self.level_file.checkpoints.groups):
+                        glColor3f(*colors[i % 4])
+                        for checkpoint in group.points:
+                            if point_index in checkpoints_to_highlight:
+                                pos1 = checkpoint.start
+                                pos2 = checkpoint.end
+                                glBegin(GL_LINES)
+                                glVertex3f(pos1.x, -pos1.z, pos1.y)
+                                glVertex3f(pos2.x, -pos2.z, pos2.y)
+                                glEnd()
+                            point_index += 1
+                    glLineWidth(1.0)
 
             #glColor3f(1.0, 1.0, 1.0)
             #glEnable(GL_TEXTURE_2D)
