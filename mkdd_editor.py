@@ -1643,12 +1643,12 @@ class GenEditor(QMainWindow):
                         if item is not None:
                             break
 
-                    """elif isinstance(currentobj, libbol.Checkpoint):
+                elif isinstance(currentobj, libbol.Checkpoint):
                     for i in range(self.leveldatatreeview.checkpointgroups.childCount()):
                         child = self.leveldatatreeview.checkpointgroups.child(i)
                         item = get_treeitem(child, currentobj)
                         if item is not None:
-                            break"""
+                            break
 
                 elif isinstance(currentobj, libbol.RoutePoint):
                     for i in range(self.leveldatatreeview.objectroutes.childCount()):
