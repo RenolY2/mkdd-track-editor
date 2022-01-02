@@ -802,11 +802,25 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                     glEnd()
 
             if vismenu.enemyroute.is_visible():
+                enemypoints_to_highlight = set()
+                for respawn_point in self.level_file.respawnpoints:
+                    if respawn_point not in select_optimize:
+                        continue
+                    next_enemy_point = respawn_point.unk1
+                    if next_enemy_point != -1:
+                        enemypoints_to_highlight.add(next_enemy_point)
+
+                point_index = 0
                 for group in self.level_file.enemypointgroups.groups:
                     for point in group.points:
                         if point in select_optimize:
                             glColor3f(0.3, 0.3, 0.3)
                             self.models.draw_sphere(point.position, point.scale)
+
+                        if point_index in enemypoints_to_highlight:
+                            glColor3f(1.0, 1.0, 0.0)
+                            self.models.draw_sphere(point.position, 300)
+
                         self.models.render_generic_position_colored(point.position, point in select_optimize, "enemypoint")
 
                         if point.pointsetting:
@@ -824,6 +838,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         if point.unk2:
                             glColor3f(0.9, 0.0, 0.9)
                             self.models.draw_cylinder(point.position, 300, 300)
+
+                        point_index += 1
 
                     glBegin(GL_LINE_STRIP)
                     glColor3f(0.0, 0.0, 0.0)
