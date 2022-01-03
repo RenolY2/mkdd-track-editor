@@ -167,7 +167,10 @@ class CameraEntry(NamedItem):
 
 class RespawnEntry(NamedItem):
     def update_name(self):
-        self.setText(0, "Respawn Point (ID: {0})".format(self.bound_to.respawn_id))
+        for i in range(self.parent().childCount()):
+            if self == self.parent().child(i):
+                self.setText(0, "Respawn Point {0} (ID: {1})".format(i, self.bound_to.respawn_id))
+                break
 
 
 class LightParamEntry(NamedItem):
