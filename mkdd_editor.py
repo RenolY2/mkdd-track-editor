@@ -845,6 +845,8 @@ class GenEditor(QMainWindow):
                         traceback.print_exc()
                         open_error_dialog(str(error), self)
 
+            self.update_3d()
+
     def load_optional_3d_file(self, additional_files, bmdfile, collisionfile):
         choice, pos = FileSelect.open_file_list(self, additional_files,
                                                 "Select additional file to load", startat=0)
