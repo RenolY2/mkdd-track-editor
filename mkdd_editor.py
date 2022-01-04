@@ -904,6 +904,105 @@ class GenEditor(QMainWindow):
             model = CollisionModel(bco_coll)
             self.setup_collision(verts, faces, arcfilepath, alternative_mesh=model)
 
+    def load_file(self, filepath, additional=None):
+        if filepath.endswith('.bol'):
+            return self.load_bol_file(filepath, additional=additional)
+
+        if filepath.endswith('.arc'):
+            return self.load_arc_file(filepath, additional=additional)
+
+    def load_bol_file(self, filepath, additional=None):
+        with open(filepath, "rb") as f:
+            bol_file = BOL.from_file(f)
+            self.setup_bol_file(bol_file, filepath)
+            self.leveldatatreeview.set_objects(bol_file)
+            self.current_gen_path = filepath
+
+        if not filepath.endswith('_course.bol'):
+            return
+
+        if additional == '3d':
+            bmdfile = filepath[:-len('.bol')] + ".bmd"
+            if not os.path.isfile(bmdfile):
+                return
+
+            alternative_mesh = load_textured_bmd(bmdfile)
+            with open("lib/temp/temp.obj", "r") as f:
+                verts, faces, normals = py_obj.read_obj(f)
+
+            self.setup_collision(verts, faces, bmdfile, alternative_mesh)
+
+        elif additional == 'collision':
+            collisionfile = filepath[:-len('.bol')] + ".bco"
+            if not os.path.isfile(collisionfile):
+                return
+
+            bco_coll = RacetrackCollision()
+            with open(collisionfile, "rb") as f:
+                bco_coll.load_file(f)
+
+            verts = []
+            for vert in bco_coll.vertices:
+                verts.append(vert)
+
+            faces = []
+            for v1, v2, v3, collision_type, rest in bco_coll.triangles:
+                faces.append(((v1 + 1, None), (v2 + 1, None), (v3 + 1, None)))
+
+            model = CollisionModel(bco_coll)
+            self.setup_collision(verts, faces, collisionfile, alternative_mesh=model)
+
+    def load_arc_file(self, filepath, additional=None):
+        with open(filepath, "rb") as f:
+            try:
+                self.loaded_archive = Archive.from_file(f)
+                root_name = self.loaded_archive.root.name
+                coursename = find_file(self.loaded_archive.root, "_course.bol")
+                bol_file = self.loaded_archive[root_name + "/" + coursename]
+                bol_data = BOL.from_file(bol_file)
+                self.setup_bol_file(bol_data, filepath)
+                self.leveldatatreeview.set_objects(bol_data)
+                self.current_gen_path = filepath
+                self.loaded_archive_file = coursename
+            except:
+                self.loaded_archive = None
+                self.loaded_archive_file = None
+                raise
+
+        if additional == '3d':
+            bmdfile = get_file_safe(self.loaded_archive.root, "_course.bmd")
+            if bmdfile is None:
+                return
+
+            bmdpath = "lib/temp/temp.bmd"
+            with open(bmdpath, "wb") as f:
+                f.write(bmdfile.getvalue())
+
+            alternative_mesh = load_textured_bmd(bmdpath)
+            with open("lib/temp/temp.obj", "r") as f:
+                verts, faces, normals = py_obj.read_obj(f)
+
+            self.setup_collision(verts, faces, filepath, alternative_mesh)
+
+        elif additional == 'collision':
+            collisionfile = get_file_safe(self.loaded_archive.root, "_course.bco")
+            if collisionfile is None:
+                return
+
+            bco_coll = RacetrackCollision()
+            bco_coll.load_file(collisionfile)
+
+            verts = []
+            for vert in bco_coll.vertices:
+                verts.append(vert)
+
+            faces = []
+            for v1, v2, v3, collision_type, rest in bco_coll.triangles:
+                faces.append(((v1 + 1, None), (v2 + 1, None), (v3 + 1, None)))
+
+            model = CollisionModel(bco_coll)
+            self.setup_collision(verts, faces, filepath, alternative_mesh=model)
+
     def setup_bol_file(self, bol_file, filepath):
         self.level_file = bol_file
         self.level_view.level_file = self.level_file
@@ -1702,6 +1801,11 @@ if __name__ == "__main__":
                         help="Path to collision to be loaded.")
     parser.add_argument("--waterbox", default=None,
                         help="Path to waterbox file to be loaded.")
+    parser.add_argument("--load", default=None,
+                        help="Path to the ARC or BOL file to be loaded.")
+    parser.add_argument("--additional", default=None, choices=['3d', 'collision'],
+                        help="Whether to also load the additional BMD file (3D model) or BCO file "
+                        "(collision file).")
 
     args = parser.parse_args()
 
@@ -1771,6 +1875,12 @@ if __name__ == "__main__":
                 raise RuntimeError("Unknown waterbox file type:", args.waterbox)
 
             pikmin_gui.setup_waterboxes(waterboxfile)
+
+        if args.load is not None:
+            def load():
+                pikmin_gui.load_file(args.load, additional=args.additional)
+
+            QtCore.QTimer.singleShot(0, load)
 
         err_code = app.exec()
 
