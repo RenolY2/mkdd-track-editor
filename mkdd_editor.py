@@ -365,7 +365,10 @@ class GenEditor(QMainWindow):
         self.analyze_action.triggered.connect(self.analyze_for_mistakes)
         self.misc_menu.addAction(self.analyze_action)
 
+        self.view_action_group = QtWidgets.QActionGroup(self)
+
         self.change_to_topdownview_action = QAction("Topdown View", self)
+        self.view_action_group.addAction(self.change_to_topdownview_action)
         self.change_to_topdownview_action.triggered.connect(self.change_to_topdownview)
         self.misc_menu.addAction(self.change_to_topdownview_action)
         self.change_to_topdownview_action.setCheckable(True)
@@ -373,6 +376,7 @@ class GenEditor(QMainWindow):
         self.change_to_topdownview_action.setShortcut("Ctrl+1")
 
         self.change_to_3dview_action = QAction("3D View", self)
+        self.view_action_group.addAction(self.change_to_3dview_action)
         self.change_to_3dview_action.triggered.connect(self.change_to_3dview)
         self.misc_menu.addAction(self.change_to_3dview_action)
         self.change_to_3dview_action.setCheckable(True)
@@ -598,16 +602,14 @@ class GenEditor(QMainWindow):
     def update_render(self):
         self.level_view.do_redraw()
 
-    def change_to_topdownview(self):
-        self.level_view.change_from_3d_to_topdown()
-        self.change_to_topdownview_action.setChecked(True)
-        self.change_to_3dview_action.setChecked(False)
+    def change_to_topdownview(self, checked):
+        if checked:
+            self.level_view.change_from_3d_to_topdown()
 
-    def change_to_3dview(self):
-        self.level_view.change_from_topdown_to_3d()
-        self.change_to_topdownview_action.setChecked(False)
-        self.change_to_3dview_action.setChecked(True)
-        self.statusbar.clearMessage()
+    def change_to_3dview(self, checked):
+        if checked:
+            self.level_view.change_from_topdown_to_3d()
+            self.statusbar.clearMessage()
 
     def setup_ui_toolbar(self):
         # self.toolbar = QtWidgets.QToolBar("Test", self)
