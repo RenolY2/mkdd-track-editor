@@ -1979,6 +1979,37 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
 
+    role_colors = []
+    role_colors.append((QtGui.QPalette.Window, QtGui.QColor(60, 60, 60)))
+    role_colors.append((QtGui.QPalette.WindowText, QtGui.QColor(200, 200, 200)))
+    role_colors.append((QtGui.QPalette.Base, QtGui.QColor(25, 25, 25)))
+    role_colors.append((QtGui.QPalette.AlternateBase, QtGui.QColor(60, 60, 60)))
+    role_colors.append((QtGui.QPalette.ToolTipBase, Qt.black))
+    role_colors.append((QtGui.QPalette.ToolTipText, QtGui.QColor(200, 200, 200)))
+    try:
+        role_colors.append((QtGui.QPalette.PlaceholderText, QtGui.QColor(160, 160, 160)))
+    except AttributeError:
+        pass
+    role_colors.append((QtGui.QPalette.Text, QtGui.QColor(200, 200, 200)))
+    role_colors.append((QtGui.QPalette.Button, QtGui.QColor(55, 55, 55)))
+    role_colors.append((QtGui.QPalette.ButtonText, QtGui.QColor(200, 200, 200)))
+    role_colors.append((QtGui.QPalette.BrightText, Qt.red))
+    role_colors.append((QtGui.QPalette.Light, QtGui.QColor(65, 65, 65)))
+    role_colors.append((QtGui.QPalette.Midlight, QtGui.QColor(60, 60, 60)))
+    role_colors.append((QtGui.QPalette.Dark, QtGui.QColor(45, 45, 45)))
+    role_colors.append((QtGui.QPalette.Mid, QtGui.QColor(50, 50, 50)))
+    role_colors.append((QtGui.QPalette.Shadow, Qt.black))
+    role_colors.append((QtGui.QPalette.Highlight, QtGui.QColor(45, 140, 225)))
+    role_colors.append((QtGui.QPalette.HighlightedText, Qt.black))
+    role_colors.append((QtGui.QPalette.Link, QtGui.QColor(40, 130, 220)))
+    role_colors.append((QtGui.QPalette.LinkVisited, QtGui.QColor(110, 70, 150)))
+    palette = QtGui.QPalette()
+    for role, color in role_colors:
+        palette.setColor(QtGui.QPalette.Disabled, role, QtGui.QColor(color).darker())
+        palette.setColor(QtGui.QPalette.Active, role, color)
+        palette.setColor(QtGui.QPalette.Inactive, role, color)
+    app.setPalette(palette)
+
     if platform.system() == "Windows":
         import ctypes
         myappid = 'P2GeneratorsEditor'  # arbitrary string
