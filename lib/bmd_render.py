@@ -1,10 +1,14 @@
 import subprocess
+import sys
 import os
 from lib.model_rendering import TexturedModel
 
 
 def superbmd_to_obj(src):
-    subprocess.call(["lib/superbmd/SuperBMD.exe", src, "lib/temp/temp.obj", "--exportobj"])
+    command = ["lib/superbmd/SuperBMD.exe", src, "lib/temp/temp.obj", "--exportobj"]
+    if sys.platform != "Windows":
+        command = ["wine"] + command
+    subprocess.call(command)
 
 
 def clear_temp_folder():

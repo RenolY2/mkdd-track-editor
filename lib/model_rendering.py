@@ -1,4 +1,5 @@
 import json
+import sys
 from time import time
 from OpenGL.GL import *
 from .vectors import Vector3
@@ -146,6 +147,11 @@ class Material(object):
                 fmt = "jpg"
             else:
                 raise RuntimeError("unknown tex format: {0}".format(texturepath))
+
+            # When SuperBMD is used through Wine, it generates some odd filepaths that need to be
+            # corrected.
+            if sys.platform != "Windows":
+                texturepath = texturepath.replace("lib/temp/Z:", "").replace("\\", "/")
 
             qimage = QtGui.QImage(texturepath, fmt)
             qimage = qimage.convertToFormat(QtGui.QImage.Format_ARGB32)
