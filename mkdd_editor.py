@@ -2015,6 +2015,8 @@ if __name__ == "__main__":
         myappid = 'P2GeneratorsEditor'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
+    os.makedirs("lib/temp", exist_ok=True)
+
     with open("log.txt", "w") as f:
         #sys.stdout = f
         #sys.stderr = f
