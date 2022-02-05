@@ -258,7 +258,7 @@ class DataEditor(QWidget):
 
         return line_edits
 
-    def update_rotation(self, forwardedits, upedits):
+    def update_rotation(self, forwardedits, upedits, leftedits):
         rotation = self.bound_to.rotation
         forward, up, left = rotation.get_vectors()
 
@@ -270,6 +270,10 @@ class DataEditor(QWidget):
             if getattr(up, attr) == 0.0:
                 setattr(up, attr, 0.0)
 
+        for attr in ("x", "y", "z"):
+            if getattr(left, attr) == 0.0:
+                setattr(left, attr, 0.0)
+
         forwardedits[0].setText(str(round(forward.x, 4)))
         forwardedits[1].setText(str(round(forward.y, 4)))
         forwardedits[2].setText(str(round(forward.z, 4)))
@@ -277,12 +281,18 @@ class DataEditor(QWidget):
         upedits[0].setText(str(round(up.x, 4)))
         upedits[1].setText(str(round(up.y, 4)))
         upedits[2].setText(str(round(up.z, 4)))
+
+        leftedits[0].setText(str(round(left.x, 4)))
+        leftedits[1].setText(str(round(left.y, 4)))
+        leftedits[2].setText(str(round(left.z, 4)))
+
         self.catch_text_update()
 
     def add_rotation_input(self):
         rotation = self.bound_to.rotation
         forward_edits = []
         up_edits = []
+        left_edits = []
 
         for attr in ("x", "y", "z"):
             line_edit = QLineEdit(self)
@@ -300,6 +310,14 @@ class DataEditor(QWidget):
 
             up_edits.append(line_edit)
 
+        for attr in ("x", "y", "z"):
+            line_edit = QLineEdit(self)
+            validator = QDoubleValidator(-1.0, 1.0, 9999, self)
+            validator.setNotation(QDoubleValidator.StandardNotation)
+            line_edit.setValidator(validator)
+
+            left_edits.append(line_edit)
+
         def change_forward():
             forward, up, left = rotation.get_vectors()
 
@@ -313,7 +331,7 @@ class DataEditor(QWidget):
             left.normalize()
 
             rotation.set_vectors(newforward, up, left)
-            self.update_rotation(forward_edits, up_edits)
+            self.update_rotation(forward_edits, up_edits, left_edits)
 
         def change_up():
             print("finally changing up")
@@ -328,18 +346,37 @@ class DataEditor(QWidget):
             left.normalize()
 
             rotation.set_vectors(forward, newup, left)
-            self.update_rotation(forward_edits, up_edits)
+            self.update_rotation(forward_edits, up_edits, left_edits)
+
+        def change_left():
+            forward, up, left = rotation.get_vectors()
+
+            newleft = Vector3(*[float(v.text()) for v in left_edits])
+            if newleft.norm() == 0.0:
+                newleft = up.cross(forward)
+            newleft.normalize()
+            forward = newleft.cross(up)
+            forward.normalize()
+            up = forward.cross(newleft)
+            up.normalize()
+
+            rotation.set_vectors(forward, up, newleft)
+            self.update_rotation(forward_edits, up_edits, left_edits)
 
         for edit in forward_edits:
             edit.editingFinished.connect(change_forward)
         for edit in up_edits:
             edit.editingFinished.connect(change_up)
+        for edit in left_edits:
+            edit.editingFinished.connect(change_left)
 
         layout = self.create_labeled_widgets(self, "Forward dir", forward_edits)
         self.vbox.addLayout(layout)
         layout = self.create_labeled_widgets(self, "Up dir", up_edits)
         self.vbox.addLayout(layout)
-        return forward_edits, up_edits
+        layout = self.create_labeled_widgets(self, "Left dir", left_edits)
+        self.vbox.addLayout(layout)
+        return forward_edits, up_edits, left_edits
 
     def set_value(self, field, val):
         field.setText(str(val))
