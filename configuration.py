@@ -28,6 +28,7 @@ def make_default_config():
         "3d_background": "100 100 100",
         "hidden_collision_types": "",
         "hidden_collision_type_groups": "",
+        "filter_view": "",
     }
 
     with open("editor_config.ini", "w") as f:

@@ -83,8 +83,6 @@ class GenEditor(QMainWindow):
         super().__init__()
         self.level_file = BOL()
 
-        self.setup_ui()
-
         try:
             self.configuration = read_config()
             print("Config file loaded")
@@ -92,13 +90,15 @@ class GenEditor(QMainWindow):
             print("No config file found, creating default config...")
             self.configuration = make_default_config()
 
-        self.level_view.level_file = self.level_file
-        self.level_view.set_editorconfig(self.configuration["editor"])
-        self.level_view.visibility_menu = self.visibility_menu
-
         self.pathsconfig = self.configuration["default paths"]
         self.editorconfig = self.configuration["editor"]
         self.current_gen_path = None
+
+        self.setup_ui()
+
+        self.level_view.level_file = self.level_file
+        self.level_view.set_editorconfig(self.configuration["editor"])
+        self.level_view.visibility_menu = self.visibility_menu
 
         self.current_coordinates = None
         self.editing_windows = {}
@@ -313,8 +313,17 @@ class GenEditor(QMainWindow):
         self.file_menu.addAction(self.save_file_copy_as_action)
 
         self.visibility_menu = mkdd_widgets.FilterViewMenu(self)
-        self.visibility_menu.filter_update.connect(self.update_render)
-
+        self.visibility_menu.filter_update.connect(self.on_filter_update)
+        filters = self.editorconfig["filter_view"].split(",")
+        for object_toggle in self.visibility_menu.get_entries():
+            if object_toggle.action_view_toggle.text() in filters:
+                object_toggle.action_view_toggle.blockSignals(True)
+                object_toggle.action_view_toggle.setChecked(False)
+                object_toggle.action_view_toggle.blockSignals(False)
+            if object_toggle.action_select_toggle.text() in filters:
+                object_toggle.action_select_toggle.blockSignals(True)
+                object_toggle.action_select_toggle.setChecked(False)
+                object_toggle.action_select_toggle.blockSignals(False)
 
         # ------ Collision Menu
         self.collision_menu = QMenu(self.menubar)
@@ -760,7 +769,17 @@ class GenEditor(QMainWindow):
         self.analyzer_window = ErrorAnalyzer(self.level_file)
         self.analyzer_window.show()
 
-    def update_render(self):
+    def on_filter_update(self):
+        filters = []
+        for object_toggle in self.visibility_menu.get_entries():
+            if not object_toggle.action_view_toggle.isChecked():
+                filters.append(object_toggle.action_view_toggle.text())
+            if not object_toggle.action_select_toggle.isChecked():
+                filters.append(object_toggle.action_select_toggle.text())
+
+        self.editorconfig["filter_view"] = ','.join(filters)
+        save_cfg(self.configuration)
+
         self.level_view.do_redraw()
 
     def change_to_topdownview(self, checked):

@@ -1218,24 +1218,30 @@ class FilterViewMenu(QMenu):
         self.respawnpoints = ObjectViewSelectionToggle("Respawn Points", self)
         self.kartstartpoints = ObjectViewSelectionToggle("Kart Start Points", self)
         self.minimap = ObjectViewSelectionToggle("Minimap", self)
-        for action in (self.enemyroute, self.itemroutes, self.checkpoints, self.objects,
-                       self.areas, self.cameras, self.respawnpoints, self.kartstartpoints,
-                       self.minimap):
+
+        for action in self.get_entries():
             action.action_view_toggle.triggered.connect(self.emit_update)
             action.action_select_toggle.triggered.connect(self.emit_update)
 
+    def get_entries(self):
+        return (self.enemyroute,
+                self.itemroutes,
+                self.checkpoints,
+                self.objects,
+                self.areas,
+                self.cameras,
+                self.respawnpoints,
+                self.kartstartpoints,
+                self.minimap)
+
     def handle_show_all(self):
-        for action in (self.enemyroute, self.itemroutes, self.checkpoints, self.objects,
-                       self.areas, self.cameras, self.respawnpoints, self.kartstartpoints,
-                       self.minimap):
+        for action in self.get_entries():
             action.action_view_toggle.setChecked(True)
             action.action_select_toggle.setChecked(True)
         self.filter_update.emit()
 
     def handle_hide_all(self):
-        for action in (self.enemyroute, self.itemroutes, self.checkpoints, self.objects,
-                       self.areas, self.cameras, self.respawnpoints, self.kartstartpoints,
-                       self.minimap):
+        for action in self.get_entries():
             action.action_view_toggle.setChecked(False)
             action.action_select_toggle.setChecked(False)
         self.filter_update.emit()
