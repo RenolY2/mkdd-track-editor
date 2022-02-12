@@ -1,7 +1,12 @@
+import sys
+
 from OpenGL.GL import *
 from math import pi, atan2, degrees, sin, cos
 
-from lib.memorylib import Dolphin
+if sys.platform == "Windows":
+    from lib.memorylib import Dolphin
+else:
+    from lib.memorylib_lin import Dolphin
 from mkdd_widgets import BolMapViewer
 from lib.vectors import Vector3
 from mkdd_widgets import MODE_TOPDOWN, MODE_3D
@@ -45,24 +50,29 @@ class Game(object):
     def initialize(self):
         self.stay_focused_on_player = -1
         self.dolphin.reset()
-        if self.dolphin.find_dolphin():
-            if self.dolphin.init_shared_memory():
-                gameid = bytes(self.dolphin.read_ram(0, 4))
-                print(gameid)
-                if gameid in (b"GM4P", b"GM4J"):
-                    return "PAL/NTSC-J version of MKDD currently isn't supported for Dolphin hooking."
-                elif gameid != b"GM4E":
-                    return "Game doesn't seem to be MKDD: Found Game ID '{0}'.".format(str(gameid, encoding="ascii"))
-                else:
-                    print("Success!")
-                    
-                    return ""
-            else:
-                self.dolphin.reset()
-                return "Dolphin found but game isn't running."
-        else:
+        if not self.dolphin.find_dolphin():
             self.dolphin.reset()
             return "Dolphin not found."
+
+        if not self.dolphin.init():
+            self.dolphin.reset()
+            return "Dolphin found but game isn't running."
+
+        gameid_buffer = self.dolphin.read_ram(0, 4)
+        if gameid_buffer is None:
+            self.dolphin.reset()
+            return "Game ID cannot be read from memory."
+
+        gameid = bytes(gameid_buffer)
+        print(gameid)
+        if gameid in (b"GM4P", b"GM4J"):
+            return "PAL/NTSC-J version of MKDD currently isn't supported for Dolphin hooking."
+        if gameid != b"GM4E":
+            gameid_str = str(gameid, encoding="ascii")
+            return f"Game doesn't seem to be MKDD: Found Game ID '{gameid_str}'."
+
+        print("Success!")
+        return ""
 
     def render_visual(self, renderer: BolMapViewer, selected):
         p = 0
@@ -109,7 +119,7 @@ class Game(object):
             p += 1
 
     def render_collision(self, renderer: BolMapViewer, objlist):
-        if self.dolphin.memory is not None:
+        if self.dolphin.initialized():
             idbase = 0x100000
             offset = len(objlist)
             for ptr, pos in self.karts:
@@ -119,7 +129,7 @@ class Game(object):
 
     def logic(self, renderer: BolMapViewer, delta, diff):
         self.timer += delta
-        if self.dolphin.memory is not None:
+        if self.dolphin.initialized():
             kartctrlPtr = self.dolphin.read_uint32(0x803CC588)
             if kartctrlPtr is None or not self.dolphin.address_valid(kartctrlPtr):
                 self.dolphin.reset()
