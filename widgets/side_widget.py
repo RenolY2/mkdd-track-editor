@@ -157,7 +157,8 @@ class PikminSideWidget(QWidget):
 
         for obj in objs:
             if len(objectnames) < 25:
-                objectnames.append(obj.name)
+                if hasattr(obj, "name"):
+                    objectnames.append(obj.name)
             self.objectlist.append(obj)
 
         objectnames.sort()
