@@ -1,3 +1,4 @@
+import random
 import traceback
 import os
 from time import sleep
@@ -231,7 +232,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.rotation_visualizer = glGenLists(1)
         glNewList(self.rotation_visualizer, GL_COMPILE)
         glColor4f(0.0, 0.0, 1.0, 1.0)
-        
+
         glBegin(GL_LINES)
         glVertex3f(0.0, 0.0, 0.0)
         glVertex3f(0.0, 40.0, 0.0)
@@ -812,8 +813,10 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
                 point_index = 0
                 for group in self.level_file.enemypointgroups.groups:
+                    group_selected = False
                     for point in group.points:
                         if point in select_optimize:
+                            group_selected = True
                             glColor3f(0.3, 0.3, 0.3)
                             self.models.draw_sphere(point.position, point.scale)
 
@@ -841,39 +844,40 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
                         point_index += 1
 
+                    # Draw the connections between each enemy point.
+                    if group_selected:
+                        glLineWidth(3.0)
                     glBegin(GL_LINE_STRIP)
                     glColor3f(0.0, 0.0, 0.0)
                     for point in group.points:
                         pos = point.position
                         glVertex3f(pos.x, -pos.z, pos.y)
                     glEnd()
+                    glLineWidth(1.0)
 
-
-                groups = self.level_file.enemypointgroups.groups
-                links = {}
-                for group in groups:
-                    for point in group.points:
-                        if point.link != -1:
-
-                            if point.link not in links:
-                                links[point.link] = [point.position]
-                            else:
-                                links[point.link].append(point.position)
-                """
-                            and point.link in groups and len(groups[point.link].points) > 0:
-                            if point != groups[point.link].points[0]:
-                                pos1 = point.position
-                                pos2 = groups[point.link].points[0].position
-                                glVertex3f(pos1.x, -pos1.z, pos1.y)
-                                glVertex3f(pos2.x, -pos2.z, pos2.y)"""
-
-
-                glColor3f(0.0, 0.0, 1.0)
-                for link, points in links.items():
-                    glBegin(GL_LINE_LOOP)
-                    for point in points:
-                         glVertex3f(point.x, -point.z, point.y)
-                    glEnd()
+                    # Draw the connections between each enemy point group.
+                    pointA = group.points[-1]
+                    color_gen = random.Random(group.id)
+                    color_components = [
+                        color_gen.random() * 0.5,
+                        color_gen.random() * 0.5,
+                        color_gen.random() * 0.2,
+                    ]
+                    color_gen.shuffle(color_components)
+                    color_components[2] += 0.5
+                    glColor3f(*color_components)
+                    for groupB in self.level_file.enemypointgroups.groups:
+                        if group is groupB:
+                            continue
+                        pointB = groupB.points[0]
+                        if pointA.link == pointB.link:
+                            groupB_selected = any(map(lambda p: p in select_optimize, groupB.points))
+                            glLineWidth(3.0 if (group_selected or groupB_selected) else 1.0)
+                            glBegin(GL_LINES)
+                            glVertex3f(pointA.position.x, -pointA.position.z, pointA.position.y)
+                            glVertex3f(pointB.position.x, -pointB.position.z, pointB.position.y)
+                            glEnd()
+                            glLineWidth(1.0)
 
             if vismenu.checkpoints.is_visible():
                 for i, group in enumerate(self.level_file.checkpoints.groups):
