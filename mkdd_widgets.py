@@ -893,12 +893,19 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                             glLineWidth(1.0)
 
             if vismenu.checkpoints.is_visible():
+                checkpoints_to_highlight = set()
+                count = 0
                 for i, group in enumerate(self.level_file.checkpoints.groups):
-
                     prev = None
                     for checkpoint in group.points:
+                        start_point_selected = checkpoint.start in positions
+                        end_point_selected = checkpoint.end in positions
                         self.models.render_generic_position_colored(checkpoint.start, checkpoint.start in positions, "checkpointleft")
                         self.models.render_generic_position_colored(checkpoint.end, checkpoint.end in positions, "checkpointright")
+
+                        if start_point_selected or end_point_selected:
+                            checkpoints_to_highlight.add(count)
+                        count += 1
 
                     glColor3f(*colors[i % 4])
 
@@ -927,7 +934,6 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
                     glEnd()
 
-                checkpoints_to_highlight = set()
                 for respawn_point in self.level_file.respawnpoints:
                     if respawn_point not in select_optimize:
                         continue
