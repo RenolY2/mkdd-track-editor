@@ -1008,6 +1008,13 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                                                                 object.position, object.rotation,
                                                                  object in select_optimize)
 
+                    if object in select_optimize:
+                        glColor3f(0.0, 1.0, 0.0)
+                        self.models.draw_sphere(object.position3, 300)
+                        glColor3f(1.0, 0.0, 0.0)
+                        self.models.draw_sphere(object.position2, 300)
+
+
             if vismenu.respawnpoints.is_visible():
                 for object in self.level_file.respawnpoints:
                     self.models.render_generic_position_rotation_colored("respawn",
