@@ -791,10 +791,23 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
             vismenu = self.visibility_menu
             if vismenu.itemroutes.is_visible():
-                for route in self.level_file.routes:
-                    for point in route.points:
-                        self.models.render_generic_position_colored(point.position, point in select_optimize, "itempoint")
+                routes_to_highlight = set()
+                for camera in self.level_file.cameras:
+                    if camera.route >= 0 and camera in select_optimize:
+                        routes_to_highlight.add(camera.route)
 
+                for obj in self.level_file.objects.objects:
+                    if obj.pathid >= 0 and obj in select_optimize:
+                        routes_to_highlight.add(obj.pathid)
+
+                for i, route in enumerate(self.level_file.routes):
+                    selected = i in routes_to_highlight
+                    for point in route.points:
+                        point_selected = point in select_optimize
+                        self.models.render_generic_position_colored(point.position, point_selected, "itempoint")
+                        selected = selected or point_selected
+
+                    glLineWidth(3.0 if selected else 1.0)
                     glBegin(GL_LINE_STRIP)
                     glColor3f(0.0, 0.0, 0.0)
                     for point in route.points:
