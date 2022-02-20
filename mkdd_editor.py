@@ -647,7 +647,7 @@ class GenEditor(QMainWindow):
         for colltypegroup in sorted(colltypegroups):
             colltypes = colltypegroups[colltypegroup]
 
-            if len(colltypes) == 1:
+            if len(colltypes) == 1 and colltypegroup not in collision_model.hidden_collision_type_groups:
                 colltype = colltypes[0]
                 label = "0x{0:0{1}X}".format(colltype, 4)
                 tree_widget_item = QtWidgets.QTreeWidgetItem(None, (label, ))
