@@ -21,7 +21,7 @@ def superbmd_to_obj(src):
         return
 
     command = ["lib/superbmd/SuperBMD.exe", src, "lib/temp/temp.obj", "--exportobj"]
-    if sys.platform != "Windows":
+    if sys.platform != "win32":
         command = ["wine"] + command
     subprocess.call(command)
 

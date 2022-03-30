@@ -3,7 +3,7 @@ import sys
 from OpenGL.GL import *
 from math import pi, atan2, degrees, sin, cos
 
-if sys.platform == "Windows":
+if sys.platform == "win32":
     from lib.memorylib import Dolphin
 else:
     from lib.memorylib_lin import Dolphin

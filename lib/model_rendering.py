@@ -150,7 +150,7 @@ class Material(object):
 
             # When SuperBMD is used through Wine, it generates some odd filepaths that need to be
             # corrected.
-            if sys.platform != "Windows":
+            if sys.platform != "win32":
                 texturepath = texturepath.replace("lib/temp/Z:", "").replace("\\", "/")
 
             qimage = QtGui.QImage(texturepath, fmt)
