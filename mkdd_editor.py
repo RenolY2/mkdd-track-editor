@@ -1998,6 +1998,8 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
 
+    app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
+
     role_colors = []
     role_colors.append((QtGui.QPalette.Window, QtGui.QColor(60, 60, 60)))
     role_colors.append((QtGui.QPalette.WindowText, QtGui.QColor(200, 200, 200)))
