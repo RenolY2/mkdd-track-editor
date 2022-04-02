@@ -94,8 +94,20 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
     rotate_current = pyqtSignal(Vector3)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, samples, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Enable multisampling by setting the number of configured samples in the surface format.
+        self.samples = samples
+        if self.samples > 1:
+            surface_format = self.format()
+            surface_format.setSamples(samples)
+            self.setFormat(surface_format)
+
+        # Secondary framebuffer (and its associated mono-sampled texture) that is used when
+        # multisampling is enabled.
+        self.pick_framebuffer = None
+        self.pick_texture = None
 
         self._zoom_factor = 80
         self.setFocusPolicy(Qt.ClickFocus)
@@ -245,6 +257,20 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.minimap = Minimap(Vector3(-1000.0, 0.0, -1000.0), Vector3(1000.0, 0.0, 1000.0), 0,
                                "resources/arrow.png")
 
+        # If multisampling is enabled, a secondary mono-sampled framebuffer needs to be created, as
+        # reading pixels from multisampled framebuffers is not a supported GL operation.
+        if self.samples > 1:
+            self.pick_framebuffer = glGenFramebuffers(1)
+            self.pick_texture = glGenTextures(1)
+            glBindFramebuffer(GL_FRAMEBUFFER, self.pick_framebuffer)
+            glBindTexture(GL_TEXTURE_2D, self.pick_texture)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, self.canvas_width, self.canvas_height, 0,
+                         GL_RGBA, GL_UNSIGNED_BYTE, None)
+            glBindTexture(GL_TEXTURE_2D, 0)
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                                   self.pick_texture, 0)
+            glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
     def resizeGL(self, width, height):
         # Called upon window resizing: reinitialize the viewport.
         # update the window size
@@ -252,6 +278,13 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         # paint within the whole window
         glEnable(GL_DEPTH_TEST)
         glViewport(0, 0, self.canvas_width, self.canvas_height)
+
+        # The mono-sampled texture for the secondary framebuffer needs to be resized as well.
+        if self.pick_texture is not None:
+            glBindTexture(GL_TEXTURE_2D, self.pick_texture)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                         None)
+            glBindTexture(GL_TEXTURE_2D, 0)
 
     @catch_exception
     def set_editorconfig(self, config):
@@ -582,6 +615,13 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
         self.gizmo_scale = gizmo_scale
 
+        # If multisampling is enabled, the draw/read operations need to happen on the mono-sampled
+        # framebuffer.
+        use_pick_framebuffer = self.selectionqueue and self.samples > 1
+        if use_pick_framebuffer:
+            glBindFramebuffer(GL_FRAMEBUFFER, self.pick_framebuffer)
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
         #print(self.gizmo.position, campos)
         vismenu: FilterViewMenu = self.visibility_menu
         while len(self.selectionqueue) > 0:
@@ -738,6 +778,11 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                 if self.mode == MODE_3D: # In case of 3D mode we need to update scale due to changed gizmo position
                     gizmo_scale = (self.gizmo.position - campos).norm() / 130.0
                 #print("total time taken", default_timer() - start)
+
+        # Restore the default framebuffer of the GL widget.
+        if use_pick_framebuffer:
+            glBindFramebuffer(GL_FRAMEBUFFER, self.defaultFramebufferObject())
+
         #print("gizmo status", self.gizmo.was_hit_at_all)
         #glClearColor(1.0, 1.0, 1.0, 0.0)
         glClearColor(*self.backgroundcolor)

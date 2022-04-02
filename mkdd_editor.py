@@ -261,7 +261,8 @@ class GenEditor(QMainWindow):
         self.leveldatatreeview.itemDoubleClicked.connect(self.do_goto_action)
         self.leveldatatreeview.itemSelectionChanged.connect(self.tree_select_arrowkey)
 
-        self.level_view = BolMapViewer(self.centralwidget)
+        self.level_view = BolMapViewer(int(self.editorconfig.get("multisampling", 8)),
+                                       self.centralwidget)
 
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.horizontalLayout.addWidget(self.leveldatatreeview)
