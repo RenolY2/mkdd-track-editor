@@ -1103,7 +1103,7 @@ class GenEditor(QMainWindow):
         if not filepath.endswith('_course.bol'):
             return
 
-        if additional == '3d':
+        if additional == 'model':
             bmdfile = filepath[:-len('.bol')] + ".bmd"
             if not os.path.isfile(bmdfile):
                 return
@@ -1151,7 +1151,7 @@ class GenEditor(QMainWindow):
                 self.loaded_archive_file = None
                 raise
 
-        if additional == '3d':
+        if additional == 'model':
             bmdfile = get_file_safe(self.loaded_archive.root, "_course.bmd")
             if bmdfile is None:
                 return
@@ -1991,7 +1991,7 @@ if __name__ == "__main__":
                         help="Path to waterbox file to be loaded.")
     parser.add_argument("--load", default=None,
                         help="Path to the ARC or BOL file to be loaded.")
-    parser.add_argument("--additional", default=None, choices=['3d', 'collision'],
+    parser.add_argument("--additional", default=None, choices=['model', 'collision'],
                         help="Whether to also load the additional BMD file (3D model) or BCO file "
                         "(collision file).")
 
