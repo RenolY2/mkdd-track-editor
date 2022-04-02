@@ -1974,6 +1974,7 @@ def except_hook(cls, exception, traceback):
 if __name__ == "__main__":
     #import sys
     import platform
+    import signal
     import argparse
     from PyQt5.QtCore import QLocale
 
@@ -1997,6 +1998,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     app = QApplication(sys.argv)
+
+    signal.signal(signal.SIGINT, lambda _signal, _frame: app.quit())
 
     app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
 
