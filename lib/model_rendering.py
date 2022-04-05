@@ -460,10 +460,10 @@ class SelectableModel(Model):
         self.displistSelected = glGenLists(1)
         self.displistUnselected = glGenLists(1)
         glNewList(self.displistSelected, GL_COMPILE)
-        self._render(True)
+        self.__render(True)
         glEndList()
         glNewList(self.displistUnselected, GL_COMPILE)
-        self._render(False)
+        self.__render(False)
         glEndList()
 
     def render(self, selected=False):
@@ -472,8 +472,48 @@ class SelectableModel(Model):
         else:
             glCallList(self.displistUnselected)
 
-    def _render(self, selected=False):
+    def _render_outline(self):
         pass
+
+    def _render_body(self):
+        pass
+
+    def render_coloredid(self, id):
+        glColor3ub((id >> 16) & 0xFF, (id >> 8) & 0xFF, (id >> 0) & 0xFF)
+        glPushMatrix()
+        glScalef(1.2, 1.2, 1.2)
+        self._render_outline()
+        glPopMatrix()
+
+    def __render(self, selected=False):
+        # 1st pass: Draw outline, but without writing on the depth buffer.
+        glDepthMask(GL_FALSE)
+        if selected:
+            glColor4f(*selectioncolor)
+        else:
+            glColor4f(0.0, 0.0, 0.0, 1.0)
+        glPushMatrix()
+        if selected:
+            glScalef(1.3, 1.3, 1.3)
+        else:
+            glScalef(1.2, 1.2, 1.2)
+        self._render_outline()
+        glPopMatrix()
+        glDepthMask(GL_TRUE)
+
+        # 2nd pass: Draw the rest of the geometry.
+        self._render_body()
+
+        # 3rd pass: Draw outline again to update the depth buffer, but skipping the color buffer.
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE)
+        glPushMatrix()
+        if selected:
+            glScalef(1.3, 1.3, 1.3)
+        else:
+            glScalef(1.2, 1.2, 1.2)
+        self._render_outline()
+        glPopMatrix()
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
 
 
 class Cube(SelectableModel):
@@ -486,35 +526,12 @@ class Cube(SelectableModel):
 
         self.color = color
 
-    def _render(self, selected=False):
-
-        glEnable(GL_CULL_FACE)
-        if selected:
-            glColor4f(*selectioncolor)
-        else:
-            glColor4f(0.0, 0.0, 0.0, 1.0)
-        glCullFace(GL_FRONT)
-        glPushMatrix()
-
-        if selected:
-            glScalef(1.5, 1.5, 1.5)
-        else:
-            glScalef(1.2, 1.2, 1.2)
-
+    def _render_outline(self):
         self.mesh_list[0].render()
-        glPopMatrix()
-        glCullFace(GL_BACK)
 
+    def _render_body(self):
         glColor4f(*self.color)
         self.mesh_list[0].render()
-        glDisable(GL_CULL_FACE)
-
-    def render_coloredid(self, id):
-        glColor3ub((id >> 16) & 0xFF, (id >> 8) & 0xFF, (id >> 0) & 0xFF)
-        glPushMatrix()
-        glScalef(1.2, 1.2, 1.2)
-        self.mesh_list[0].render()
-        glPopMatrix()
 
 
 class GenericObject(SelectableModel):
@@ -527,38 +544,14 @@ class GenericObject(SelectableModel):
         self.named_meshes = model.named_meshes
         self.bodycolor = bodycolor
 
-    def _render(self, selected=False):
-        glEnable(GL_CULL_FACE)
-        if selected:
-            glColor4f(*selectioncolor)
-        else:
-            glColor4f(0.0, 0.0, 0.0, 1.0)
-        glCullFace(GL_FRONT)
-        glPushMatrix()
-
-        if selected:
-            glScalef(1.5, 1.5, 1.5)
-        else:
-            glScalef(1.2, 1.2, 1.2)
-
+    def _render_outline(self):
         self.named_meshes["Cube"].render()
-        glPopMatrix()
-        glCullFace(GL_BACK)
 
+    def _render_body(self):
         glColor4f(*self.bodycolor)
         self.named_meshes["Cube"].render()
         glColor4ub(0x09, 0x93, 0x00, 0xFF)
         self.named_meshes["tip"].render()
-        #glColor4ub(0x00, 0x00, 0x00, 0xFF)
-        #self.mesh_list[2].render()
-        glDisable(GL_CULL_FACE)
-
-    def render_coloredid(self, id):
-        glColor3ub((id >> 16) & 0xFF, (id >> 8) & 0xFF, (id >> 0) & 0xFF)
-        glPushMatrix()
-        glScalef(1.2, 1.2, 1.2)
-        self.named_meshes["Cube"].render()
-        glPopMatrix()
 
 
 class GenericComplexObject(GenericObject):
