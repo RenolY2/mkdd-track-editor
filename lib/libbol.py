@@ -253,7 +253,8 @@ class EnemyPoint(object):
                  driftdirection,
                  link,
                  scale,
-                 groupsetting,
+                 swerve,
+                 itemsonly,
                  group,
                  driftacuteness,
                  driftduration,
@@ -262,12 +263,15 @@ class EnemyPoint(object):
         self.driftdirection = driftdirection
         self.link = link
         self.scale = scale
-        self.groupsetting = groupsetting
+        self.swerve = swerve
+        self.itemsonly = itemsonly
         self.group = group
         self.driftacuteness = driftacuteness
         self.driftduration = driftduration
         self.unknown = unknown
 
+        assert self.swerve in (-3, -2, -1, 0, 1, 2, 3)
+        assert self.itemsonly in (0, 1)
         assert self.driftdirection in (0, 1, 2)
         assert 0 <= self.driftacuteness <= 180
 
@@ -275,7 +279,7 @@ class EnemyPoint(object):
     def new(cls):
         return cls(
             Vector3(0.0, 0.0, 0.0),
-            0, -1, 1000.0, 0, 0, 0, 0, 0
+            0, -1, 1000.0, 0, 0, 0, 0, 0, 0
         )
 
     @classmethod
@@ -283,7 +287,7 @@ class EnemyPoint(object):
         start = f.tell()
         args = [Vector3(*unpack(">fff", f.read(12)))]
         if not old_bol:
-            args.extend(unpack(">HhfHBBBH", f.read(15)))
+            args.extend(unpack(">HhfbBBBBH", f.read(15)))
             padding = f.read(5)  # padding
             assert padding == b"\x00" * 5
         else:
@@ -300,7 +304,7 @@ class EnemyPoint(object):
         start = f.tell()
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         f.write(pack(">Hhf", self.driftdirection, self.link, self.scale))
-        f.write(pack(">HBBBH", self.groupsetting, self.group, self.driftacuteness, self.driftduration, self.unknown))
+        f.write(pack(">bBBBBH", self.swerve, self.itemsonly, self.group, self.driftacuteness, self.driftduration, self.unknown))
         f.write(b"\x00"*5)
         #assert f.tell() - start == self._size
 
@@ -1254,6 +1258,19 @@ REVERSE_MUSIC_IDS = OrderedDict()
 for key in sorted(MUSIC_IDS.keys()):
     REVERSE_MUSIC_IDS[MUSIC_IDS[key]] = key
 
+
+SWERVE_IDS = {
+    -3: "To the left (-3)",
+    -2: "To the left (-2)",
+    -1: "To the left (-1)",
+    0: "",
+    1: "To the right (1)",
+    2: "To the right (2)",
+    3: "To the right (3)",
+}
+REVERSE_SWERVE_IDS = OrderedDict()
+for key in sorted(SWERVE_IDS.keys()):
+    REVERSE_SWERVE_IDS[SWERVE_IDS[key]] = key
 
 def get_full_name(id):
     if id not in OBJECTNAMES:

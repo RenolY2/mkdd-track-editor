@@ -7,7 +7,8 @@ from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator
 from math import inf
 from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint, Route, RoutePoint,
                         MapObject, KartStartPoint, Area, Camera, BOL, JugemPoint, MapObject,
-                        LightParam, MGEntry, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS)
+                        LightParam, MGEntry, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS,
+                        SWERVE_IDS, REVERSE_SWERVE_IDS)
 from lib.vectors import Vector3
 from lib.model_rendering import Minimap
 from PyQt5.QtCore import pyqtSignal
@@ -478,8 +479,8 @@ class EnemyPointEdit(DataEditor):
         self.link = self.add_integer_input("Link", "link",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.scale = self.add_decimal_input("Scale", "scale", -inf, inf)
-        self.groupsetting = self.add_integer_input("Group Setting", "groupsetting",
-                                                   MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.itemsonly = self.add_checkbox("Items Only", "itemsonly", off_value=0, on_value=1)
+        self.swerve = self.add_dropdown_input("Swerve", "swerve", REVERSE_SWERVE_IDS)
         self.group = self.add_integer_input("Group", "group",
                                             MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         if not group_editable:
@@ -505,11 +506,18 @@ class EnemyPointEdit(DataEditor):
         self.driftdirection.setCurrentIndex(obj.driftdirection)
         self.link.setText(str(obj.link))
         self.scale.setText(str(obj.scale))
-        self.groupsetting.setText(str(obj.groupsetting))
+        self.itemsonly.setChecked(bool(obj.itemsonly))
         self.group.setText(str(obj.group))
         self.driftacuteness.setText(str(obj.driftacuteness))
         self.driftduration.setText(str(obj.driftduration))
         self.unknown.setText(str(obj.unknown))
+
+        if obj.swerve in SWERVE_IDS:
+            name = SWERVE_IDS[obj.swerve]
+        else:
+            name = SWERVE_IDS[0]
+        index = self.swerve.findText(name)
+        self.swerve.setCurrentIndex(index)
 
 
 class CheckpointGroupEdit(DataEditor):

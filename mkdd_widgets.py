@@ -884,6 +884,9 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
                         self.models.render_generic_position_colored(point.position, point in select_optimize, "enemypoint")
 
+                        if point.itemsonly:
+                            glColor3f(1.0, 0.5, 0.1)
+                            self.models.draw_cylinder(point.position, 800, 800)
                         if point.driftdirection:
                             glColor3f(0.9, 0.0, 0.1)
                             self.models.draw_cylinder(point.position, 700, 700)
@@ -893,7 +896,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         if point.driftduration:
                             glColor3f(0.9, 0.9, 0.1)
                             self.models.draw_cylinder(point.position, 500, 500)
-                        if point.groupsetting:
+                        if point.swerve:
                             glColor3f(0.1, 0.9, 0.2)
                             self.models.draw_cylinder(point.position, 400, 400)
                         if point.unknown:
