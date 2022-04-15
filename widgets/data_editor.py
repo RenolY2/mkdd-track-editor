@@ -465,12 +465,16 @@ class EnemyPointGroupEdit(DataEditor):
         self.groupid.setText(str(self.bound_to.id))
 
 
+DRIFT_DIRECTION_OPTIONS = OrderedDict()
+DRIFT_DIRECTION_OPTIONS[""] = 0
+DRIFT_DIRECTION_OPTIONS["To the left"] = 1
+DRIFT_DIRECTION_OPTIONS["To the right"] = 2
+
+
 class EnemyPointEdit(DataEditor):
     def setup_widgets(self, group_editable=False):
         self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
                                                         -inf, +inf)
-        self.pointsetting = self.add_integer_input("Point Setting", "pointsetting",
-                                                    MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.link = self.add_integer_input("Link", "link",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.scale = self.add_decimal_input("Scale", "scale", -inf, inf)
@@ -481,12 +485,14 @@ class EnemyPointEdit(DataEditor):
         if not group_editable:
             self.group.setDisabled(True)
 
-        self.pointsetting2 = self.add_integer_input("Point Setting 2", "pointsetting2",
+        self.driftdirection = self.add_dropdown_input("Drift Direction", "driftdirection",
+                                                      DRIFT_DIRECTION_OPTIONS)
+        self.driftacuteness = self.add_integer_input("Drift Acuteness", "driftacuteness",
+                                                     MIN_UNSIGNED_BYTE, 180)
+        self.driftduration = self.add_integer_input("Drift Duration", "driftduration",
                                                     MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.unk1 = self.add_integer_input("Unknown 1", "unk1",
-                                           MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.unk2 = self.add_integer_input("Unknown 2", "unk2",
-                                           MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.unknown = self.add_integer_input("Unknown", "unknown",
+                                              MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
 
         for widget in self.position:
             widget.editingFinished.connect(self.catch_text_update)
@@ -496,14 +502,14 @@ class EnemyPointEdit(DataEditor):
         self.position[0].setText(str(round(obj.position.x, 3)))
         self.position[1].setText(str(round(obj.position.y, 3)))
         self.position[2].setText(str(round(obj.position.z, 3)))
-        self.pointsetting.setText(str(obj.pointsetting))
+        self.driftdirection.setCurrentIndex(obj.driftdirection)
         self.link.setText(str(obj.link))
         self.scale.setText(str(obj.scale))
         self.groupsetting.setText(str(obj.groupsetting))
         self.group.setText(str(obj.group))
-        self.pointsetting2.setText(str(obj.pointsetting2))
-        self.unk1.setText(str(obj.unk1))
-        self.unk2.setText(str(obj.unk2))
+        self.driftacuteness.setText(str(obj.driftacuteness))
+        self.driftduration.setText(str(obj.driftduration))
+        self.unknown.setText(str(obj.unknown))
 
 
 class CheckpointGroupEdit(DataEditor):

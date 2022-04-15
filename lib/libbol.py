@@ -247,22 +247,35 @@ class ColorRGBA(ColorRGB):
 # Section 1
 # Enemy/Item Route Code Start
 class EnemyPoint(object):
-    def __init__(self, position, pointsetting, link, scale, groupsetting, group, pointsetting2, unk1=0, unk2=0):
+
+    def __init__(self,
+                 position,
+                 driftdirection,
+                 link,
+                 scale,
+                 groupsetting,
+                 group,
+                 driftacuteness,
+                 driftduration,
+                 unknown):
         self.position = position
-        self.pointsetting = pointsetting
+        self.driftdirection = driftdirection
         self.link = link
         self.scale = scale
         self.groupsetting = groupsetting
         self.group = group
-        self.pointsetting2 = pointsetting2
-        self.unk1 = unk1
-        self.unk2 = unk2
+        self.driftacuteness = driftacuteness
+        self.driftduration = driftduration
+        self.unknown = unknown
+
+        assert self.driftdirection in (0, 1, 2)
+        assert 0 <= self.driftacuteness <= 180
 
     @classmethod
     def new(cls):
         return cls(
             Vector3(0.0, 0.0, 0.0),
-            0, -1, 1000.0, 0, 0, 0
+            0, -1, 1000.0, 0, 0, 0, 0, 0
         )
 
     @classmethod
@@ -286,8 +299,8 @@ class EnemyPoint(object):
     def write(self, f):
         start = f.tell()
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
-        f.write(pack(">Hhf", self.pointsetting, self.link, self.scale))
-        f.write(pack(">HBBBH", self.groupsetting, self.group, self.pointsetting2, self.unk1, self.unk2))
+        f.write(pack(">Hhf", self.driftdirection, self.link, self.scale))
+        f.write(pack(">HBBBH", self.groupsetting, self.group, self.driftacuteness, self.driftduration, self.unknown))
         f.write(b"\x00"*5)
         #assert f.tell() - start == self._size
 
