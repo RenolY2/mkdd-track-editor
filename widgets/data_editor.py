@@ -497,6 +497,12 @@ class EnemyPointEdit(DataEditor):
 
         for widget in self.position:
             widget.editingFinished.connect(self.catch_text_update)
+        for widget in (self.itemsonly, ):
+            widget.stateChanged.connect(lambda _state: self.catch_text_update())
+        for widget in (self.swerve, self.driftdirection):
+            widget.currentIndexChanged.connect(lambda _index: self.catch_text_update())
+        for widget in (self.link, self.driftacuteness, self.driftduration, self.unknown):
+            widget.editingFinished.connect(self.catch_text_update)
 
     def update_data(self):
         obj: EnemyPoint = self.bound_to
