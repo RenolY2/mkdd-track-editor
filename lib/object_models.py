@@ -201,7 +201,7 @@ class ObjectModels(object):
         glPushMatrix()
         glTranslatef(position.x, -position.z, position.y)
         mtx = rotation.mtx
-        #glMultMatrixf(rotation.mtx[])
+        glMultMatrixf(mtx)
         self.generic.render_coloredid(id)
 
         glPopMatrix()

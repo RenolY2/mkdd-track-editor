@@ -44,7 +44,17 @@ class EnemyPointGroup(ObjectGroup):
 
     def update_name(self):
         index = self.parent().indexOfChild(self)
-        self.setText(0, "Enemy point group {0} (ID: {1})".format(index, self.bound_to.id))
+        if self.bound_to.points:
+            link_start = self.bound_to.points[0].link
+            link_end = self.bound_to.points[-1].link
+        else:
+            link_start = link_end = '?'
+        self.setText(
+            0,
+            "Enemy point group {0} (ID: {1}, link: {2}->{3})".format(index,
+                                                                     self.bound_to.id,
+                                                                     link_start,
+                                                                     link_end))
 
 
 class CheckpointGroup(ObjectGroup):
@@ -98,8 +108,16 @@ class EnemyRoutePoint(NamedItem):
 
 
         index = group.points.index(self.bound_to)
+        point = group.points[index]
 
-        self.setText(0, "Enemy Route Point {0} (pos={1})".format(index+offset, index))
+        if point.link == -1:
+            self.setText(0, "Enemy Route Point {0} (pos={1})".format(index + offset, index))
+        else:
+            self.setText(
+                0,
+                "Enemy Route Point {0} (pos={1}, link={2})".format(index + offset,
+                                                                   index,
+                                                                   point.link))
 
 
 class Checkpoint(NamedItem):
@@ -120,7 +138,7 @@ class Checkpoint(NamedItem):
 
         index = group.points.index(self.bound_to)
 
-        self.setText(0, "Checkpoint {0} (pos={1})".format(index+1+offset, index))
+        self.setText(0, "Checkpoint {0} (pos={1})".format(index+offset, index))
 
 
 class ObjectRoutePoint(NamedItem):
@@ -167,7 +185,10 @@ class CameraEntry(NamedItem):
 
 class RespawnEntry(NamedItem):
     def update_name(self):
-        self.setText(0, "Respawn Point (ID: {0})".format(self.bound_to.respawn_id))
+        for i in range(self.parent().childCount()):
+            if self == self.parent().child(i):
+                self.setText(0, "Respawn Point {0} (ID: {1})".format(i, self.bound_to.respawn_id))
+                break
 
 
 class LightParamEntry(NamedItem):

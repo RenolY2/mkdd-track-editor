@@ -83,8 +83,6 @@ class GenEditor(QMainWindow):
         super().__init__()
         self.level_file = BOL()
 
-        self.setup_ui()
-
         try:
             self.configuration = read_config()
             print("Config file loaded")
@@ -92,13 +90,15 @@ class GenEditor(QMainWindow):
             print("No config file found, creating default config...")
             self.configuration = make_default_config()
 
-        self.level_view.level_file = self.level_file
-        self.level_view.set_editorconfig(self.configuration["editor"])
-        self.level_view.visibility_menu = self.visibility_menu
-
         self.pathsconfig = self.configuration["default paths"]
         self.editorconfig = self.configuration["editor"]
         self.current_gen_path = None
+
+        self.setup_ui()
+
+        self.level_view.level_file = self.level_file
+        self.level_view.set_editorconfig(self.configuration["editor"])
+        self.level_view.visibility_menu = self.visibility_menu
 
         self.current_coordinates = None
         self.editing_windows = {}
@@ -261,7 +261,8 @@ class GenEditor(QMainWindow):
         self.leveldatatreeview.itemDoubleClicked.connect(self.do_goto_action)
         self.leveldatatreeview.itemSelectionChanged.connect(self.tree_select_arrowkey)
 
-        self.level_view = BolMapViewer(self.centralwidget)
+        self.level_view = BolMapViewer(int(self.editorconfig.get("multisampling", 8)),
+                                       self.centralwidget)
 
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.horizontalLayout.addWidget(self.leveldatatreeview)
@@ -313,8 +314,17 @@ class GenEditor(QMainWindow):
         self.file_menu.addAction(self.save_file_copy_as_action)
 
         self.visibility_menu = mkdd_widgets.FilterViewMenu(self)
-        self.visibility_menu.filter_update.connect(self.update_render)
-
+        self.visibility_menu.filter_update.connect(self.on_filter_update)
+        filters = self.editorconfig["filter_view"].split(",")
+        for object_toggle in self.visibility_menu.get_entries():
+            if object_toggle.action_view_toggle.text() in filters:
+                object_toggle.action_view_toggle.blockSignals(True)
+                object_toggle.action_view_toggle.setChecked(False)
+                object_toggle.action_view_toggle.blockSignals(False)
+            if object_toggle.action_select_toggle.text() in filters:
+                object_toggle.action_select_toggle.blockSignals(True)
+                object_toggle.action_select_toggle.setChecked(False)
+                object_toggle.action_select_toggle.blockSignals(False)
 
         # ------ Collision Menu
         self.collision_menu = QMenu(self.menubar)
@@ -365,7 +375,10 @@ class GenEditor(QMainWindow):
         self.analyze_action.triggered.connect(self.analyze_for_mistakes)
         self.misc_menu.addAction(self.analyze_action)
 
+        self.view_action_group = QtWidgets.QActionGroup(self)
+
         self.change_to_topdownview_action = QAction("Topdown View", self)
+        self.view_action_group.addAction(self.change_to_topdownview_action)
         self.change_to_topdownview_action.triggered.connect(self.change_to_topdownview)
         self.misc_menu.addAction(self.change_to_topdownview_action)
         self.change_to_topdownview_action.setCheckable(True)
@@ -373,12 +386,13 @@ class GenEditor(QMainWindow):
         self.change_to_topdownview_action.setShortcut("Ctrl+1")
 
         self.change_to_3dview_action = QAction("3D View", self)
+        self.view_action_group.addAction(self.change_to_3dview_action)
         self.change_to_3dview_action.triggered.connect(self.change_to_3dview)
         self.misc_menu.addAction(self.change_to_3dview_action)
         self.change_to_3dview_action.setCheckable(True)
         self.change_to_3dview_action.setShortcut("Ctrl+2")
 
-        self.choose_bco_area = QAction("Highlight Collision Area (BCO)")
+        self.choose_bco_area = QAction("Collision Areas (BCO)")
         self.choose_bco_area.triggered.connect(self.action_choose_bco_area)
         self.misc_menu.addAction(self.choose_bco_area)
         self.choose_bco_area.setShortcut("Ctrl+3")
@@ -574,18 +588,179 @@ class GenEditor(QMainWindow):
             save_cfg(self.configuration)
 
     def action_choose_bco_area(self):
-        areas = []
-        if isinstance(self.level_view.alternative_mesh, CollisionModel):
-            for area in self.level_view.alternative_mesh.meshes.keys():
-                areas.append(str(hex(area)))
-        areas.sort(key=lambda x: int(x, 16))
-        areas.insert(0, "None")
+        if not isinstance(self.level_view.alternative_mesh, CollisionModel):
+            QtWidgets.QMessageBox.information(self, "Collision Areas (BCO)",
+                                              "No collision file is loaded.")
+            return
 
-        result, pos = FileSelect.open_file_list(self, areas, "Select Collision Area")
-        if result != "None":
-            self.level_view.highlight_colltype = int(result, 16)
-        else:
+        collision_model = self.level_view.alternative_mesh
+        colltypes = tuple(sorted(collision_model.meshes))
+
+        colltypegroups = {}
+        for colltype in colltypes:
+            colltypegroup = colltype & 0xFF00
+            if colltypegroup not in colltypegroups:
+                colltypegroups[colltypegroup] = []
+            colltypegroups[colltypegroup].append(colltype)
+
+        class DeselectableTableWidget(QtWidgets.QTreeWidget):
+            def mousePressEvent(self, event):
+                super().mousePressEvent(event)
+
+                modelIndex = self.indexAt(event.pos())
+                if not modelIndex.isValid():
+                    self.clearSelection()
+
+        tree_widget = DeselectableTableWidget()
+        tree_widget.setColumnCount(2)
+        tree_widget.setHeaderLabels(("Type", "Description"))
+
+        def get_collision_type_desc(label):
+            # http://wiki.tockdom.com/wiki/BCO_(File_Format)
+            # https://mkdd.miraheze.org/wiki/BCO_(File_Format)#Collision_Flags
+
+            group_descs = {
+                "0x00__": "Medium Offroad",
+                "0x01__": "Road",
+                "0x02__": "Wall",
+                "0x03__": "Medium Offroad",
+                "0x04__": "Slippery Ice",
+                "0x05__": "Deadzone",
+                "0x06__": "",
+                "0x07__": "Boost",
+                "0x08__": "Boost",
+                "0x09__": "Cannon Boost",
+                "0x0A__": "Deadzone",
+                "0x0C__": "Weak Offroad",
+                "0x0D__": "Teleport",
+                "0x0E__": "Sand Deadzone",
+                "0x0F__": "Wavy Deadzone",
+                "0x10__": "Quicksand Deadzone",
+                "0x11__": "Deadzone",
+                "0x12__": "Kart-Only Wall",
+                "0x13__": "Heavy Offroad",
+                "0x37__": "Boost",
+                "0x47__": "Boost",
+            }
+
+            return group_descs.get(label[:-2] + "__", "")
+
+        for colltypegroup in sorted(colltypegroups):
+            colltypes = colltypegroups[colltypegroup]
+
+            if len(colltypes) == 1 and colltypegroup not in collision_model.hidden_collision_type_groups:
+                colltype = colltypes[0]
+                label = "0x{0:0{1}X}".format(colltype, 4)
+                tree_widget_item = QtWidgets.QTreeWidgetItem(None, (label, ))
+                tree_widget_item.setData(0, QtCore.Qt.UserRole + 1, colltype)
+                tree_widget_item.setData(1, QtCore.Qt.DisplayRole, get_collision_type_desc(label))
+                tree_widget_item.setCheckState(
+                    0, QtCore.Qt.Checked
+                    if colltype not in collision_model.hidden_collision_types
+                    else QtCore.Qt.Unchecked)
+                tree_widget.addTopLevelItem(tree_widget_item)
+                continue
+
+            label = "0x{0:0{1}X}".format(colltypegroup, 4)[:-2] + "__"
+            tree_widget_item = QtWidgets.QTreeWidgetItem(None, (label, ))
+            tree_widget_item.setData(0, QtCore.Qt.UserRole + 1, colltypegroup)
+            tree_widget_item.setData(1, QtCore.Qt.DisplayRole, get_collision_type_desc(label))
+            tree_widget_item.setCheckState(
+                0, QtCore.Qt.Checked
+                if colltypegroup not in collision_model.hidden_collision_type_groups
+                else QtCore.Qt.Unchecked)
+            tree_widget.addTopLevelItem(tree_widget_item)
+            for colltype in colltypes:
+                label = "0x{0:0{1}X}".format(colltype, 4)
+                child_tree_widget_item = QtWidgets.QTreeWidgetItem(tree_widget_item, (label, ))
+                child_tree_widget_item.setData(0, QtCore.Qt.UserRole + 1, colltype)
+                child_tree_widget_item.setCheckState(
+                    0, QtCore.Qt.Checked
+                    if colltype not in collision_model.hidden_collision_types
+                    else QtCore.Qt.Unchecked)
+
+        def on_tree_widget_itemSelectionChanged(tree_widget=tree_widget):
             self.level_view.highlight_colltype = None
+
+            for item in tree_widget.selectedItems():
+                if item.childCount():
+                    continue
+                self.level_view.highlight_colltype = item.data(0, QtCore.Qt.UserRole + 1)
+                break
+
+            self.update_3d()
+
+        all_items = tree_widget.findItems(
+            "*",
+            QtCore.Qt.MatchWrap | QtCore.Qt.MatchWildcard
+            | QtCore.Qt.MatchRecursive)
+
+        show_all_button = QtWidgets.QPushButton('Show All')
+        hide_all_button = QtWidgets.QPushButton('Hide All')
+
+        def update_both_all_buttons():
+            checked_count = 0
+            for item in all_items:
+                checked = item.checkState(0) == QtCore.Qt.Checked
+                if checked:
+                    checked_count += 1
+
+            show_all_button.setEnabled(checked_count < len(all_items))
+            hide_all_button.setEnabled(checked_count)
+
+        def on_tree_widget_itemChanged(item, column, tree_widget=tree_widget):
+            for item in all_items:
+                checked = item.checkState(0) == QtCore.Qt.Checked
+                if item.childCount():
+                    target_set = collision_model.hidden_collision_type_groups
+                else:
+                    target_set = collision_model.hidden_collision_types
+                colltype = item.data(0, QtCore.Qt.UserRole + 1)
+                if checked:
+                    target_set.discard(colltype)
+                else:
+                    target_set.add(colltype)
+
+            update_both_all_buttons()
+
+            self.configuration["editor"]["hidden_collision_types"] = \
+                ",".join(str(t) for t in collision_model.hidden_collision_types)
+            self.configuration["editor"]["hidden_collision_type_groups"] = \
+                ",".join(str(t) for t in collision_model.hidden_collision_type_groups)
+
+            save_cfg(self.configuration)
+            self.update_3d()
+
+        tree_widget.itemSelectionChanged.connect(on_tree_widget_itemSelectionChanged)
+        tree_widget.itemChanged.connect(on_tree_widget_itemChanged)
+
+        tree_widget.expandAll()
+        tree_widget.resizeColumnToContents(0)
+
+        buttons_layout = QtWidgets.QHBoxLayout()
+        buttons_layout.setContentsMargins(5, 5, 5, 5)
+        buttons_layout.setSpacing(5)
+        def on_show_all_button_clicked(checked):
+            for item in all_items:
+                item.setCheckState(0, QtCore.Qt.Checked)
+        show_all_button.clicked.connect(on_show_all_button_clicked)
+        def on_hide_all_button_clicked(checked):
+            for item in all_items:
+                item.setCheckState(0, QtCore.Qt.Unchecked)
+        hide_all_button.clicked.connect(on_hide_all_button_clicked)
+        buttons_layout.addWidget(show_all_button)
+        buttons_layout.addWidget(hide_all_button)
+        update_both_all_buttons()
+
+        self.collision_area_dialog = QtWidgets.QDialog(self)
+        self.collision_area_dialog.setWindowTitle("Collision Areas (BCO)")
+        self.collision_area_dialog.setContentsMargins(0, 0, 0, 0)
+        layout = QtWidgets.QVBoxLayout(self.collision_area_dialog)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addWidget(tree_widget)
+        layout.addLayout(buttons_layout)
+        self.collision_area_dialog.show()
 
     def analyze_for_mistakes(self):
         if self.analyzer_window is not None:
@@ -595,19 +770,27 @@ class GenEditor(QMainWindow):
         self.analyzer_window = ErrorAnalyzer(self.level_file)
         self.analyzer_window.show()
 
-    def update_render(self):
+    def on_filter_update(self):
+        filters = []
+        for object_toggle in self.visibility_menu.get_entries():
+            if not object_toggle.action_view_toggle.isChecked():
+                filters.append(object_toggle.action_view_toggle.text())
+            if not object_toggle.action_select_toggle.isChecked():
+                filters.append(object_toggle.action_select_toggle.text())
+
+        self.editorconfig["filter_view"] = ','.join(filters)
+        save_cfg(self.configuration)
+
         self.level_view.do_redraw()
 
-    def change_to_topdownview(self):
-        self.level_view.change_from_3d_to_topdown()
-        self.change_to_topdownview_action.setChecked(True)
-        self.change_to_3dview_action.setChecked(False)
+    def change_to_topdownview(self, checked):
+        if checked:
+            self.level_view.change_from_3d_to_topdown()
 
-    def change_to_3dview(self):
-        self.level_view.change_from_topdown_to_3d()
-        self.change_to_topdownview_action.setChecked(False)
-        self.change_to_3dview_action.setChecked(True)
-        self.statusbar.clearMessage()
+    def change_to_3dview(self, checked):
+        if checked:
+            self.level_view.change_from_topdown_to_3d()
+            self.statusbar.clearMessage()
 
     def setup_ui_toolbar(self):
         # self.toolbar = QtWidgets.QToolBar("Test", self)
@@ -845,6 +1028,8 @@ class GenEditor(QMainWindow):
                         traceback.print_exc()
                         open_error_dialog(str(error), self)
 
+            self.update_3d()
+
     def load_optional_3d_file(self, additional_files, bmdfile, collisionfile):
         choice, pos = FileSelect.open_file_list(self, additional_files,
                                                 "Select additional file to load", startat=0)
@@ -901,6 +1086,105 @@ class GenEditor(QMainWindow):
                 faces.append(((v1 + 1, None), (v2 + 1, None), (v3 + 1, None)))
             model = CollisionModel(bco_coll)
             self.setup_collision(verts, faces, arcfilepath, alternative_mesh=model)
+
+    def load_file(self, filepath, additional=None):
+        if filepath.endswith('.bol'):
+            return self.load_bol_file(filepath, additional=additional)
+
+        if filepath.endswith('.arc'):
+            return self.load_arc_file(filepath, additional=additional)
+
+    def load_bol_file(self, filepath, additional=None):
+        with open(filepath, "rb") as f:
+            bol_file = BOL.from_file(f)
+            self.setup_bol_file(bol_file, filepath)
+            self.leveldatatreeview.set_objects(bol_file)
+            self.current_gen_path = filepath
+
+        if not filepath.endswith('_course.bol'):
+            return
+
+        if additional == 'model':
+            bmdfile = filepath[:-len('.bol')] + ".bmd"
+            if not os.path.isfile(bmdfile):
+                return
+
+            alternative_mesh = load_textured_bmd(bmdfile)
+            with open("lib/temp/temp.obj", "r") as f:
+                verts, faces, normals = py_obj.read_obj(f)
+
+            self.setup_collision(verts, faces, bmdfile, alternative_mesh)
+
+        elif additional == 'collision':
+            collisionfile = filepath[:-len('.bol')] + ".bco"
+            if not os.path.isfile(collisionfile):
+                return
+
+            bco_coll = RacetrackCollision()
+            with open(collisionfile, "rb") as f:
+                bco_coll.load_file(f)
+
+            verts = []
+            for vert in bco_coll.vertices:
+                verts.append(vert)
+
+            faces = []
+            for v1, v2, v3, collision_type, rest in bco_coll.triangles:
+                faces.append(((v1 + 1, None), (v2 + 1, None), (v3 + 1, None)))
+
+            model = CollisionModel(bco_coll)
+            self.setup_collision(verts, faces, collisionfile, alternative_mesh=model)
+
+    def load_arc_file(self, filepath, additional=None):
+        with open(filepath, "rb") as f:
+            try:
+                self.loaded_archive = Archive.from_file(f)
+                root_name = self.loaded_archive.root.name
+                coursename = find_file(self.loaded_archive.root, "_course.bol")
+                bol_file = self.loaded_archive[root_name + "/" + coursename]
+                bol_data = BOL.from_file(bol_file)
+                self.setup_bol_file(bol_data, filepath)
+                self.leveldatatreeview.set_objects(bol_data)
+                self.current_gen_path = filepath
+                self.loaded_archive_file = coursename
+            except:
+                self.loaded_archive = None
+                self.loaded_archive_file = None
+                raise
+
+        if additional == 'model':
+            bmdfile = get_file_safe(self.loaded_archive.root, "_course.bmd")
+            if bmdfile is None:
+                return
+
+            bmdpath = "lib/temp/temp.bmd"
+            with open(bmdpath, "wb") as f:
+                f.write(bmdfile.getvalue())
+
+            alternative_mesh = load_textured_bmd(bmdpath)
+            with open("lib/temp/temp.obj", "r") as f:
+                verts, faces, normals = py_obj.read_obj(f)
+
+            self.setup_collision(verts, faces, filepath, alternative_mesh)
+
+        elif additional == 'collision':
+            collisionfile = get_file_safe(self.loaded_archive.root, "_course.bco")
+            if collisionfile is None:
+                return
+
+            bco_coll = RacetrackCollision()
+            bco_coll.load_file(collisionfile)
+
+            verts = []
+            for vert in bco_coll.vertices:
+                verts.append(vert)
+
+            faces = []
+            for v1, v2, v3, collision_type, rest in bco_coll.triangles:
+                faces.append(((v1 + 1, None), (v2 + 1, None), (v3 + 1, None)))
+
+            model = CollisionModel(bco_coll)
+            self.setup_collision(verts, faces, filepath, alternative_mesh=model)
 
     def setup_bol_file(self, bol_file, filepath):
         self.level_file = bol_file
@@ -1085,6 +1369,11 @@ class GenEditor(QMainWindow):
     def setup_collision(self, verts, faces, filepath, alternative_mesh=None):
         self.level_view.set_collision(verts, faces, alternative_mesh)
         self.pathsconfig["collision"] = filepath
+        editor_config = self.configuration["editor"]
+        alternative_mesh.hidden_collision_types = \
+            set(int(t) for t in editor_config.get("hidden_collision_types", "").split(",") if t)
+        alternative_mesh.hidden_collision_type_groups = \
+            set(int(t) for t in editor_config.get("hidden_collision_type_groups", "").split(",") if t)
         save_cfg(self.configuration)
 
     def action_close_edit_startpos_window(self):
@@ -1542,12 +1831,12 @@ class GenEditor(QMainWindow):
                         if item is not None:
                             break
 
-                    """elif isinstance(currentobj, libbol.Checkpoint):
+                elif isinstance(currentobj, libbol.Checkpoint):
                     for i in range(self.leveldatatreeview.checkpointgroups.childCount()):
                         child = self.leveldatatreeview.checkpointgroups.child(i)
                         item = get_treeitem(child, currentobj)
                         if item is not None:
-                            break"""
+                            break
 
                 elif isinstance(currentobj, libbol.RoutePoint):
                     for i in range(self.leveldatatreeview.objectroutes.childCount()):
@@ -1686,6 +1975,7 @@ def except_hook(cls, exception, traceback):
 if __name__ == "__main__":
     #import sys
     import platform
+    import signal
     import argparse
     from PyQt5.QtCore import QLocale
 
@@ -1700,15 +1990,57 @@ if __name__ == "__main__":
                         help="Path to collision to be loaded.")
     parser.add_argument("--waterbox", default=None,
                         help="Path to waterbox file to be loaded.")
+    parser.add_argument("--load", default=None,
+                        help="Path to the ARC or BOL file to be loaded.")
+    parser.add_argument("--additional", default=None, choices=['model', 'collision'],
+                        help="Whether to also load the additional BMD file (3D model) or BCO file "
+                        "(collision file).")
 
     args = parser.parse_args()
 
     app = QApplication(sys.argv)
 
+    signal.signal(signal.SIGINT, lambda _signal, _frame: app.quit())
+
+    app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
+
+    role_colors = []
+    role_colors.append((QtGui.QPalette.Window, QtGui.QColor(60, 60, 60)))
+    role_colors.append((QtGui.QPalette.WindowText, QtGui.QColor(200, 200, 200)))
+    role_colors.append((QtGui.QPalette.Base, QtGui.QColor(25, 25, 25)))
+    role_colors.append((QtGui.QPalette.AlternateBase, QtGui.QColor(60, 60, 60)))
+    role_colors.append((QtGui.QPalette.ToolTipBase, Qt.black))
+    role_colors.append((QtGui.QPalette.ToolTipText, QtGui.QColor(200, 200, 200)))
+    try:
+        role_colors.append((QtGui.QPalette.PlaceholderText, QtGui.QColor(160, 160, 160)))
+    except AttributeError:
+        pass
+    role_colors.append((QtGui.QPalette.Text, QtGui.QColor(200, 200, 200)))
+    role_colors.append((QtGui.QPalette.Button, QtGui.QColor(55, 55, 55)))
+    role_colors.append((QtGui.QPalette.ButtonText, QtGui.QColor(200, 200, 200)))
+    role_colors.append((QtGui.QPalette.BrightText, Qt.red))
+    role_colors.append((QtGui.QPalette.Light, QtGui.QColor(65, 65, 65)))
+    role_colors.append((QtGui.QPalette.Midlight, QtGui.QColor(60, 60, 60)))
+    role_colors.append((QtGui.QPalette.Dark, QtGui.QColor(45, 45, 45)))
+    role_colors.append((QtGui.QPalette.Mid, QtGui.QColor(50, 50, 50)))
+    role_colors.append((QtGui.QPalette.Shadow, Qt.black))
+    role_colors.append((QtGui.QPalette.Highlight, QtGui.QColor(45, 140, 225)))
+    role_colors.append((QtGui.QPalette.HighlightedText, Qt.black))
+    role_colors.append((QtGui.QPalette.Link, QtGui.QColor(40, 130, 220)))
+    role_colors.append((QtGui.QPalette.LinkVisited, QtGui.QColor(110, 70, 150)))
+    palette = QtGui.QPalette()
+    for role, color in role_colors:
+        palette.setColor(QtGui.QPalette.Disabled, role, QtGui.QColor(color).darker())
+        palette.setColor(QtGui.QPalette.Active, role, color)
+        palette.setColor(QtGui.QPalette.Inactive, role, color)
+    app.setPalette(palette)
+
     if platform.system() == "Windows":
         import ctypes
         myappid = 'P2GeneratorsEditor'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+
+    os.makedirs("lib/temp", exist_ok=True)
 
     with open("log.txt", "w") as f:
         #sys.stdout = f
@@ -1769,6 +2101,12 @@ if __name__ == "__main__":
                 raise RuntimeError("Unknown waterbox file type:", args.waterbox)
 
             pikmin_gui.setup_waterboxes(waterboxfile)
+
+        if args.load is not None:
+            def load():
+                pikmin_gui.load_file(args.load, additional=args.additional)
+
+            QtCore.QTimer.singleShot(0, load)
 
         err_code = app.exec()
 

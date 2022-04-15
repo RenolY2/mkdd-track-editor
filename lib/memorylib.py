@@ -123,10 +123,15 @@ class Dolphin(object):
         self.pid = -1
         self.memory = None 
 
+    def initialized(self):
+        return self.memory is not None
+
     def address_valid(self, addr):
         return 0x80000000 <= addr <= 0x81FFFFFF
 
-    def find_dolphin(self, skip_pids=[]):
+    def find_dolphin(self, skip_pids=None):
+        if skip_pids is None:
+            skip_pids = set()
         entry = PROCESSENTRY32()
         
         entry.dwSize = sizeof(PROCESSENTRY32)
@@ -153,8 +158,8 @@ class Dolphin(object):
             return False 
         
         return True
-    
-    def init_shared_memory(self):
+
+    def init(self):
         try:
             self.memory = shared_memory.SharedMemory('dolphin-emu.'+str(self.pid))
             return True

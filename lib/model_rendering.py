@@ -1,4 +1,5 @@
 import json
+import sys
 from time import time
 from OpenGL.GL import *
 from .vectors import Vector3
@@ -146,6 +147,11 @@ class Material(object):
                 fmt = "jpg"
             else:
                 raise RuntimeError("unknown tex format: {0}".format(texturepath))
+
+            # When SuperBMD is used through Wine, it generates some odd filepaths that need to be
+            # corrected.
+            if sys.platform != "win32":
+                texturepath = texturepath.replace("lib/temp/Z:", "").replace("\\", "/")
 
             qimage = QtGui.QImage(texturepath, fmt)
             qimage = qimage.convertToFormat(QtGui.QImage.Format_ARGB32)
@@ -454,10 +460,10 @@ class SelectableModel(Model):
         self.displistSelected = glGenLists(1)
         self.displistUnselected = glGenLists(1)
         glNewList(self.displistSelected, GL_COMPILE)
-        self._render(True)
+        self.__render(True)
         glEndList()
         glNewList(self.displistUnselected, GL_COMPILE)
-        self._render(False)
+        self.__render(False)
         glEndList()
 
     def render(self, selected=False):
@@ -466,8 +472,48 @@ class SelectableModel(Model):
         else:
             glCallList(self.displistUnselected)
 
-    def _render(self, selected=False):
+    def _render_outline(self):
         pass
+
+    def _render_body(self):
+        pass
+
+    def render_coloredid(self, id):
+        glColor3ub((id >> 16) & 0xFF, (id >> 8) & 0xFF, (id >> 0) & 0xFF)
+        glPushMatrix()
+        glScalef(1.2, 1.2, 1.2)
+        self._render_outline()
+        glPopMatrix()
+
+    def __render(self, selected=False):
+        # 1st pass: Draw outline, but without writing on the depth buffer.
+        glDepthMask(GL_FALSE)
+        if selected:
+            glColor4f(*selectioncolor)
+        else:
+            glColor4f(0.0, 0.0, 0.0, 1.0)
+        glPushMatrix()
+        if selected:
+            glScalef(1.3, 1.3, 1.3)
+        else:
+            glScalef(1.2, 1.2, 1.2)
+        self._render_outline()
+        glPopMatrix()
+        glDepthMask(GL_TRUE)
+
+        # 2nd pass: Draw the rest of the geometry.
+        self._render_body()
+
+        # 3rd pass: Draw outline again to update the depth buffer, but skipping the color buffer.
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE)
+        glPushMatrix()
+        if selected:
+            glScalef(1.3, 1.3, 1.3)
+        else:
+            glScalef(1.2, 1.2, 1.2)
+        self._render_outline()
+        glPopMatrix()
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
 
 
 class Cube(SelectableModel):
@@ -480,35 +526,12 @@ class Cube(SelectableModel):
 
         self.color = color
 
-    def _render(self, selected=False):
-
-        glEnable(GL_CULL_FACE)
-        if selected:
-            glColor4f(*selectioncolor)
-        else:
-            glColor4f(0.0, 0.0, 0.0, 1.0)
-        glCullFace(GL_FRONT)
-        glPushMatrix()
-
-        if selected:
-            glScalef(1.5, 1.5, 1.5)
-        else:
-            glScalef(1.2, 1.2, 1.2)
-
+    def _render_outline(self):
         self.mesh_list[0].render()
-        glPopMatrix()
-        glCullFace(GL_BACK)
 
+    def _render_body(self):
         glColor4f(*self.color)
         self.mesh_list[0].render()
-        glDisable(GL_CULL_FACE)
-
-    def render_coloredid(self, id):
-        glColor3ub((id >> 16) & 0xFF, (id >> 8) & 0xFF, (id >> 0) & 0xFF)
-        glPushMatrix()
-        glScalef(1.2, 1.2, 1.2)
-        self.mesh_list[0].render()
-        glPopMatrix()
 
 
 class GenericObject(SelectableModel):
@@ -521,38 +544,14 @@ class GenericObject(SelectableModel):
         self.named_meshes = model.named_meshes
         self.bodycolor = bodycolor
 
-    def _render(self, selected=False):
-        glEnable(GL_CULL_FACE)
-        if selected:
-            glColor4f(*selectioncolor)
-        else:
-            glColor4f(0.0, 0.0, 0.0, 1.0)
-        glCullFace(GL_FRONT)
-        glPushMatrix()
-
-        if selected:
-            glScalef(1.5, 1.5, 1.5)
-        else:
-            glScalef(1.2, 1.2, 1.2)
-
+    def _render_outline(self):
         self.named_meshes["Cube"].render()
-        glPopMatrix()
-        glCullFace(GL_BACK)
 
+    def _render_body(self):
         glColor4f(*self.bodycolor)
         self.named_meshes["Cube"].render()
         glColor4ub(0x09, 0x93, 0x00, 0xFF)
         self.named_meshes["tip"].render()
-        #glColor4ub(0x00, 0x00, 0x00, 0xFF)
-        #self.mesh_list[2].render()
-        glDisable(GL_CULL_FACE)
-
-    def render_coloredid(self, id):
-        glColor3ub((id >> 16) & 0xFF, (id >> 8) & 0xFF, (id >> 0) & 0xFF)
-        glPushMatrix()
-        glScalef(1.2, 1.2, 1.2)
-        self.named_meshes["Cube"].render()
-        glPopMatrix()
 
 
 class GenericComplexObject(GenericObject):
@@ -960,12 +959,15 @@ colortypes = {
     0x02: (192, 192, 192),
     0x03: (76, 255, 0),
     0x04: (0, 255, 255),
+    0x07: (255, 106, 0),
     0x08: (255, 106, 0),
     0x0C: (250, 213, 160),
     0x0F: (0, 38, 255),
     0x10: (250, 213, 160),
     0x12: (64, 64, 64),
-    0x13: (250, 213, 160)
+    0x13: (250, 213, 160),
+    0x37: (255, 106, 0),
+    0x47: (255, 106, 0),
 }
 
 otherwise = (40, 40, 40)
@@ -977,6 +979,8 @@ class CollisionModel(object):
         self.program = None
         vertices = mkdd_collision.vertices
         self._displists = []
+        self.hidden_collision_types = set()
+        self.hidden_collision_type_groups = set()
 
         for v1, v2, v3, coltype, rest in mkdd_collision.triangles:
             vertex1 = Vector3(*vertices[v1])
@@ -1095,6 +1099,10 @@ class CollisionModel(object):
         glUseProgram(self.program)
 
         for colltype, displist in self._displists:
+            if (colltype in self.hidden_collision_types
+                    or colltype & 0xFF00 in self.hidden_collision_type_groups):
+                continue
+
             if colltype == selectedPart:
                 glUniform1f(factorval, 1.0)
             else:
