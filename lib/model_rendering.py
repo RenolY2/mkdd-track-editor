@@ -1,4 +1,5 @@
 import json
+import re
 import sys
 from time import time
 from OpenGL.GL import *
@@ -151,7 +152,7 @@ class Material(object):
             # When SuperBMD is used through Wine, it generates some odd filepaths that need to be
             # corrected.
             if sys.platform != "win32":
-                texturepath = texturepath.replace("lib/temp/Z:", "").replace("\\", "/")
+                texturepath = re.sub("lib/temp/[A-Z]:", "", texturepath).replace("\\", "/")
 
             qimage = QtGui.QImage(texturepath, fmt)
             qimage = qimage.convertToFormat(QtGui.QImage.Format_ARGB32)
