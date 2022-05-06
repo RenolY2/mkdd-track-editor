@@ -950,7 +950,7 @@ class RespawnPointEdit(DataEditor):
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.unk2 = self.add_integer_input("Unknown 2", "unk2",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
-        self.unk3 = self.add_integer_input("Unknown 3", "unk3",
+        self.unk3 = self.add_integer_input("Previous Checkpoint", "unk3",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
 
     def update_data(self):
