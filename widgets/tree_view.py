@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QAction, QMenu
 class BolHeader(QTreeWidgetItem):
     def __init__(self):
         super().__init__()
-        self.setText(0, "BOL Header")
+        self.setText(0, "Track Settings")
 
 
 class ObjectGroup(QTreeWidgetItem):
@@ -39,7 +39,7 @@ class ObjectGroupObjects(ObjectGroup):
 # Groups
 class EnemyPointGroup(ObjectGroup):
     def __init__(self, parent, bound_to):
-        super().__init__("Enemy point group", parent=parent, bound_to=bound_to)
+        super().__init__("Enemy Point Group", parent=parent, bound_to=bound_to)
         self.update_name()
 
     def update_name(self):
@@ -51,7 +51,7 @@ class EnemyPointGroup(ObjectGroup):
             link_start = link_end = '?'
         self.setText(
             0,
-            "Enemy point group {0} (ID: {1}, link: {2}->{3})".format(index,
+            "Enemy Point Group {0} (ID: {1}, link: {2}->{3})".format(index,
                                                                      self.bound_to.id,
                                                                      link_start,
                                                                      link_end))
@@ -59,22 +59,22 @@ class EnemyPointGroup(ObjectGroup):
 
 class CheckpointGroup(ObjectGroup):
     def __init__(self, parent, bound_to):
-        super().__init__("Checkpoint group", parent=parent, bound_to=bound_to)
+        super().__init__("Checkpoint Group", parent=parent, bound_to=bound_to)
         self.update_name()
 
     def update_name(self):
         index = self.parent().indexOfChild(self)
-        self.setText(0, "Checkpoint group {0}".format(index))
+        self.setText(0, "Checkpoint Group {0}".format(index))
 
 
 class ObjectPointGroup(ObjectGroup):
     def __init__(self, parent, bound_to):
-        super().__init__("Object point group", parent=parent, bound_to=bound_to)
+        super().__init__("Object Point Group", parent=parent, bound_to=bound_to)
         self.update_name()
 
     def update_name(self):
         index = self.parent().indexOfChild(self)
-        self.setText(0, "Object point group {0}".format(index))
+        self.setText(0, "Object Point Group {0}".format(index))
 
 
 # Entries in groups or entries without groups
@@ -111,11 +111,11 @@ class EnemyRoutePoint(NamedItem):
         point = group.points[index]
 
         if point.link == -1:
-            self.setText(0, "Enemy Route Point {0} (pos={1})".format(index + offset, index))
+            self.setText(0, "Enemy Point {0} (pos={1})".format(index + offset, index))
         else:
             self.setText(
                 0,
-                "Enemy Route Point {0} (pos={1}, link={2})".format(index + offset,
+                "Enemy Point {0} (pos={1}, link={2})".format(index + offset,
                                                                    index,
                                                                    point.link))
 
@@ -148,7 +148,7 @@ class ObjectRoutePoint(NamedItem):
 
         index = group.points.index(self.bound_to)
 
-        self.setText(0, "Object Route Point {0}".format(index))
+        self.setText(0, "Object Point {0}".format(index))
 
 
 class ObjectEntry(NamedItem):
@@ -218,16 +218,16 @@ class LevelDataTreeView(QTreeWidget):
         self.bolheader = BolHeader()
         self.addTopLevelItem(self.bolheader)
 
-        self.enemyroutes = self._add_group("Enemy point groups")
-        self.checkpointgroups = self._add_group("Checkpoint groups")
-        self.objectroutes = self._add_group("Object point groups")
+        self.enemyroutes = self._add_group("Enemy Point Groups")
+        self.checkpointgroups = self._add_group("Checkpoint Groups")
+        self.objectroutes = self._add_group("Object Point Groups")
         self.objects = self._add_group("Objects", ObjectGroupObjects)
-        self.kartpoints = self._add_group("Kart start points")
+        self.kartpoints = self._add_group("Kart Start Points")
         self.areas = self._add_group("Areas")
         self.cameras = self._add_group("Cameras")
-        self.respawnpoints = self._add_group("Respawn points")
-        self.lightparams = self._add_group("Light param entries")
-        self.mgentries = self._add_group("MG entries")
+        self.respawnpoints = self._add_group("Respawn Points")
+        self.lightparams = self._add_group("Light Params")
+        self.mgentries = self._add_group("Minigame Params")
 
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.run_context_menu)

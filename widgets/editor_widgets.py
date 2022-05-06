@@ -327,19 +327,19 @@ class AddPikObjectWindow(QMdiSubWindow):
         self.verticalLayout.addWidget(self.category_menu)
 
         self.objecttypes = {
-            "Enemy route point": libbol.EnemyPoint,
+            "Enemy Point": libbol.EnemyPoint,
             "Checkpoint": libbol.Checkpoint,
-            "Map object route point": libbol.RoutePoint,
-            "Map object": libbol.MapObject,
+            "Object Point": libbol.RoutePoint,
+            "Object": libbol.MapObject,
             "Area": libbol.Area,
             "Camera": libbol.Camera,
-            "Respawn point": libbol.JugemPoint,
-            "Kart start point": libbol.KartStartPoint,
-            "Enemy point group": libbol.EnemyPointGroup,
-            "Checkpoint group": libbol.CheckpointGroup,
-            "Object point group": libbol.Route,
-            "Light param": libbol.LightParam,
-            "Minigame param": libbol.MGEntry
+            "Respawn Point": libbol.JugemPoint,
+            "Kart Start Point": libbol.KartStartPoint,
+            "Enemy Point Group": libbol.EnemyPointGroup,
+            "Checkpoint Group": libbol.CheckpointGroup,
+            "Object Point Group": libbol.Route,
+            "Light Param": libbol.LightParam,
+            "Minigame Param": libbol.MGEntry
         }
 
         for item, val in self.objecttypes.items():
