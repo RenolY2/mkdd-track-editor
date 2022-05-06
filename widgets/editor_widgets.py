@@ -335,9 +335,9 @@ class AddPikObjectWindow(QMdiSubWindow):
             "Camera": libbol.Camera,
             "Respawn Point": libbol.JugemPoint,
             "Kart Start Point": libbol.KartStartPoint,
-            "Enemy Point Group": libbol.EnemyPointGroup,
+            "Enemy Path": libbol.EnemyPointGroup,
             "Checkpoint Group": libbol.CheckpointGroup,
-            "Object Point Group": libbol.Route,
+            "Object Path": libbol.Route,
             "Light Param": libbol.LightParam,
             "Minigame Param": libbol.MGEntry
         }

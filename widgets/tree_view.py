@@ -39,7 +39,7 @@ class ObjectGroupObjects(ObjectGroup):
 # Groups
 class EnemyPointGroup(ObjectGroup):
     def __init__(self, parent, bound_to):
-        super().__init__("Enemy Point Group", parent=parent, bound_to=bound_to)
+        super().__init__("Enemy Path", parent=parent, bound_to=bound_to)
         self.update_name()
 
     def update_name(self):
@@ -51,7 +51,7 @@ class EnemyPointGroup(ObjectGroup):
             link_start = link_end = '?'
         self.setText(
             0,
-            "Enemy Point Group {0} (ID: {1}, link: {2}->{3})".format(index,
+            "Enemy Path {0} (ID: {1}, link: {2}->{3})".format(index,
                                                                      self.bound_to.id,
                                                                      link_start,
                                                                      link_end))
@@ -69,12 +69,12 @@ class CheckpointGroup(ObjectGroup):
 
 class ObjectPointGroup(ObjectGroup):
     def __init__(self, parent, bound_to):
-        super().__init__("Object Point Group", parent=parent, bound_to=bound_to)
+        super().__init__("Object Path", parent=parent, bound_to=bound_to)
         self.update_name()
 
     def update_name(self):
         index = self.parent().indexOfChild(self)
-        self.setText(0, "Object Point Group {0}".format(index))
+        self.setText(0, "Object Path {0}".format(index))
 
 
 # Entries in groups or entries without groups
@@ -218,9 +218,9 @@ class LevelDataTreeView(QTreeWidget):
         self.bolheader = BolHeader()
         self.addTopLevelItem(self.bolheader)
 
-        self.enemyroutes = self._add_group("Enemy Point Groups")
+        self.enemyroutes = self._add_group("Enemy Paths")
         self.checkpointgroups = self._add_group("Checkpoint Groups")
-        self.objectroutes = self._add_group("Object Point Groups")
+        self.objectroutes = self._add_group("Object Paths")
         self.objects = self._add_group("Objects", ObjectGroupObjects)
         self.kartpoints = self._add_group("Kart Start Points")
         self.areas = self._add_group("Areas")
