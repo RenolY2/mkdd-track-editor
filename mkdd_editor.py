@@ -162,24 +162,24 @@ class GenEditor(QMainWindow):
     def set_base_window_title(self, name):
         self._window_title = name
         if name != "":
-            self.setWindowTitle("MKDD bol Editor - "+name)
+            self.setWindowTitle("MKDD Track Editor - "+name)
         else:
-            self.setWindowTitle("MKDD bol Editor")
+            self.setWindowTitle("MKDD Track Editor")
 
     def set_has_unsaved_changes(self, hasunsavedchanges):
         if hasunsavedchanges and not self._user_made_change:
             self._user_made_change = True
 
             if self._window_title != "":
-                self.setWindowTitle("MKDD bol Editor [Unsaved Changes] - " + self._window_title)
+                self.setWindowTitle("MKDD Track Editor [Unsaved Changes] - " + self._window_title)
             else:
-                self.setWindowTitle("MKDD bol Editor [Unsaved Changes] ")
+                self.setWindowTitle("MKDD Track Editor [Unsaved Changes] ")
         elif not hasunsavedchanges and self._user_made_change:
             self._user_made_change = False
             if self._window_title != "":
-                self.setWindowTitle("MKDD bol Editor - " + self._window_title)
+                self.setWindowTitle("MKDD Track Editor - " + self._window_title)
             else:
-                self.setWindowTitle("MKDD bol Editor")
+                self.setWindowTitle("MKDD Track Editor")
 
     @catch_exception_with_dialog
     def do_goto_action(self, item, index):
