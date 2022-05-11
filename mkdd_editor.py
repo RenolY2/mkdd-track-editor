@@ -1984,12 +1984,6 @@ if __name__ == "__main__":
     sys.excepthook = except_hook
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--inputgen", default=None,
-                        help="Path to generator file to be loaded.")
-    parser.add_argument("--collision", default=None,
-                        help="Path to collision to be loaded.")
-    parser.add_argument("--waterbox", default=None,
-                        help="Path to waterbox file to be loaded.")
     parser.add_argument("--load", default=None,
                         help="Path to the ARC or BOL file to be loaded.")
     parser.add_argument("--additional", default=None, choices=['model', 'collision'],
@@ -2046,65 +2040,14 @@ if __name__ == "__main__":
         #sys.stdout = f
         #sys.stderr = f
         print("Python version: ", sys.version)
-        pikmin_gui = GenEditor()
-        pikmin_gui.setWindowIcon(QtGui.QIcon('resources/icon.ico'))
+        editor_gui = GenEditor()
+        editor_gui.setWindowIcon(QtGui.QIcon('resources/icon.ico'))
 
-        if args.inputgen is not None:
-            with open(args.inputgen, "r", encoding="shift_jis-2004", errors="backslashreplace") as f:
-                pikmin_gen_file = PikminGenFile()
-                pikmin_gen_file.from_file(f)
-
-            pikmin_gui.setup_gen_file(pikmin_gen_file, args.inputgen)
-
-        pikmin_gui.show()
-
-        if args.collision is not None:
-            if args.collision.endswith(".obj"):
-                with open(args.collision, "r") as f:
-                    verts, faces, normals = py_obj.read_obj(f)
-
-            elif args.collision.endswith(".bin"):
-                with open(args.collision, "rb") as f:
-                    collision = py_obj.PikminCollision(f)
-                verts = collision.vertices
-                faces = [face[0] for face in collision.faces]
-
-            elif args.collision.endswith(".szs") or args.collision.endswith(".arc"):
-                with open(args.collision, "rb") as f:
-                    archive = Archive.from_file(f)
-                f = archive["text/grid.bin"]
-                collision = py_obj.PikminCollision(f)
-
-                verts = collision.vertices
-                faces = [face[0] for face in collision.faces]
-
-            else:
-                raise RuntimeError("Unknown collision file type:", args.collision)
-
-            pikmin_gui.setup_collision(verts, faces, args.collision)
-
-        if args.waterbox is not None:
-            if args.waterbox.endswith(".txt"):
-                with open(args.waterbox, "r", encoding="shift_jis-2004", errors="backslashreplace") as f:
-                    waterboxfile = WaterboxTxt()
-                    waterboxfile.from_file(f)
-            elif args.waterbox.endswith(".szs") or args.waterbox.endwith(".arc"):
-                with open(args.waterbox, "rb") as f:
-                    archive = Archive.from_file(f)
-                    # try:
-                    f = archive["text/waterbox.txt"]
-                    # print(f.read())
-                    f.seek(0)
-                    waterboxfile = WaterboxTxt()
-                    waterboxfile.from_file(TextIOWrapper(f, encoding="shift_jis-2004", errors="backslashreplace"))
-            else:
-                raise RuntimeError("Unknown waterbox file type:", args.waterbox)
-
-            pikmin_gui.setup_waterboxes(waterboxfile)
+        editor_gui.show()
 
         if args.load is not None:
             def load():
-                pikmin_gui.load_file(args.load, additional=args.additional)
+                editor_gui.load_file(args.load, additional=args.additional)
 
             QtCore.QTimer.singleShot(0, load)
 
