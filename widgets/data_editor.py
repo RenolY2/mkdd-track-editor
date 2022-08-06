@@ -60,6 +60,7 @@ class DataEditor(QWidget):
 
         self.bound_to = bound_to
         self.vbox = QVBoxLayout(self)
+        self.vbox.setContentsMargins(0, 0, 0, 0)
 
         self.description = self.add_label("Object")
 
