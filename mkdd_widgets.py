@@ -859,13 +859,16 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         self.models.render_generic_position_colored(point.position, point_selected, "itempoint")
                         selected = selected or point_selected
 
-                    glLineWidth(3.0 if selected else 1.0)
+                    if selected:
+                        glLineWidth(3.0)
                     glBegin(GL_LINE_STRIP)
                     glColor3f(0.0, 0.0, 0.0)
                     for point in route.points:
                         pos = point.position
                         glVertex3f(pos.x, -pos.z, pos.y)
                     glEnd()
+                    if selected:
+                        glLineWidth(1.0)
 
             if vismenu.enemyroute.is_visible():
                 enemypoints_to_highlight = set()
@@ -921,7 +924,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         pos = point.position
                         glVertex3f(pos.x, -pos.z, pos.y)
                     glEnd()
-                    glLineWidth(1.0)
+                    if group_selected:
+                        glLineWidth(1.0)
 
                     # Draw the connections between each enemy point group.
                     pointA = group.points[-1]
@@ -940,12 +944,14 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         pointB = groupB.points[0]
                         if pointA.link == pointB.link:
                             groupB_selected = any(map(lambda p: p in select_optimize, groupB.points))
-                            glLineWidth(3.0 if (group_selected or groupB_selected) else 1.0)
+                            if group_selected or groupB_selected:
+                                glLineWidth(3.0)
                             glBegin(GL_LINES)
                             glVertex3f(pointA.position.x, -pointA.position.z, pointA.position.y)
                             glVertex3f(pointB.position.x, -pointB.position.z, pointB.position.y)
                             glEnd()
-                            glLineWidth(1.0)
+                            if group_selected or groupB_selected:
+                                glLineWidth(1.0)
 
             if vismenu.checkpoints.is_visible():
                 checkpoints_to_highlight = set()
@@ -1141,6 +1147,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             glVertex3f(endx, startz, 0)
 
             glEnd()
+            glLineWidth(1.0)
 
         if self.selectionbox_projected_origin is not None and self.selectionbox_projected_coords is not None:
             #print("drawing box")
@@ -1157,6 +1164,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             glVertex3f(point3.x, point3.y, point3.z)
             glVertex3f(point4.x, point4.y, point4.z)
             glEnd()
+
+            glLineWidth(1.0)
 
         glEnable(GL_DEPTH_TEST)
         glFinish()
