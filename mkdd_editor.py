@@ -100,6 +100,8 @@ class GenEditor(QMainWindow):
         self.level_view.set_editorconfig(self.configuration["editor"])
         self.level_view.visibility_menu = self.visibility_menu
 
+        self.collision_area_dialog = None
+
         self.current_coordinates = None
         self.editing_windows = {}
         self.add_object_window = None
@@ -140,6 +142,10 @@ class GenEditor(QMainWindow):
         geo_config["window_geometry"] = to_base64(self.saveGeometry())
         geo_config["window_state"] = to_base64(self.saveState())
         geo_config["window_splitter"] = to_base64(self.horizontalLayout.saveState())
+
+        if self.collision_area_dialog is not None:
+            geo_config["collision_window_geometry"] = to_base64(
+                self.collision_area_dialog.saveGeometry())
 
         save_cfg(self.configuration)
 
@@ -627,6 +633,10 @@ class GenEditor(QMainWindow):
                                               "No collision file is loaded.")
             return
 
+        if self.collision_area_dialog is not None:
+            self.collision_area_dialog.close()
+            self.collision_area_dialog = None
+
         collision_model = self.level_view.alternative_mesh
         colltypes = tuple(sorted(collision_model.meshes))
 
@@ -794,7 +804,25 @@ class GenEditor(QMainWindow):
         layout.setSpacing(0)
         layout.addWidget(tree_widget)
         layout.addLayout(buttons_layout)
+
+        if "geometry" in self.configuration:
+            geo_config = self.configuration["geometry"]
+
+            def to_byte_array(byte_array: str) -> QtCore.QByteArray:
+                return QtCore.QByteArray.fromBase64(byte_array.encode(encoding='ascii'))
+
+            if "collision_window_geometry" in geo_config:
+                self.collision_area_dialog.restoreGeometry(
+                    to_byte_array(geo_config["collision_window_geometry"]))
+
         self.collision_area_dialog.show()
+
+        def on_dialog_finished(result):
+            _ = result
+            if self.isVisible():
+                self.save_geometry()
+
+        self.collision_area_dialog.finished.connect(on_dialog_finished)
 
     def analyze_for_mistakes(self):
         if self.analyzer_window is not None:
