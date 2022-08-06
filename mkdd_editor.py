@@ -1034,6 +1034,8 @@ class GenEditor(QMainWindow):
         choice, pos = FileSelect.open_file_list(self, additional_files,
                                                 "Select additional file to load", startat=0)
 
+        self.clear_collision()
+
         if choice.endswith("(3D Model)"):
             alternative_mesh = load_textured_bmd(bmdfile)
             with open("lib/temp/temp.obj", "r") as f:
@@ -1060,6 +1062,8 @@ class GenEditor(QMainWindow):
     def load_optional_3d_file_arc(self, additional_files, bmdfile, collisionfile, arcfilepath):
         choice, pos = FileSelect.open_file_list(self, additional_files,
                                                 "Select additional file to load", startat=0)
+
+        self.clear_collision()
 
         if choice.endswith("(3D Model)"):
             with open("lib/temp/temp.bmd", "wb") as f:
@@ -1103,6 +1107,8 @@ class GenEditor(QMainWindow):
 
         if not filepath.endswith('_course.bol'):
             return
+
+        self.clear_collision()
 
         if additional == 'model':
             bmdfile = filepath[:-len('.bol')] + ".bmd"
@@ -1151,6 +1157,8 @@ class GenEditor(QMainWindow):
                 self.loaded_archive = None
                 self.loaded_archive_file = None
                 raise
+
+        self.clear_collision()
 
         if additional == 'model':
             bmdfile = get_file_safe(self.loaded_archive.root, "_course.bmd")
@@ -1318,7 +1326,8 @@ class GenEditor(QMainWindow):
                     f.write(bmd.getvalue())
 
                 bmdpath = "lib/temp/temp.bmd"
-                
+
+            self.clear_collision()
 
             alternative_mesh = load_textured_bmd(bmdpath)
             with open("lib/temp/temp.obj", "r") as f:
@@ -1365,6 +1374,13 @@ class GenEditor(QMainWindow):
         except Exception as e:
             traceback.print_exc()
             open_error_dialog(str(e), self)
+
+    def clear_collision(self):
+        self.level_view.clear_collision()
+
+        # Synchronously force a draw operation to provide immediate feedback.
+        self.level_view.update()
+        QApplication.instance().processEvents()
 
     def setup_collision(self, verts, faces, filepath, alternative_mesh=None):
         self.level_view.set_collision(verts, faces, alternative_mesh)

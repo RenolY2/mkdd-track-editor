@@ -20,10 +20,20 @@ def superbmd_to_obj(src):
         shutil.copytree(cached_dir, 'lib/temp')
         return
 
+    try:
+        os.remove('lib/temp/temp.obj')
+    except Exception:
+        pass
+
     command = ["lib/superbmd/SuperBMD.exe", src, "lib/temp/temp.obj", "--exportobj"]
     if sys.platform != "win32":
         command = ["wine"] + command
-    subprocess.call(command)
+
+    with subprocess.Popen(command, stderr=subprocess.PIPE, text=True) as process:
+        _output, error_output = process.communicate()
+        if process.returncode != 0:
+            raise RuntimeError(
+                f'BMD conversion failed (code: {process.returncode}):\n{error_output}')
 
     shutil.copytree('lib/temp', cached_dir)
 

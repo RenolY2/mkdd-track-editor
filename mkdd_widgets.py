@@ -485,6 +485,13 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.MOVE_RIGHT = 0
         self.SPEEDUP = 0
 
+    def clear_collision(self):
+        self.alternative_mesh = None
+
+        if self.main_model is not None:
+            glDeleteLists(self.main_model, 1)
+            self.main_model = None
+
     def set_collision(self, verts, faces, alternative_mesh):
         self.collision = Collision(verts, faces)
 
