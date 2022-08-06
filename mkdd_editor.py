@@ -1209,6 +1209,8 @@ class GenEditor(QMainWindow):
             model = CollisionModel(bco_coll)
             self.setup_collision(verts, faces, collisionfile, alternative_mesh=model)
 
+        QtCore.QTimer.singleShot(0, self.update_3d)
+
     def load_arc_file(self, filepath, additional=None):
         with open(filepath, "rb") as f:
             try:
@@ -1261,6 +1263,8 @@ class GenEditor(QMainWindow):
 
             model = CollisionModel(bco_coll)
             self.setup_collision(verts, faces, filepath, alternative_mesh=model)
+
+        QtCore.QTimer.singleShot(0, self.update_3d)
 
     def setup_bol_file(self, bol_file, filepath):
         self.level_file = bol_file
