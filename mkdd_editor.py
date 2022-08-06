@@ -466,7 +466,7 @@ class GenEditor(QMainWindow):
             item_list.extend(addresses.keys())
             result, pos = FileSelect.open_file_list(self, item_list, "Select Track Slot")
 
-            if result == "None":
+            if result == "None" or result is None:
                 return
 
             corner1x, corner1z, corner2x, corner2z, orientation = addresses[result]
@@ -512,7 +512,7 @@ class GenEditor(QMainWindow):
             item_list.extend(addresses.keys())
             result, pos = FileSelect.open_file_list(self, item_list, "Select Track Slot")
 
-            if result == "None":
+            if result == "None" or result is None:
                 return
 
             corner1x, corner1z, corner2x, corner2z, orientation = addresses[result]
@@ -1036,6 +1036,9 @@ class GenEditor(QMainWindow):
 
         self.clear_collision()
 
+        if not choice:
+            return
+
         if choice.endswith("(3D Model)"):
             alternative_mesh = load_textured_bmd(bmdfile)
             with open("lib/temp/temp.obj", "r") as f:
@@ -1064,6 +1067,9 @@ class GenEditor(QMainWindow):
                                                 "Select additional file to load", startat=0)
 
         self.clear_collision()
+
+        if not choice:
+            return
 
         if choice.endswith("(3D Model)"):
             with open("lib/temp/temp.bmd", "wb") as f:
