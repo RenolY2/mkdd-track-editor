@@ -97,8 +97,15 @@ class DataEditor(QWidget):
         label = self.create_label(text)
         label.setText(text)
         layout.addWidget(label)
-        for widget in widgetlist:
-            layout.addWidget(widget)
+        if len(widgetlist) > 1:
+            child_layout = QHBoxLayout()
+            child_layout.setSpacing(1)
+            child_layout.setContentsMargins(0, 0, 0, 0)
+            for widget in widgetlist:
+                child_layout.addWidget(widget)
+            layout.addLayout(child_layout)
+        elif widgetlist:
+            layout.addWidget(widgetlist[0])
         return layout
 
     def add_checkbox(self, text, attribute, off_value, on_value):
