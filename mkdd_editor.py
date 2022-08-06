@@ -223,25 +223,103 @@ class GenEditor(QMainWindow):
 
     @catch_exception_with_dialog
     def do_goto_action(self, item, index):
-        print(item, index)
+        _ = index
         self.tree_select_object(item)
-        print(self.level_view.selected_positions)
-        if len(self.level_view.selected_positions) > 0:
-            position = self.level_view.selected_positions[0]
+        self.frame_selection(adjust_zoom=False)
 
-            if self.level_view.mode == MODE_TOPDOWN:
-                self.level_view.offset_z = -position.z
-                self.level_view.offset_x = -position.x
+    def frame_selection(self, adjust_zoom):
+        selected_only = bool(self.level_view.selected_positions)
+        minx, miny, minz, maxx, maxy, maxz = self.compute_objects_extent(selected_only)
+
+        # Center of the extent.
+        x = (maxx + minx) / 2
+        y = (maxy + miny) / 2
+        z = (maxz + minz) / 2
+
+        if self.level_view.mode == MODE_TOPDOWN:
+            self.level_view.offset_z = -z
+            self.level_view.offset_x = -x
+
+            if adjust_zoom:
+                if self.level_view.canvas_width > 0 and self.level_view.canvas_height > 0:
+                    MARGIN = 2000
+                    deltax = maxx - minx + MARGIN
+                    deltay = maxz - minz + MARGIN
+                    hzoom = deltax / self.level_view.canvas_width * 10
+                    vzoom = deltay / self.level_view.canvas_height * 10
+                    DEFAULT_ZOOM = 80
+                    self.level_view._zoom_factor = max(hzoom, vzoom, DEFAULT_ZOOM)
+        else:
+            look = self.level_view.camera_direction.copy()
+
+            if adjust_zoom:
+                MARGIN = 3000
+                deltax = maxx - minx + MARGIN
+                fac = deltax
             else:
-                look = self.level_view.camera_direction.copy()
-
-                pos = position.copy()
                 fac = 5000
-                self.level_view.offset_z = -(pos.z + look.y*fac)
-                self.level_view.offset_x = pos.x - look.x*fac
-                self.level_view.camera_height = pos.y - look.z*fac
-            print("heyyy")
-            self.level_view.do_redraw()
+
+            self.level_view.offset_z = -(z + look.y * fac)
+            self.level_view.offset_x = x - look.x * fac
+            self.level_view.camera_height = y - look.z * fac
+
+        self.level_view.do_redraw()
+
+    def compute_objects_extent(self, selected_only):
+        extent = []
+
+        def extend(position):
+            if not extent:
+                extent.extend([position.x, position.y, position.z,
+                               position.x, position.y, position.z])
+                return
+
+            extent[0] = min(extent[0], position.x)
+            extent[1] = min(extent[1], position.y)
+            extent[2] = min(extent[2], position.z)
+            extent[3] = max(extent[3], position.x)
+            extent[4] = max(extent[4], position.y)
+            extent[5] = max(extent[5], position.z)
+
+        if selected_only:
+            for selected_position in self.level_view.selected_positions:
+                extend(selected_position)
+            return tuple(extent) or (0, 0, 0, 0, 0, 0)
+
+        if self.visibility_menu.enemyroute.is_visible():
+            for enemy_path in self.level_file.enemypointgroups.groups:
+                for enemy_path_point in enemy_path.points:
+                    extend(enemy_path_point.position)
+        if self.visibility_menu.itemroutes.is_visible():
+            for object_route in self.level_file.routes:
+                for object_route_point in object_route.points:
+                    extend(object_route_point.position)
+        if self.visibility_menu.checkpoints.is_visible():
+            for checkpoint_group in self.level_file.checkpoints.groups:
+                for checkpoint in checkpoint_group.points:
+                    extend(checkpoint.start)
+                    extend(checkpoint.end)
+        if self.visibility_menu.objects.is_visible():
+            for object_ in self.level_file.objects.objects:
+                extend(object_.position)
+        if self.visibility_menu.areas.is_visible():
+            for area in self.level_file.areas.areas:
+                extend(area.position)
+        if self.visibility_menu.cameras.is_visible():
+            for camera in self.level_file.cameras:
+                extend(camera.position)
+        if self.visibility_menu.respawnpoints.is_visible():
+            for respawn_point in self.level_file.respawnpoints:
+                extend(respawn_point.position)
+        if self.visibility_menu.kartstartpoints.is_visible():
+            for karts_point in self.level_file.kartpoints.positions:
+                extend(karts_point.position)
+        if (self.level_view.minimap is not None and self.level_view.minimap.is_available()
+                and self.visibility_menu.minimap.is_visible()):
+            extend(self.level_view.minimap.corner1)
+            extend(self.level_view.minimap.corner2)
+
+        return tuple(extent) or (0, 0, 0, 0, 0, 0)
 
     def tree_select_arrowkey(self):
         current = self.leveldatatreeview.selectedItems()
@@ -408,12 +486,19 @@ class GenEditor(QMainWindow):
         self.rotation_mode = QAction("Rotate Positions around Pivot", self)
         self.rotation_mode.setCheckable(True)
         self.rotation_mode.setChecked(True)
-        #self.goto_action.triggered.connect(self.do_goto_action)
-        #self.goto_action.setShortcut("Ctrl+G")
+        self.frame_action = QAction("Frame Selection/All", self)
+        self.frame_action.triggered.connect(
+            lambda _checked: self.frame_selection(adjust_zoom=True))
+        self.frame_action.setShortcut("F")
         self.misc_menu.addAction(self.rotation_mode)
+        self.misc_menu.addAction(self.frame_action)
         self.analyze_action = QAction("Analyze for common mistakes", self)
         self.analyze_action.triggered.connect(self.analyze_for_mistakes)
         self.misc_menu.addAction(self.analyze_action)
+
+        self.misc_menu.aboutToShow.connect(
+            lambda: self.frame_action.setText(
+                "Frame Selection" if self.level_view.selected_positions else "Frame All"))
 
         self.view_action_group = QtWidgets.QActionGroup(self)
 
