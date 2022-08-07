@@ -1880,6 +1880,17 @@ class GenEditor(QMainWindow):
         elif event.key() == Qt.Key_E:
             self.level_view.MOVE_DOWN = 0
 
+    def reset_move_flags(self):
+        self.level_view.MOVE_FORWARD = 0
+        self.level_view.MOVE_BACKWARD = 0
+        self.level_view.MOVE_LEFT = 0
+        self.level_view.MOVE_RIGHT = 0
+        self.level_view.MOVE_UP = 0
+        self.level_view.MOVE_DOWN = 0
+        self.level_view.shift_is_pressed = False
+        self.level_view.rotation_is_pressed = False
+        self.level_view.change_height_is_pressed = False
+
     def action_rotate_object(self, deltarotation):
         #obj.set_rotation((None, round(angle, 6), None))
         for rot in self.level_view.selected_rotations:
@@ -2122,6 +2133,8 @@ class GenEditor(QMainWindow):
 
     @catch_exception
     def mapview_showcontextmenu(self, position):
+        self.reset_move_flags()
+
         context_menu = QMenu(self)
         action = QAction("Copy Coordinates", self)
         action.triggered.connect(self.action_copy_coords_to_clipboard)
