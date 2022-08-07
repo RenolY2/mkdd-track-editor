@@ -1205,17 +1205,28 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             self.zoom_in()
 
     def zoom_in(self):
-        current = self.zoom_factor
-
-        fac = calc_zoom_out_factor(current)
-
-        self.zoom(fac)
+        if self.mode == MODE_TOPDOWN:
+            current = self.zoom_factor
+            fac = calc_zoom_out_factor(current)
+            self.zoom(fac)
+        else:
+            self.zoom_inout_3d(True)
 
     def zoom_out(self):
-        current = self.zoom_factor
-        fac = calc_zoom_in_factor(current)
+        if self.mode == MODE_TOPDOWN:
+            current = self.zoom_factor
+            fac = calc_zoom_in_factor(current)
+            self.zoom(fac)
+        else:
+            self.zoom_inout_3d(False)
 
-        self.zoom(fac)
+    def zoom_inout_3d(self, zoom_in):
+        speedup = 1 if zoom_in else -1
+        if self.shift_is_pressed:
+            speedup *= self._wasdscrolling_speedupfactor
+        speed = self._wasdscrolling_speed / 2
+        self.camera_height -= speed * speedup
+        self.do_redraw()
 
     def create_ray_from_mouseclick(self, mousex, mousey, yisup=False):
         self.camera_direction.normalize()
