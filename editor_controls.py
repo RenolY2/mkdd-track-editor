@@ -1,4 +1,4 @@
-from math import pi, tan, atan2, degrees
+from math import pi, tan, atan2, degrees, cos, sin
 from timeit import default_timer
 import abc
 
@@ -231,6 +231,31 @@ class AddObjectTopDown(ClickAction):
         destx, destz = editor.mouse_coord_to_world_coord(mouse_x, mouse_z)
 
         editor.create_waypoint.emit(destx, -destz)
+
+
+class View3DScroll(ClickDragAction):
+    def move(self, editor, buttons, event):
+        d_x, d_y = event.x() - self.first_click.x, event.y() - self.first_click.y
+
+        speedup = 1
+        if editor.shift_is_pressed:
+            speedup = editor._wasdscrolling_speedupfactor
+
+        speed = editor._wasdscrolling_speed / 25
+
+        forward_vec = Vector3(cos(editor.camera_horiz), sin(editor.camera_horiz), 0)
+        forward_move = forward_vec * speed * speedup
+        editor.offset_x += forward_move.x * d_y
+        editor.offset_z += forward_move.y * d_y
+
+        sideways_vec = Vector3(-sin(editor.camera_horiz), cos(editor.camera_horiz), 0)
+        sideways_move = sideways_vec * speed * speedup
+        editor.offset_x += sideways_move.x * d_x
+        editor.offset_z += sideways_move.y * d_x
+
+        editor.do_redraw()
+        self.first_click.x = event.x()
+        self.first_click.y = event.y()
 
 
 class RotateCamera3D(ClickDragAction):
@@ -516,6 +541,7 @@ class UserControl(object):
         self.add_action(Gizmo2DRotateY("Gizmo2DRotateY", "Left"))
         self.add_action(AddObjectTopDown("AddObject2D", "Left"))
 
+        self.add_action3d(View3DScroll("3DScroll", "Middle"))
         self.add_action3d(RotateCamera3D("RotateCamera", "Right"))
         self.add_action3d(AddObject3D("AddObject3D", "Left"))
         self.add_action3d(Gizmo3DMoveX("Gizmo3DMoveX", "Left"))
