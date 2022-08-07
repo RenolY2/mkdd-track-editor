@@ -414,6 +414,7 @@ class GenEditor(QMainWindow):
         #QtWidgets.QShortcut(Qt.CTRL + Qt.Key_Alt + Qt.Key_S, self.file_menu).activated.connect(self.button_save_level_as)
 
         self.file_load_action = QAction("Load", self)
+        self.file_load_recent_menu = QMenu("Load Recent", self)
         self.save_file_action = QAction("Save", self)
         self.save_file_as_action = QAction("Save As", self)
         self.save_file_action.setShortcut("Ctrl+S")
@@ -429,9 +430,13 @@ class GenEditor(QMainWindow):
 
 
         self.file_menu.addAction(self.file_load_action)
+        self.file_menu.addMenu(self.file_load_recent_menu)
+        self.file_menu.addSeparator()
         self.file_menu.addAction(self.save_file_action)
         self.file_menu.addAction(self.save_file_as_action)
         self.file_menu.addAction(self.save_file_copy_as_action)
+
+        self.file_menu.aboutToShow.connect(self.on_file_menu_aboutToShow)
 
         self.visibility_menu = mkdd_widgets.FilterViewMenu(self)
         self.visibility_menu.filter_update.connect(self.on_filter_update)
@@ -919,6 +924,17 @@ class GenEditor(QMainWindow):
         self.analyzer_window = ErrorAnalyzer(self.level_file)
         self.analyzer_window.show()
 
+    def on_file_menu_aboutToShow(self):
+        recent_files = self.get_recent_files_list()
+
+        self.file_load_recent_menu.setEnabled(bool(recent_files))
+        self.file_load_recent_menu.clear()
+
+        for filepath in recent_files:
+            recent_file_action = self.file_load_recent_menu.addAction(filepath)
+            recent_file_action.triggered.connect(
+                lambda checked, filepath=filepath: self.button_load_level(checked, filepath))
+
     def on_filter_update(self):
         filters = []
         for object_toggle in self.visibility_menu.get_entries():
@@ -1104,16 +1120,52 @@ class GenEditor(QMainWindow):
             self.edit_spawn_window.button_savetext.pressed.connect(self.action_save_startpos)
             self.edit_spawn_window.show()
 
+    def update_recent_files_list(self, filepath):
+        filepath = os.path.abspath(os.path.normpath(filepath))
+
+        recent_files = self.get_recent_files_list()
+        if filepath in recent_files:
+            recent_files.remove(filepath)
+
+        recent_files.insert(0, filepath)
+        recent_files = recent_files[:10]
+
+        self.configuration["recent files"] = {}
+        recent_files_config = self.configuration["recent files"]
+
+        for i, filepath in enumerate(recent_files):
+            config_entry = f"file{i}"
+            recent_files_config[config_entry] = filepath
+
+    def get_recent_files_list(self):
+        if "recent files" not in self.configuration:
+            self.configuration["recent files"] = {}
+        recent_files_config = self.configuration["recent files"]
+
+        recent_files = []
+        for i in range(10):
+            config_entry = f"file{i}"
+            if config_entry in recent_files_config:
+                recent_files.append(recent_files_config[config_entry])
+
+        return recent_files
+
     #@catch_exception
-    def button_load_level(self):
-        filepath, chosentype = QFileDialog.getOpenFileName(
-            self, "Open File",
-            self.pathsconfig["bol"],
-            "BOL files (*.bol);;Archived files (*.arc);;All files (*)",
-            self.last_chosen_type)
+    def button_load_level(self, checked=False, filepath=None):
+        _ = checked
+
+        if filepath is None:
+            filepath, chosentype = QFileDialog.getOpenFileName(
+                self, "Open File",
+                self.pathsconfig["bol"],
+                "BOL files (*.bol);;Archived files (*.arc);;All files (*)",
+                self.last_chosen_type)
+        else:
+            chosentype = None
 
         if filepath:
-            self.last_chosen_type = chosentype
+            if chosentype is not None:
+                self.last_chosen_type = chosentype
             print("Resetting editor")
             self.reset()
             print("Reset done")
@@ -1370,6 +1422,7 @@ class GenEditor(QMainWindow):
         # path_parts = path.split(filepath)
         self.set_base_window_title(filepath)
         self.pathsconfig["bol"] = filepath
+        self.update_recent_files_list(filepath)
         save_cfg(self.configuration)
         self.current_gen_path = filepath
 
