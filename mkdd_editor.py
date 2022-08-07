@@ -2126,7 +2126,7 @@ class GenEditor(QMainWindow):
         action = QAction("Copy Coordinates", self)
         action.triggered.connect(self.action_copy_coords_to_clipboard)
         context_menu.addAction(action)
-        context_menu.exec(self.mapToGlobal(position))
+        context_menu.exec(self.sender().mapToGlobal(position))
         context_menu.destroy()
 
     def action_copy_coords_to_clipboard(self):
