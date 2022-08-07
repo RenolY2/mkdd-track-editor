@@ -164,7 +164,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.editorconfig = None
         self.visibility_menu = None
 
-        #self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
 
         self.spawnpoint = None
         self.alternative_mesh = None
