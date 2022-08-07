@@ -207,6 +207,12 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.last_move = None
         self.backgroundcolor = (255, 255, 255, 255)
 
+        look_direction = Vector3(cos(self.camera_horiz), sin(self.camera_horiz),
+                                 sin(self.camera_vertical))
+        fac = 1.01 - abs(look_direction.z)
+        self.camera_direction = Vector3(look_direction.x * fac, look_direction.y * fac,
+                                        look_direction.z)
+
         #self.selection_queue = []
         self.selectionqueue = SelectionQueue()
 
