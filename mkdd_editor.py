@@ -100,6 +100,8 @@ class GenEditor(QMainWindow):
         self.level_view.set_editorconfig(self.configuration["editor"])
         self.level_view.visibility_menu = self.visibility_menu
 
+        self.collision_area_dialog = None
+
         self.current_coordinates = None
         self.editing_windows = {}
         self.add_object_window = None
@@ -125,6 +127,46 @@ class GenEditor(QMainWindow):
         self.dolphin = Game()
         self.level_view.dolphin = self.dolphin
         self.last_chosen_type = ""
+
+        self.first_time_3dview = True
+
+        self.restore_geometry()
+
+    def save_geometry(self):
+        if "geometry" not in self.configuration:
+            self.configuration["geometry"] = geo_config = {}
+        else:
+            geo_config = self.configuration["geometry"]
+
+        def to_base64(byte_array: QtCore.QByteArray) -> str:
+            return bytes(byte_array.toBase64()).decode(encoding='ascii')
+
+        geo_config["window_geometry"] = to_base64(self.saveGeometry())
+        geo_config["window_state"] = to_base64(self.saveState())
+        geo_config["window_splitter"] = to_base64(self.horizontalLayout.saveState())
+
+        if self.collision_area_dialog is not None:
+            geo_config["collision_window_geometry"] = to_base64(
+                self.collision_area_dialog.saveGeometry())
+
+        save_cfg(self.configuration)
+
+    def restore_geometry(self):
+        if "geometry" not in self.configuration:
+            return
+        geo_config = self.configuration["geometry"]
+
+        def to_byte_array(byte_array: str) -> QtCore.QByteArray:
+            return QtCore.QByteArray.fromBase64(byte_array.encode(encoding='ascii'))
+
+        self.restoreGeometry(to_byte_array(geo_config["window_geometry"]))
+        self.restoreState(to_byte_array(geo_config["window_state"]))
+        self.horizontalLayout.restoreState(to_byte_array(geo_config["window_splitter"]))
+
+    def closeEvent(self, event: QtGui.QCloseEvent):
+        self.save_geometry()
+
+        super().closeEvent(event)
 
     @catch_exception
     def reset(self):
@@ -183,25 +225,103 @@ class GenEditor(QMainWindow):
 
     @catch_exception_with_dialog
     def do_goto_action(self, item, index):
-        print(item, index)
+        _ = index
         self.tree_select_object(item)
-        print(self.level_view.selected_positions)
-        if len(self.level_view.selected_positions) > 0:
-            position = self.level_view.selected_positions[0]
+        self.frame_selection(adjust_zoom=False)
 
-            if self.level_view.mode == MODE_TOPDOWN:
-                self.level_view.offset_z = -position.z
-                self.level_view.offset_x = -position.x
+    def frame_selection(self, adjust_zoom):
+        selected_only = bool(self.level_view.selected_positions)
+        minx, miny, minz, maxx, maxy, maxz = self.compute_objects_extent(selected_only)
+
+        # Center of the extent.
+        x = (maxx + minx) / 2
+        y = (maxy + miny) / 2
+        z = (maxz + minz) / 2
+
+        if self.level_view.mode == MODE_TOPDOWN:
+            self.level_view.offset_z = -z
+            self.level_view.offset_x = -x
+
+            if adjust_zoom:
+                if self.level_view.canvas_width > 0 and self.level_view.canvas_height > 0:
+                    MARGIN = 2000
+                    deltax = maxx - minx + MARGIN
+                    deltay = maxz - minz + MARGIN
+                    hzoom = deltax / self.level_view.canvas_width * 10
+                    vzoom = deltay / self.level_view.canvas_height * 10
+                    DEFAULT_ZOOM = 80
+                    self.level_view._zoom_factor = max(hzoom, vzoom, DEFAULT_ZOOM)
+        else:
+            look = self.level_view.camera_direction.copy()
+
+            if adjust_zoom:
+                MARGIN = 3000
+                deltax = maxx - minx + MARGIN
+                fac = deltax
             else:
-                look = self.level_view.camera_direction.copy()
-
-                pos = position.copy()
                 fac = 5000
-                self.level_view.offset_z = -(pos.z + look.y*fac)
-                self.level_view.offset_x = pos.x - look.x*fac
-                self.level_view.camera_height = pos.y - look.z*fac
-            print("heyyy")
-            self.level_view.do_redraw()
+
+            self.level_view.offset_z = -(z + look.y * fac)
+            self.level_view.offset_x = x - look.x * fac
+            self.level_view.camera_height = y - look.z * fac
+
+        self.level_view.do_redraw()
+
+    def compute_objects_extent(self, selected_only):
+        extent = []
+
+        def extend(position):
+            if not extent:
+                extent.extend([position.x, position.y, position.z,
+                               position.x, position.y, position.z])
+                return
+
+            extent[0] = min(extent[0], position.x)
+            extent[1] = min(extent[1], position.y)
+            extent[2] = min(extent[2], position.z)
+            extent[3] = max(extent[3], position.x)
+            extent[4] = max(extent[4], position.y)
+            extent[5] = max(extent[5], position.z)
+
+        if selected_only:
+            for selected_position in self.level_view.selected_positions:
+                extend(selected_position)
+            return tuple(extent) or (0, 0, 0, 0, 0, 0)
+
+        if self.visibility_menu.enemyroute.is_visible():
+            for enemy_path in self.level_file.enemypointgroups.groups:
+                for enemy_path_point in enemy_path.points:
+                    extend(enemy_path_point.position)
+        if self.visibility_menu.itemroutes.is_visible():
+            for object_route in self.level_file.routes:
+                for object_route_point in object_route.points:
+                    extend(object_route_point.position)
+        if self.visibility_menu.checkpoints.is_visible():
+            for checkpoint_group in self.level_file.checkpoints.groups:
+                for checkpoint in checkpoint_group.points:
+                    extend(checkpoint.start)
+                    extend(checkpoint.end)
+        if self.visibility_menu.objects.is_visible():
+            for object_ in self.level_file.objects.objects:
+                extend(object_.position)
+        if self.visibility_menu.areas.is_visible():
+            for area in self.level_file.areas.areas:
+                extend(area.position)
+        if self.visibility_menu.cameras.is_visible():
+            for camera in self.level_file.cameras:
+                extend(camera.position)
+        if self.visibility_menu.respawnpoints.is_visible():
+            for respawn_point in self.level_file.respawnpoints:
+                extend(respawn_point.position)
+        if self.visibility_menu.kartstartpoints.is_visible():
+            for karts_point in self.level_file.kartpoints.positions:
+                extend(karts_point.position)
+        if (self.level_view.minimap is not None and self.level_view.minimap.is_available()
+                and self.visibility_menu.minimap.is_visible()):
+            extend(self.level_view.minimap.corner1)
+            extend(self.level_view.minimap.corner2)
+
+        return tuple(extent) or (0, 0, 0, 0, 0, 0)
 
     def tree_select_arrowkey(self):
         current = self.leveldatatreeview.selectedItems()
@@ -294,6 +414,7 @@ class GenEditor(QMainWindow):
         #QtWidgets.QShortcut(Qt.CTRL + Qt.Key_Alt + Qt.Key_S, self.file_menu).activated.connect(self.button_save_level_as)
 
         self.file_load_action = QAction("Load", self)
+        self.file_load_recent_menu = QMenu("Load Recent", self)
         self.save_file_action = QAction("Save", self)
         self.save_file_as_action = QAction("Save As", self)
         self.save_file_action.setShortcut("Ctrl+S")
@@ -309,9 +430,13 @@ class GenEditor(QMainWindow):
 
 
         self.file_menu.addAction(self.file_load_action)
+        self.file_menu.addMenu(self.file_load_recent_menu)
+        self.file_menu.addSeparator()
         self.file_menu.addAction(self.save_file_action)
         self.file_menu.addAction(self.save_file_as_action)
         self.file_menu.addAction(self.save_file_copy_as_action)
+
+        self.file_menu.aboutToShow.connect(self.on_file_menu_aboutToShow)
 
         self.visibility_menu = mkdd_widgets.FilterViewMenu(self)
         self.visibility_menu.filter_update.connect(self.on_filter_update)
@@ -368,12 +493,19 @@ class GenEditor(QMainWindow):
         self.rotation_mode = QAction("Rotate Positions around Pivot", self)
         self.rotation_mode.setCheckable(True)
         self.rotation_mode.setChecked(True)
-        #self.goto_action.triggered.connect(self.do_goto_action)
-        #self.goto_action.setShortcut("Ctrl+G")
+        self.frame_action = QAction("Frame Selection/All", self)
+        self.frame_action.triggered.connect(
+            lambda _checked: self.frame_selection(adjust_zoom=True))
+        self.frame_action.setShortcut("F")
         self.misc_menu.addAction(self.rotation_mode)
+        self.misc_menu.addAction(self.frame_action)
         self.analyze_action = QAction("Analyze for common mistakes", self)
         self.analyze_action.triggered.connect(self.analyze_for_mistakes)
         self.misc_menu.addAction(self.analyze_action)
+
+        self.misc_menu.aboutToShow.connect(
+            lambda: self.frame_action.setText(
+                "Frame Selection" if self.level_view.selected_positions else "Frame All"))
 
         self.view_action_group = QtWidgets.QActionGroup(self)
 
@@ -466,7 +598,7 @@ class GenEditor(QMainWindow):
             item_list.extend(addresses.keys())
             result, pos = FileSelect.open_file_list(self, item_list, "Select Track Slot")
 
-            if result == "None":
+            if result == "None" or result is None:
                 return
 
             corner1x, corner1z, corner2x, corner2z, orientation = addresses[result]
@@ -512,7 +644,7 @@ class GenEditor(QMainWindow):
             item_list.extend(addresses.keys())
             result, pos = FileSelect.open_file_list(self, item_list, "Select Track Slot")
 
-            if result == "None":
+            if result == "None" or result is None:
                 return
 
             corner1x, corner1z, corner2x, corner2z, orientation = addresses[result]
@@ -592,6 +724,10 @@ class GenEditor(QMainWindow):
             QtWidgets.QMessageBox.information(self, "Collision Areas (BCO)",
                                               "No collision file is loaded.")
             return
+
+        if self.collision_area_dialog is not None:
+            self.collision_area_dialog.close()
+            self.collision_area_dialog = None
 
         collision_model = self.level_view.alternative_mesh
         colltypes = tuple(sorted(collision_model.meshes))
@@ -760,7 +896,25 @@ class GenEditor(QMainWindow):
         layout.setSpacing(0)
         layout.addWidget(tree_widget)
         layout.addLayout(buttons_layout)
+
+        if "geometry" in self.configuration:
+            geo_config = self.configuration["geometry"]
+
+            def to_byte_array(byte_array: str) -> QtCore.QByteArray:
+                return QtCore.QByteArray.fromBase64(byte_array.encode(encoding='ascii'))
+
+            if "collision_window_geometry" in geo_config:
+                self.collision_area_dialog.restoreGeometry(
+                    to_byte_array(geo_config["collision_window_geometry"]))
+
         self.collision_area_dialog.show()
+
+        def on_dialog_finished(result):
+            _ = result
+            if self.isVisible():
+                self.save_geometry()
+
+        self.collision_area_dialog.finished.connect(on_dialog_finished)
 
     def analyze_for_mistakes(self):
         if self.analyzer_window is not None:
@@ -769,6 +923,17 @@ class GenEditor(QMainWindow):
 
         self.analyzer_window = ErrorAnalyzer(self.level_file)
         self.analyzer_window.show()
+
+    def on_file_menu_aboutToShow(self):
+        recent_files = self.get_recent_files_list()
+
+        self.file_load_recent_menu.setEnabled(bool(recent_files))
+        self.file_load_recent_menu.clear()
+
+        for filepath in recent_files:
+            recent_file_action = self.file_load_recent_menu.addAction(filepath)
+            recent_file_action.triggered.connect(
+                lambda checked, filepath=filepath: self.button_load_level(checked, filepath))
 
     def on_filter_update(self):
         filters = []
@@ -791,6 +956,12 @@ class GenEditor(QMainWindow):
         if checked:
             self.level_view.change_from_topdown_to_3d()
             self.statusbar.clearMessage()
+
+            # After switching to the 3D view for the first time, the view will be framed to help
+            # users find the objects in the world.
+            if self.first_time_3dview:
+                self.first_time_3dview = False
+                self.frame_selection(adjust_zoom=True)
 
     def setup_ui_toolbar(self):
         # self.toolbar = QtWidgets.QToolBar("Test", self)
@@ -949,16 +1120,52 @@ class GenEditor(QMainWindow):
             self.edit_spawn_window.button_savetext.pressed.connect(self.action_save_startpos)
             self.edit_spawn_window.show()
 
+    def update_recent_files_list(self, filepath):
+        filepath = os.path.abspath(os.path.normpath(filepath))
+
+        recent_files = self.get_recent_files_list()
+        if filepath in recent_files:
+            recent_files.remove(filepath)
+
+        recent_files.insert(0, filepath)
+        recent_files = recent_files[:10]
+
+        self.configuration["recent files"] = {}
+        recent_files_config = self.configuration["recent files"]
+
+        for i, filepath in enumerate(recent_files):
+            config_entry = f"file{i}"
+            recent_files_config[config_entry] = filepath
+
+    def get_recent_files_list(self):
+        if "recent files" not in self.configuration:
+            self.configuration["recent files"] = {}
+        recent_files_config = self.configuration["recent files"]
+
+        recent_files = []
+        for i in range(10):
+            config_entry = f"file{i}"
+            if config_entry in recent_files_config:
+                recent_files.append(recent_files_config[config_entry])
+
+        return recent_files
+
     #@catch_exception
-    def button_load_level(self):
-        filepath, chosentype = QFileDialog.getOpenFileName(
-            self, "Open File",
-            self.pathsconfig["bol"],
-            "BOL files (*.bol);;Archived files (*.arc);;All files (*)",
-            self.last_chosen_type)
+    def button_load_level(self, checked=False, filepath=None):
+        _ = checked
+
+        if filepath is None:
+            filepath, chosentype = QFileDialog.getOpenFileName(
+                self, "Open File",
+                self.pathsconfig["bol"],
+                "BOL files (*.bol);;Archived files (*.arc);;All files (*)",
+                self.last_chosen_type)
+        else:
+            chosentype = None
 
         if filepath:
-            self.last_chosen_type = chosentype
+            if chosentype is not None:
+                self.last_chosen_type = chosentype
             print("Resetting editor")
             self.reset()
             print("Reset done")
@@ -1034,6 +1241,11 @@ class GenEditor(QMainWindow):
         choice, pos = FileSelect.open_file_list(self, additional_files,
                                                 "Select additional file to load", startat=0)
 
+        self.clear_collision()
+
+        if not choice:
+            return
+
         if choice.endswith("(3D Model)"):
             alternative_mesh = load_textured_bmd(bmdfile)
             with open("lib/temp/temp.obj", "r") as f:
@@ -1060,6 +1272,11 @@ class GenEditor(QMainWindow):
     def load_optional_3d_file_arc(self, additional_files, bmdfile, collisionfile, arcfilepath):
         choice, pos = FileSelect.open_file_list(self, additional_files,
                                                 "Select additional file to load", startat=0)
+
+        self.clear_collision()
+
+        if not choice:
+            return
 
         if choice.endswith("(3D Model)"):
             with open("lib/temp/temp.bmd", "wb") as f:
@@ -1104,6 +1321,8 @@ class GenEditor(QMainWindow):
         if not filepath.endswith('_course.bol'):
             return
 
+        self.clear_collision()
+
         if additional == 'model':
             bmdfile = filepath[:-len('.bol')] + ".bmd"
             if not os.path.isfile(bmdfile):
@@ -1135,6 +1354,8 @@ class GenEditor(QMainWindow):
             model = CollisionModel(bco_coll)
             self.setup_collision(verts, faces, collisionfile, alternative_mesh=model)
 
+        QtCore.QTimer.singleShot(0, self.update_3d)
+
     def load_arc_file(self, filepath, additional=None):
         with open(filepath, "rb") as f:
             try:
@@ -1151,6 +1372,8 @@ class GenEditor(QMainWindow):
                 self.loaded_archive = None
                 self.loaded_archive_file = None
                 raise
+
+        self.clear_collision()
 
         if additional == 'model':
             bmdfile = get_file_safe(self.loaded_archive.root, "_course.bmd")
@@ -1186,6 +1409,8 @@ class GenEditor(QMainWindow):
             model = CollisionModel(bco_coll)
             self.setup_collision(verts, faces, filepath, alternative_mesh=model)
 
+        QtCore.QTimer.singleShot(0, self.update_3d)
+
     def setup_bol_file(self, bol_file, filepath):
         self.level_file = bol_file
         self.level_view.level_file = self.level_file
@@ -1197,6 +1422,7 @@ class GenEditor(QMainWindow):
         # path_parts = path.split(filepath)
         self.set_base_window_title(filepath)
         self.pathsconfig["bol"] = filepath
+        self.update_recent_files_list(filepath)
         save_cfg(self.configuration)
         self.current_gen_path = filepath
 
@@ -1318,7 +1544,8 @@ class GenEditor(QMainWindow):
                     f.write(bmd.getvalue())
 
                 bmdpath = "lib/temp/temp.bmd"
-                
+
+            self.clear_collision()
 
             alternative_mesh = load_textured_bmd(bmdpath)
             with open("lib/temp/temp.obj", "r") as f:
@@ -1365,6 +1592,13 @@ class GenEditor(QMainWindow):
         except Exception as e:
             traceback.print_exc()
             open_error_dialog(str(e), self)
+
+    def clear_collision(self):
+        self.level_view.clear_collision()
+
+        # Synchronously force a draw operation to provide immediate feedback.
+        self.level_view.update()
+        QApplication.instance().processEvents()
 
     def setup_collision(self, verts, faces, filepath, alternative_mesh=None):
         self.level_view.set_collision(verts, faces, alternative_mesh)
@@ -1646,6 +1880,17 @@ class GenEditor(QMainWindow):
         elif event.key() == Qt.Key_E:
             self.level_view.MOVE_DOWN = 0
 
+    def reset_move_flags(self):
+        self.level_view.MOVE_FORWARD = 0
+        self.level_view.MOVE_BACKWARD = 0
+        self.level_view.MOVE_LEFT = 0
+        self.level_view.MOVE_RIGHT = 0
+        self.level_view.MOVE_UP = 0
+        self.level_view.MOVE_DOWN = 0
+        self.level_view.shift_is_pressed = False
+        self.level_view.rotation_is_pressed = False
+        self.level_view.change_height_is_pressed = False
+
     def action_rotate_object(self, deltarotation):
         #obj.set_rotation((None, round(angle, 6), None))
         for rot in self.level_view.selected_rotations:
@@ -1888,11 +2133,13 @@ class GenEditor(QMainWindow):
 
     @catch_exception
     def mapview_showcontextmenu(self, position):
+        self.reset_move_flags()
+
         context_menu = QMenu(self)
         action = QAction("Copy Coordinates", self)
         action.triggered.connect(self.action_copy_coords_to_clipboard)
         context_menu.addAction(action)
-        context_menu.exec(self.mapToGlobal(position))
+        context_menu.exec(self.sender().mapToGlobal(position))
         context_menu.destroy()
 
     def action_copy_coords_to_clipboard(self):

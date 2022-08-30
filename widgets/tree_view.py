@@ -210,7 +210,7 @@ class LevelDataTreeView(QTreeWidget):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
-        self.setMaximumWidth(600)
+
         self.resize(200, self.height())
         self.setColumnCount(1)
         self.setHeaderLabel("Track Data Entries")

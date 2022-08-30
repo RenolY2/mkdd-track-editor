@@ -164,7 +164,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.editorconfig = None
         self.visibility_menu = None
 
-        #self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
 
         self.spawnpoint = None
         self.alternative_mesh = None
@@ -206,6 +206,12 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.camera_height = 1000
         self.last_move = None
         self.backgroundcolor = (255, 255, 255, 255)
+
+        look_direction = Vector3(cos(self.camera_horiz), sin(self.camera_horiz),
+                                 sin(self.camera_vertical))
+        fac = 1.01 - abs(look_direction.z)
+        self.camera_direction = Vector3(look_direction.x * fac, look_direction.y * fac,
+                                        look_direction.z)
 
         #self.selection_queue = []
         self.selectionqueue = SelectionQueue()
@@ -484,6 +490,13 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.MOVE_LEFT = 0
         self.MOVE_RIGHT = 0
         self.SPEEDUP = 0
+
+    def clear_collision(self):
+        self.alternative_mesh = None
+
+        if self.main_model is not None:
+            glDeleteLists(self.main_model, 1)
+            self.main_model = None
 
     def set_collision(self, verts, faces, alternative_mesh):
         self.collision = Collision(verts, faces)
@@ -852,13 +865,16 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         self.models.render_generic_position_colored(point.position, point_selected, "itempoint")
                         selected = selected or point_selected
 
-                    glLineWidth(3.0 if selected else 1.0)
+                    if selected:
+                        glLineWidth(3.0)
                     glBegin(GL_LINE_STRIP)
                     glColor3f(0.0, 0.0, 0.0)
                     for point in route.points:
                         pos = point.position
                         glVertex3f(pos.x, -pos.z, pos.y)
                     glEnd()
+                    if selected:
+                        glLineWidth(1.0)
 
             if vismenu.enemyroute.is_visible():
                 enemypoints_to_highlight = set()
@@ -914,7 +930,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         pos = point.position
                         glVertex3f(pos.x, -pos.z, pos.y)
                     glEnd()
-                    glLineWidth(1.0)
+                    if group_selected:
+                        glLineWidth(1.0)
 
                     # Draw the connections between each enemy point group.
                     pointA = group.points[-1]
@@ -933,12 +950,14 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         pointB = groupB.points[0]
                         if pointA.link == pointB.link:
                             groupB_selected = any(map(lambda p: p in select_optimize, groupB.points))
-                            glLineWidth(3.0 if (group_selected or groupB_selected) else 1.0)
+                            if group_selected or groupB_selected:
+                                glLineWidth(3.0)
                             glBegin(GL_LINES)
                             glVertex3f(pointA.position.x, -pointA.position.z, pointA.position.y)
                             glVertex3f(pointB.position.x, -pointB.position.z, pointB.position.y)
                             glEnd()
-                            glLineWidth(1.0)
+                            if group_selected or groupB_selected:
+                                glLineWidth(1.0)
 
             if vismenu.checkpoints.is_visible():
                 checkpoints_to_highlight = set()
@@ -1134,6 +1153,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             glVertex3f(endx, startz, 0)
 
             glEnd()
+            glLineWidth(1.0)
 
         if self.selectionbox_projected_origin is not None and self.selectionbox_projected_coords is not None:
             #print("drawing box")
@@ -1150,6 +1170,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             glVertex3f(point3.x, point3.y, point3.z)
             glVertex3f(point4.x, point4.y, point4.z)
             glEnd()
+
+            glLineWidth(1.0)
 
         glEnable(GL_DEPTH_TEST)
         glFinish()
@@ -1183,17 +1205,28 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             self.zoom_in()
 
     def zoom_in(self):
-        current = self.zoom_factor
-
-        fac = calc_zoom_out_factor(current)
-
-        self.zoom(fac)
+        if self.mode == MODE_TOPDOWN:
+            current = self.zoom_factor
+            fac = calc_zoom_out_factor(current)
+            self.zoom(fac)
+        else:
+            self.zoom_inout_3d(True)
 
     def zoom_out(self):
-        current = self.zoom_factor
-        fac = calc_zoom_in_factor(current)
+        if self.mode == MODE_TOPDOWN:
+            current = self.zoom_factor
+            fac = calc_zoom_in_factor(current)
+            self.zoom(fac)
+        else:
+            self.zoom_inout_3d(False)
 
-        self.zoom(fac)
+    def zoom_inout_3d(self, zoom_in):
+        speedup = 1 if zoom_in else -1
+        if self.shift_is_pressed:
+            speedup *= self._wasdscrolling_speedupfactor
+        speed = self._wasdscrolling_speed / 2
+        self.camera_height -= speed * speedup
+        self.do_redraw()
 
     def create_ray_from_mouseclick(self, mousex, mousey, yisup=False):
         self.camera_direction.normalize()

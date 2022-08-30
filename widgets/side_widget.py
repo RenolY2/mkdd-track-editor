@@ -13,8 +13,7 @@ class PikminSideWidget(QWidget):
         parent = args[0]
 
         self.parent = parent
-        self.setMaximumSize(QSize(700, 1500))
-        self.setMinimumWidth(300)
+
         self.verticalLayout = QVBoxLayout(self)
         self.verticalLayout.setAlignment(Qt.AlignTop)
 
