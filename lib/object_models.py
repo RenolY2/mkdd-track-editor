@@ -21,7 +21,10 @@ class ObjectModels(object):
         self.cube = Cube()
         self.checkpointleft = Cube(colors["CheckpointLeft"])
         self.checkpointright = Cube(colors["CheckpointRight"])
-        self.itempoint = Cube(colors["ItemRoutes"])
+        self.objectroute = Cube(colors["ObjectRoutes"])
+        self.cameraroute = Cube(colors["CameraRoutes"])
+        self.unassignedroute = Cube(colors["UnassignedRoutes"])
+        self.sharedroute = Cube(colors["SharedRoutes"])
         self.enemypoint = Cube(colors["EnemyRoutes"])
         self.camera = GenericObject(colors["Camera"])
         self.areas = GenericObject(colors["Areas"])
@@ -74,8 +77,9 @@ class ObjectModels(object):
                     filename = os.path.basename(file)
                     objectname = filename.rsplit(".", 1)[0]
                     self.models[objectname] = TexturedModel.from_obj_path(os.path.join(dirpath, file), rotate=True)
-        for cube in (self.cube, self.checkpointleft, self.checkpointright, self.itempoint, self.enemypoint,
-                     self.objects, self.areas, self.respawn, self.startpoints, self.camera):
+        for cube in (self.cube, self.checkpointleft, self.checkpointright, self.objectroute, self.cameraroute,
+                     self.unassignedroute, self.sharedroute, self.enemypoint, self.objects, self.areas, self.respawn,
+                     self.startpoints, self.camera):
             cube.generate_displists()
 
         for cube in self.playercolors:
