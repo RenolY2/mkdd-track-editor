@@ -342,7 +342,7 @@ class AddPikObjectWindow(QMdiSubWindow):
             "Minigame Param": libbol.MGEntry
         }
 
-        for item, val in self.objecttypes.items():
+        for item in sorted(self.objecttypes.keys()):
             self.category_menu.addItem(item)
 
         self.category_menu.currentIndexChanged.connect(self.change_category)
