@@ -134,9 +134,8 @@ class GenEditor(QMainWindow):
 
     def save_geometry(self):
         if "geometry" not in self.configuration:
-            self.configuration["geometry"] = geo_config = {}
-        else:
-            geo_config = self.configuration["geometry"]
+            self.configuration["geometry"] = {}
+        geo_config = self.configuration["geometry"]
 
         def to_base64(byte_array: QtCore.QByteArray) -> str:
             return bytes(byte_array.toBase64()).decode(encoding='ascii')
@@ -159,9 +158,12 @@ class GenEditor(QMainWindow):
         def to_byte_array(byte_array: str) -> QtCore.QByteArray:
             return QtCore.QByteArray.fromBase64(byte_array.encode(encoding='ascii'))
 
-        self.restoreGeometry(to_byte_array(geo_config["window_geometry"]))
-        self.restoreState(to_byte_array(geo_config["window_state"]))
-        self.horizontalLayout.restoreState(to_byte_array(geo_config["window_splitter"]))
+        if "window_geometry" in geo_config:
+            self.restoreGeometry(to_byte_array(geo_config["window_geometry"]))
+        if "window_state" in geo_config:
+            self.restoreState(to_byte_array(geo_config["window_state"]))
+        if "window_splitter" in geo_config:
+            self.horizontalLayout.restoreState(to_byte_array(geo_config["window_splitter"]))
 
     def closeEvent(self, event: QtGui.QCloseEvent):
         self.save_geometry()
