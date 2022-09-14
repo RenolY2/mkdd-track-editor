@@ -329,7 +329,7 @@ class AddPikObjectWindow(QMdiSubWindow):
         self.objecttypes = {
             "Enemy Point": libbol.EnemyPoint,
             "Checkpoint": libbol.Checkpoint,
-            "Object Point": libbol.RoutePoint,
+            "Route Point": libbol.RoutePoint,
             "Object": libbol.MapObject,
             "Area": libbol.Area,
             "Camera": libbol.Camera,
@@ -337,7 +337,7 @@ class AddPikObjectWindow(QMdiSubWindow):
             "Kart Start Point": libbol.KartStartPoint,
             "Enemy Path": libbol.EnemyPointGroup,
             "Checkpoint Group": libbol.CheckpointGroup,
-            "Object Path": libbol.Route,
+            "Route": libbol.Route,
             "Light Param": libbol.LightParam,
             "Minigame Param": libbol.MGEntry
         }

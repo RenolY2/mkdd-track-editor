@@ -2084,8 +2084,8 @@ class GenEditor(QMainWindow):
                             break
 
                 elif isinstance(currentobj, libbol.RoutePoint):
-                    for i in range(self.leveldatatreeview.objectroutes.childCount()):
-                        child = self.leveldatatreeview.objectroutes.child(i)
+                    for i in range(self.leveldatatreeview.routes.childCount()):
+                        child = self.leveldatatreeview.routes.child(i)
                         item = get_treeitem(child, currentobj)
                         if item is not None:
                             break
