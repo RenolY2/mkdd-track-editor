@@ -731,35 +731,33 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                 #for i in range(0, clickwidth*clickheight, 4):
                 start = default_timer()
 
-                for i in range(0, clickwidth*clickheight, 13):
-                        # | (pixels[i*3+0] << 16)
-                        if pixels[i * 3] != 0xFF:
-                            upper = pixels[i * 3] & 0x0F
-                            index = (upper << 16)| (pixels[i*3 + 1] << 8) | pixels[i*3 + 2]
-                            if index & 0b1:
-                                # second position
-                                entry = objlist[index//4]
-                                if entry[0] not in selected:
-                                    selected[entry[0]] = 2
+                indexes = set()
+                for i in range(0, clickwidth * clickheight):
+                    if pixels[i * 3] != 0xFF:
+                        upper = pixels[i * 3] & 0x0F
+                        index = (upper << 16) | (pixels[i * 3 + 1] << 8) | pixels[i * 3 + 2]
+                        indexes.add(index)
 
-                                    selected_positions.append(entry[2])
-                                elif selected[entry[0]] == 1:
-                                    selected[entry[0]] = 3
-                                    selected_positions.append(entry[2])
-                            else:
-                                entry = objlist[index // 4]
-                                if entry[0] not in selected:
-                                    selected[entry[0]] = 1
+                for index in indexes:
+                    entry = objlist[index // 4]
+                    obj = entry[0]
 
-                                    selected_positions.append(entry[1])
-
-                                    if index & 0b10:
-                                        print("found a rotation")
-                                        selected_rotations.append(entry[3])
-
-                                elif selected[entry[0]] == 2:
-                                    selected[entry[0]] = 3
-                                    selected_positions.append(entry[1])
+                    if index & 0b1:
+                        if obj not in selected:
+                            selected[obj] = 2
+                            selected_positions.append(entry[2])
+                        elif selected[obj] == 1:
+                            selected[obj] = 3
+                            selected_positions.append(entry[2])
+                    else:
+                        if obj not in selected:
+                            selected[obj] = 1
+                            selected_positions.append(entry[1])
+                            if index & 0b10:
+                                selected_rotations.append(entry[3])
+                        elif selected[obj] == 2:
+                            selected[obj] = 3
+                            selected_positions.append(entry[1])
 
                 #print("select time taken", default_timer() - start)
                 #print("result:", selected)
