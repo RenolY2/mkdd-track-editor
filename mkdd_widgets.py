@@ -108,6 +108,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         # multisampling is enabled.
         self.pick_framebuffer = None
         self.pick_texture = None
+        self.pick_depth_texture = None
 
         self._zoom_factor = 80
         self.setFocusPolicy(Qt.ClickFocus)
@@ -269,6 +270,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         if self.samples > 1:
             self.pick_framebuffer = glGenFramebuffers(1)
             self.pick_texture = glGenTextures(1)
+            self.pick_depth_texture = glGenTextures(1)
             glBindFramebuffer(GL_FRAMEBUFFER, self.pick_framebuffer)
             glBindTexture(GL_TEXTURE_2D, self.pick_texture)
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, self.canvas_width, self.canvas_height, 0,
@@ -276,6 +278,12 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             glBindTexture(GL_TEXTURE_2D, 0)
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                                    self.pick_texture, 0)
+            glBindTexture(GL_TEXTURE_2D, self.pick_depth_texture)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, self.canvas_width,
+                         self.canvas_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, None)
+            glBindTexture(GL_TEXTURE_2D, 0)
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                                   self.pick_depth_texture, 0)
             glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
     def resizeGL(self, width, height):
@@ -291,6 +299,11 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             glBindTexture(GL_TEXTURE_2D, self.pick_texture)
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                          None)
+            glBindTexture(GL_TEXTURE_2D, 0)
+        if self.pick_depth_texture is not None:
+            glBindTexture(GL_TEXTURE_2D, self.pick_depth_texture)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT,
+                         GL_FLOAT, None)
             glBindTexture(GL_TEXTURE_2D, 0)
 
     @catch_exception
