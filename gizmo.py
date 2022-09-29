@@ -21,7 +21,8 @@ AXIS_Z = 2
 X_COLOR = (233 / 255, 56 / 255, 79 / 255, 1.0)
 Y_COLOR = (130 / 255, 204 / 255, 26 / 255, 1.0)
 Z_COLOR = (48 / 255, 132 / 255, 235 / 255, 1.0)
-MIDDLE = (0.5, 0.5, 0.5, 1.0)
+MIDDLE_COLOR = (0.5, 0.5, 0.5, 1.0)
+HOVER_COLOR = (248 / 255, 185 / 255, 0 / 255, 1.0)
 
 
 class Gizmo(Model):
@@ -75,11 +76,12 @@ class Gizmo(Model):
 
     def render_collision_check(self, scale, is3d=True):
         if not self.hidden:
+            glClear(GL_DEPTH_BUFFER_BIT)
             glPushMatrix()
             glTranslatef(self.position.x, -self.position.z, self.position.y)
             glScalef(scale, scale, scale)
 
-            named_meshes = self.collision.named_meshes
+            named_meshes = self.named_meshes if is3d else self.collision.named_meshes
 
             named_meshes["gizmo_x"].render_colorid(0x1)
             if is3d: named_meshes["gizmo_y"].render_colorid(0x2)
@@ -119,40 +121,41 @@ class Gizmo(Model):
         glEnd()
 
     @catch_exception
-    def render(self, is3d=True):
-        if not self.hidden:
-            glColor4f(*X_COLOR)
+    def render(self, is3d=True, hover_id=0xFF):
+        if self.hidden:
+            return
+
+        handle_hit = any(self.was_hit.values())
+
+        if not handle_hit or self.was_hit["gizmo_x"]:
+            glColor4f(*X_COLOR if hover_id != 0x1 else HOVER_COLOR)
             self.named_meshes["gizmo_x"].render()
-            if is3d: self.named_meshes["rotation_x"].render()
-
-
-
-            glColor4f(*Y_COLOR)
-            if is3d: self.named_meshes["gizmo_y"].render()
-            self.named_meshes["rotation_y"].render()
-            glColor4f(*Z_COLOR)
+        if is3d and (not handle_hit or self.was_hit["gizmo_y"]):
+            glColor4f(*Y_COLOR if hover_id != 0x2 else HOVER_COLOR)
+            self.named_meshes["gizmo_y"].render()
+        if not handle_hit or self.was_hit["gizmo_z"]:
+            glColor4f(*Z_COLOR if hover_id != 0x3 else HOVER_COLOR)
             self.named_meshes["gizmo_z"].render()
-            if is3d: self.named_meshes["rotation_z"].render()
-            glColor4f(*MIDDLE)
-            if not is3d: self.named_meshes["middle"].render()
-            """for mesh in self.mesh_list:
-                if "_x" in mesh.name:
-                    glColor4f(1.0, 0.0, 0.0, 1.0)
 
-                elif "_y" in mesh.name:
-                    glColor4f(0.0, 1.0, 0.0, 1.0)
+        if is3d and (not handle_hit or self.was_hit["rotation_x"]):
+            glColor4f(*X_COLOR if hover_id != 0x4 else HOVER_COLOR)
+            self.named_meshes["rotation_x"].render()
+        if not handle_hit or self.was_hit["rotation_y"]:
+            glColor4f(*Y_COLOR if hover_id != 0x5 else HOVER_COLOR)
+            self.named_meshes["rotation_y"].render()
+        if is3d and (not handle_hit or self.was_hit["rotation_z"]):
+            glColor4f(*Z_COLOR if hover_id != 0x6 else HOVER_COLOR)
+            self.named_meshes["rotation_z"].render()
 
-                elif "_z" in mesh.name:
-                    glColor4f(0.0, 0.0, 1.0, 1.0)
+        if not is3d and (not handle_hit or self.was_hit["middle"]):
+            glColor4f(*MIDDLE_COLOR if hover_id != 0x7 else HOVER_COLOR)
+            self.named_meshes["middle"].render()
 
-                else:
-                    glColor4f(0.5, 0.5, 0.5, 1.0)
-                mesh.render()"""
-
-    def render_scaled(self, scale, is3d=True):
+    def render_scaled(self, scale, is3d=True, hover_id=0xFF):
         glPushMatrix()
         glTranslatef(self.position.x, -self.position.z, self.position.y)
 
+        glLineWidth(2)
         if self.render_axis == AXIS_X:
             glColor4f(*X_COLOR)
             self._draw_line(Vector3(-99999, 0, 0), Vector3(99999, 0, 0))
@@ -162,10 +165,12 @@ class Gizmo(Model):
         elif self.render_axis == AXIS_Z:
             glColor4f(*Z_COLOR)
             self._draw_line(Vector3(0, -99999, 0), Vector3(0, 99999, 0))
+        glLineWidth(1)
+
         glClear(GL_DEPTH_BUFFER_BIT)
         glScalef(scale, scale, scale)
         if not self.hidden:
-            self.render(is3d)
+            self.render(is3d, hover_id=hover_id)
 
 
         glPopMatrix()

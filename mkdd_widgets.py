@@ -10,7 +10,7 @@ import json
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
-from PyQt5.QtGui import QMouseEvent, QWheelEvent, QPainter, QColor, QFont, QFontMetrics, QPolygon, QImage, QPixmap, QKeySequence
+from PyQt5.QtGui import QCursor, QMouseEvent, QWheelEvent, QPainter, QColor, QFont, QFontMetrics, QPolygon, QImage, QPixmap, QKeySequence
 from PyQt5.QtWidgets import (QWidget, QListWidget, QListWidgetItem, QDialog, QMenu, QLineEdit,
                             QMdiSubWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QTextEdit, QAction, QShortcut)
 import PyQt5.QtWidgets as QtWidgets
@@ -184,6 +184,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self._lasttime = 0
 
         self._frame_invalid = False
+        self._mouse_pos_changed = False
 
         self.MOVE_UP = 0
         self.MOVE_DOWN = 0
@@ -345,11 +346,21 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.logic(timedelta, diff)
 
         if diff > 1 / 60.0:
-            if self._frame_invalid:
+            check_gizmo_hover_id = self._mouse_pos_changed and self.should_check_gizmo_hover_id()
+            self._mouse_pos_changed = False
+
+            if self._frame_invalid or check_gizmo_hover_id:
                 self.update()
                 self._lastrendertime = now
                 self._frame_invalid = False
         self._lasttime = now
+
+    def should_check_gizmo_hover_id(self):
+        if self.gizmo.hidden or self.gizmo.was_hit_at_all:
+            return False
+
+        return (not QtWidgets.QApplication.mouseButtons()
+                and not QtWidgets.QApplication.keyboardModifiers())
 
     def handle_arrowkey_scroll(self, timedelta):
         if self.selectionbox_projected_coords is not None:
@@ -484,6 +495,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.rotation_is_pressed = False
 
         self._frame_invalid = False
+        self._mouse_pos_changed = False
 
         self.MOVE_UP = 0
         self.MOVE_DOWN = 0
@@ -628,12 +640,21 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
         self.gizmo_scale = gizmo_scale
 
+        check_gizmo_hover_id = self.should_check_gizmo_hover_id()
+
         # If multisampling is enabled, the draw/read operations need to happen on the mono-sampled
         # framebuffer.
-        use_pick_framebuffer = self.selectionqueue and self.samples > 1
+        use_pick_framebuffer = (self.selectionqueue or check_gizmo_hover_id) and self.samples > 1
         if use_pick_framebuffer:
             glBindFramebuffer(GL_FRAMEBUFFER, self.pick_framebuffer)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        gizmo_hover_id = 0xFF
+        if not self.selectionqueue and check_gizmo_hover_id:
+            self.gizmo.render_collision_check(gizmo_scale, is3d=self.mode == MODE_3D)
+            mouse_pos = self.mapFromGlobal(QCursor.pos())
+            pixels = glReadPixels(mouse_pos.x(), self.canvas_height - mouse_pos.y(), 1, 1, GL_RGB, GL_UNSIGNED_BYTE)
+            gizmo_hover_id = pixels[2]
 
         #print(self.gizmo.position, campos)
         vismenu: FilterViewMenu = self.visibility_menu
@@ -1138,7 +1159,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
             glEnd()"""
 
-        self.gizmo.render_scaled(gizmo_scale, is3d=self.mode == MODE_3D)
+        self.gizmo.render_scaled(gizmo_scale, is3d=self.mode == MODE_3D, hover_id=gizmo_hover_id)
+
         glDisable(GL_DEPTH_TEST)
         if self.selectionbox_start is not None and self.selectionbox_end is not None:
             #print("drawing box")
@@ -1185,6 +1207,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
     @catch_exception
     def mouseMoveEvent(self, event):
         self.usercontrol.handle_move(event)
+
+        self._mouse_pos_changed = True
 
     @catch_exception
     def mouseReleaseEvent(self, event):
