@@ -119,6 +119,7 @@ class TopdownSelect(ClickDragAction):
         selectstartx, selectstartz = editor.mouse_coord_to_world_coord(x, y)
 
         editor.selectionbox_start = (selectstartx, selectstartz)
+        editor.selectionbox_end = None
 
         if editor.level_file is not None:
             editor.selectionqueue.queue_selection(x, y, 1, 1,
@@ -307,6 +308,7 @@ class Select3D(ClickDragAction):
 
         ray = editor.create_ray_from_mouseclick(event.x(), event.y())
         editor.selectionbox_projected_origin = ray.origin + ray.direction*ufac# * 0.1
+        editor.selectionbox_projected_coords = None
 
     def move(self, editor, buttons, event):
         upleft = editor.create_ray_from_mouseclick(self.first_click.x, event.y())
