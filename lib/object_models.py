@@ -132,6 +132,7 @@ class ObjectModels(object):
         glTranslatef(position.x, -position.z, position.y)
         mtx = rotation.mtx
         glMultMatrixf(mtx)
+        glTranslatef(0, 0, scale.y / 2)
         glScalef(-scale.z, scale.x, scale.y)
         self.wireframe_cube.render()
         glPopMatrix()
