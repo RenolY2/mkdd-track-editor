@@ -463,6 +463,11 @@ class GenEditor(QMainWindow):
         self.collision_load_bmd_action = QAction("Load BMD", self)
         self.collision_load_bmd_action.triggered.connect(self.button_load_collision_bmd)
         self.collision_menu.addAction(self.collision_load_bmd_action)
+        self.collision_menu.addSeparator()
+        cull_faces_action = self.collision_menu.addAction("Cull Faces")
+        cull_faces_action.setCheckable(True)
+        cull_faces_action.setChecked(self.editorconfig.get("cull_faces") == "True")
+        cull_faces_action.triggered.connect(self.on_cull_faces_triggered)
 
         self.minimap_menu = QMenu(self.menubar)
         self.minimap_menu.setTitle("Minimap")
@@ -946,6 +951,13 @@ class GenEditor(QMainWindow):
         self.editorconfig["filter_view"] = ','.join(filters)
         save_cfg(self.configuration)
 
+        self.level_view.do_redraw()
+
+    def on_cull_faces_triggered(self, checked):
+        self.editorconfig["cull_faces"] = "True" if checked else "False"
+        save_cfg(self.configuration)
+
+        self.level_view.cull_faces = bool(checked)
         self.level_view.do_redraw()
 
     def change_to_topdownview(self, checked):

@@ -105,7 +105,7 @@ class TexturedMesh(object):
         glEndList()
         self._displist = displist
 
-    def render(self, selected=False):
+    def render(self, selected=False, cull_faces=False):
         if self._displist is None:
             self.generate_displist()
 
@@ -123,14 +123,35 @@ class TexturedMesh(object):
         else:
             glColor4f(*selectioncolor)
 
+        if cull_faces and self.material.cull_mode is not None:
+            glEnable(GL_CULL_FACE)
+            glFrontFace(GL_CW)
+            glCullFace(self.material.cull_mode)
+
         glCallList(self._displist)
 
-    def render_coloredid(self, id):
+        if cull_faces and self.material.cull_mode is not None:
+            glCullFace(GL_BACK)
+            glFrontFace(GL_CCW)
+            glDisable(GL_CULL_FACE)
+
+    def render_coloredid(self, id, cull_faces=False):
 
         if self._displist is None:
             self.generate_displist()
         glColor3ub((id >> 16) & 0xFF, (id >> 8) & 0xFF, (id >> 0) & 0xFF)
+
+        if cull_faces and self.material.cull_mode is not None:
+            glEnable(GL_CULL_FACE)
+            glFrontFace(GL_CW)
+            glCullFace(self.material.cull_mode)
+
         glCallList(self._displist)
+
+        if cull_faces and self.material.cull_mode is not None:
+            glCullFace(GL_BACK)
+            glFrontFace(GL_CCW)
+            glDisable(GL_CULL_FACE)
 
 
 class Material(object):
@@ -168,6 +189,8 @@ class Material(object):
             self.tex = None
 
         self.diffuse = diffuse
+
+        self.cull_mode = GL_BACK
 
 
 class Model(object):
@@ -253,13 +276,13 @@ class TexturedModel(object):
     def __init__(self):
         self.mesh_list = []
 
-    def render(self, selected=False, selectedPart=None):
+    def render(self, selected=False, selectedPart=None, cull_faces=False):
         for mesh in self.mesh_list:
-            mesh.render(selected)
+            mesh.render(selected, cull_faces=cull_faces)
 
-    def render_coloredid(self, id):
+    def render_coloredid(self, id, cull_faces=False):
         for mesh in self.mesh_list:
-            mesh.render_coloredid(id)
+            mesh.render_coloredid(id, cull_faces=cull_faces)
 
     #def render_coloredid(self, id):
     #    glColor3ub((id >> 16) & 0xFF, (id >> 8) & 0xFF, (id >> 0) & 0xFF)
@@ -291,6 +314,14 @@ class TexturedModel(object):
         currmat = None
 
         objpath = os.path.dirname(objfilepath)
+
+        try:
+            with open(os.path.join(objpath, "temp_materials.json")) as f:
+                materials_json = json.load(f)
+            materials_json = {entry["Name"]: entry for entry in materials_json}
+        except Exception:
+            materials_json = {}
+
         with open(objfilepath, "r") as f:
             for line in f:
                 line = line.strip()
@@ -338,6 +369,17 @@ class TexturedModel(object):
                             materials[lastmat] = Material(diffuse=lastdiffuse, texturepath=lasttex)
                             lastdiffuse = None
                             lasttex = None
+
+                    for mtlname, material in materials.items():
+                        material_json = materials_json.get(mtlname)
+                        if material_json is not None:
+                            culmode_str = material_json.get("CullMode", "Back")
+                            if culmode_str == "Back":
+                                material.cull_mode = GL_BACK
+                            elif culmode_str == "Front":
+                                material.cull_mode = GL_FRONT
+                            else:
+                                material.cull_mode = None
 
                 elif cmd == "usemtl":
                     mtlname = " ".join(args[1:])
@@ -1092,7 +1134,7 @@ class CollisionModel(object):
         glLinkProgram(program)
         self.program = program
 
-    def render(self, selected=False, selectedPart=None):
+    def render(self, selected=False, selectedPart=None, cull_faces=None):
         if self.program is None:
             self.generate_displists()
         factorval = glGetUniformLocation(self.program, "interpolate")
