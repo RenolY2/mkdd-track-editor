@@ -96,9 +96,23 @@ class TexturedMesh(object):
 
         for triangle in self.triangles:
             assert len(triangle) == 3
+
+            # At this time, SuperBMD does not export vertex normals in the OBJ file. For now, a
+            # generated normal for the triangle will be provided.
+            v0 = Vector3(*self.vertex_positions[triangle[0][0]])
+            v1 = Vector3(*self.vertex_positions[triangle[1][0]])
+            v2 = Vector3(*self.vertex_positions[triangle[2][0]])
+            vn = (v1 - v0).cross(v2 - v0)
+            if not vn.norm():
+                # Implies that the points of the faces are colinear (don't form a triangle) and
+                # can be skipped. Several of these have been spotted in the stock Bowser's Castle.
+                continue
+            vn.normalize()
+
             for vi, ti in triangle:
                 if self.material.tex is not None and ti is not None:
                     glTexCoord2f(*self.vertex_texcoords[ti])
+                glNormal3f(vn.x, vn.y, vn.z)
                 glVertex3f(*self.vertex_positions[vi])
 
         glEnd()
