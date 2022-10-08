@@ -69,12 +69,12 @@ class CheckpointGroup(ObjectGroup):
 
 class ObjectPointGroup(ObjectGroup):
     def __init__(self, parent, bound_to):
-        super().__init__("Object Path", parent=parent, bound_to=bound_to)
+        super().__init__("Route", parent=parent, bound_to=bound_to)
         self.update_name()
 
     def update_name(self):
         index = self.parent().indexOfChild(self)
-        self.setText(0, "Object Path {0}".format(index))
+        self.setText(0, "Route {0}".format(index))
 
 
 # Entries in groups or entries without groups
@@ -148,7 +148,7 @@ class ObjectRoutePoint(NamedItem):
 
         index = group.points.index(self.bound_to)
 
-        self.setText(0, "Object Point {0}".format(index))
+        self.setText(0, "Route Point {0}".format(index))
 
 
 class ObjectEntry(NamedItem):
@@ -220,7 +220,7 @@ class LevelDataTreeView(QTreeWidget):
 
         self.enemyroutes = self._add_group("Enemy Paths")
         self.checkpointgroups = self._add_group("Checkpoint Groups")
-        self.objectroutes = self._add_group("Object Paths")
+        self.routes = self._add_group("Routes")
         self.objects = self._add_group("Objects", ObjectGroupObjects)
         self.kartpoints = self._add_group("Kart Start Points")
         self.areas = self._add_group("Areas")
@@ -310,7 +310,7 @@ class LevelDataTreeView(QTreeWidget):
     def reset(self):
         self.enemyroutes.remove_children()
         self.checkpointgroups.remove_children()
-        self.objectroutes.remove_children()
+        self.routes.remove_children()
         self.objects.remove_children()
         self.kartpoints.remove_children()
         self.areas.remove_children()
@@ -335,10 +335,10 @@ class LevelDataTreeView(QTreeWidget):
                 point_item = Checkpoint(group_item, "Checkpoint", point)
 
         for route in boldata.routes:
-            route_item = ObjectPointGroup(self.objectroutes, route)
+            route_item = ObjectPointGroup(self.routes, route)
 
             for point in route.points:
-                point_item = ObjectRoutePoint(route_item, "Object route point", point)
+                point_item = ObjectRoutePoint(route_item, "Route Point", point)
 
         for object in boldata.objects.objects:
             object_item = ObjectEntry(self.objects, "Object", object)

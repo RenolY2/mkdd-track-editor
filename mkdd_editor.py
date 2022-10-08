@@ -294,10 +294,24 @@ class GenEditor(QMainWindow):
             for enemy_path in self.level_file.enemypointgroups.groups:
                 for enemy_path_point in enemy_path.points:
                     extend(enemy_path_point.position)
-        if self.visibility_menu.itemroutes.is_visible():
-            for object_route in self.level_file.routes:
+
+        visible_objectroutes = self.visibility_menu.objectroutes.is_visible()
+        visible_cameraroutes = self.visibility_menu.cameraroutes.is_visible()
+        visible_unassignedroutes = self.visibility_menu.unassignedroutes.is_visible()
+
+        if visible_objectroutes or visible_cameraroutes or visible_unassignedroutes:
+            camera_routes = set(camera.route for camera in self.level_file.cameras)
+            object_routes = set(obj.pathid for obj in self.level_file.objects.objects)
+            assigned_routes = camera_routes.union(object_routes)
+
+            for i, object_route in enumerate(self.level_file.routes):
+                if (not ((i in object_routes and visible_objectroutes) or
+                         (i in camera_routes and visible_cameraroutes) or
+                         (i not in assigned_routes and visible_unassignedroutes))):
+                    continue
                 for object_route_point in object_route.points:
                     extend(object_route_point.position)
+
         if self.visibility_menu.checkpoints.is_visible():
             for checkpoint_group in self.level_file.checkpoints.groups:
                 for checkpoint in checkpoint_group.points:
@@ -2086,8 +2100,8 @@ class GenEditor(QMainWindow):
                             break
 
                 elif isinstance(currentobj, libbol.RoutePoint):
-                    for i in range(self.leveldatatreeview.objectroutes.childCount()):
-                        child = self.leveldatatreeview.objectroutes.child(i)
+                    for i in range(self.leveldatatreeview.routes.childCount()):
+                        child = self.leveldatatreeview.routes.child(i)
                         item = get_treeitem(child, currentobj)
                         if item is not None:
                             break

@@ -700,13 +700,13 @@ class ObjectEdit(DataEditor):
         self.rotation = self.add_rotation_input()
         self.objectid = self.add_dropdown_input("Object Type", "objectid", REVERSEOBJECTNAMES)
 
-        self.pathid = self.add_integer_input("Object Path ID", "pathid",
+        self.pathid = self.add_integer_input("Route ID", "pathid",
                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
 
         self.unk_28 = self.add_integer_input("Unknown 0x28", "unk_28",
                                              MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
 
-        self.unk_2a = self.add_integer_input("Object Path Point ID", "unk_2a",
+        self.unk_2a = self.add_integer_input("Route Point ID", "unk_2a",
                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.presence_filter = self.add_integer_input("Presence Mask", "presence_filter",
                                                       MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
@@ -907,7 +907,7 @@ class CameraEdit(DataEditor):
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.unk3 = self.add_integer_input("Unknown 3", "unk3",
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-        self.route = self.add_integer_input("Object Path ID", "route",
+        self.route = self.add_integer_input("Route ID", "route",
                                             MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.routespeed = self.add_integer_input("Route Speed", "routespeed",
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)

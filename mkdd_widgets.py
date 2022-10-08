@@ -689,10 +689,21 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
                 offset = len(objlist)
 
-                if vismenu.itemroutes.is_selectable():
+                selectable_objectroutes = vismenu.objectroutes.is_selectable()
+                selectable_cameraroutes = vismenu.cameraroutes.is_selectable()
+                selectable_unassignedroutes = vismenu.unassignedroutes.is_selectable()
+
+                if selectable_objectroutes or selectable_cameraroutes or selectable_unassignedroutes:
+                    camera_routes = set(camera.route for camera in self.level_file.cameras)
+                    object_routes = set(obj.pathid for obj in self.level_file.objects.objects)
+                    assigned_routes = camera_routes.union(object_routes)
                     i = 0
-                    for route in self.level_file.routes:
+                    for idx, route in enumerate(self.level_file.routes):
                         for obj in route.points:
+                            if (not ((idx in object_routes and selectable_objectroutes) or
+                                     (idx in camera_routes and selectable_cameraroutes) or
+                                     (idx not in assigned_routes and selectable_unassignedroutes))):
+                                continue
                             objlist.append((obj, obj.position, None, None))
                             self.models.render_generic_position_colored_id(obj.position, id + (offset+i) * 4)
                             i += 1
@@ -847,22 +858,45 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             #for pikminobject in objects:
             #    self.models.render_object(pikminobject, pikminobject in selected)
 
-            vismenu = self.visibility_menu
-            if vismenu.itemroutes.is_visible():
+            visible_objectroutes = vismenu.objectroutes.is_visible()
+            visible_cameraroutes = vismenu.cameraroutes.is_visible()
+            visible_unassignedroutes = vismenu.unassignedroutes.is_visible()
+
+            if visible_objectroutes or visible_cameraroutes or visible_unassignedroutes:
                 routes_to_highlight = set()
+                camera_routes = set()
+                object_routes = set()
+
                 for camera in self.level_file.cameras:
                     if camera.route >= 0 and camera in select_optimize:
                         routes_to_highlight.add(camera.route)
+                    camera_routes.add(camera.route)
 
                 for obj in self.level_file.objects.objects:
                     if obj.pathid >= 0 and obj in select_optimize:
                         routes_to_highlight.add(obj.pathid)
+                    object_routes.add(obj.pathid)
+
+                assigned_routes = camera_routes.union(object_routes)
+                shared_routes = camera_routes.intersection(object_routes)
 
                 for i, route in enumerate(self.level_file.routes):
+                    if (not ((i in object_routes and visible_objectroutes) or
+                             (i in camera_routes and visible_cameraroutes) or
+                             (i not in assigned_routes and visible_unassignedroutes))):
+                        continue
+
                     selected = i in routes_to_highlight
+                    route_color = "unassignedroute"
+                    if i in shared_routes:
+                        route_color = "sharedroute"
+                    elif i in object_routes:
+                        route_color = "objectroute"
+                    elif i in camera_routes:
+                        route_color = "cameraroute"
                     for point in route.points:
                         point_selected = point in select_optimize
-                        self.models.render_generic_position_colored(point.position, point_selected, "itempoint")
+                        self.models.render_generic_position_colored(point.position, point_selected, route_color)
                         selected = selected or point_selected
 
                     if selected:
@@ -1321,7 +1355,9 @@ class FilterViewMenu(QMenu):
         self.addAction(self.hide_all)
 
         self.enemyroute = ObjectViewSelectionToggle("Enemy Routes", self)
-        self.itemroutes = ObjectViewSelectionToggle("Object Routes", self)
+        self.objectroutes = ObjectViewSelectionToggle("Object Routes", self)
+        self.cameraroutes = ObjectViewSelectionToggle("Camera Routes", self)
+        self.unassignedroutes = ObjectViewSelectionToggle("Unassigned Routes", self)
         self.checkpoints = ObjectViewSelectionToggle("Checkpoints", self)
         self.objects = ObjectViewSelectionToggle("Objects", self)
         self.areas = ObjectViewSelectionToggle("Areas", self)
@@ -1336,7 +1372,9 @@ class FilterViewMenu(QMenu):
 
     def get_entries(self):
         return (self.enemyroute,
-                self.itemroutes,
+                self.objectroutes,
+                self.cameraroutes,
+                self.unassignedroutes,
                 self.checkpoints,
                 self.objects,
                 self.areas,
