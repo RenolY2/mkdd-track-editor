@@ -850,10 +850,28 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             if self.alternative_mesh is None:
                 glCallList(self.main_model)
             else:
+                if self.mode != MODE_TOPDOWN:
+                    light0_position = (campos.x, -campos.z, campos.y, 1.0)
+                    light0_diffuse = (5.0, 5.0, 5.0, 1.0)
+                    light0_specular = (0.8, 0.8, 0.8, 1.0)
+                    light0_ambient = (1.8, 1.8, 1.8, 1.0)
+                    glLightfv(GL_LIGHT0, GL_POSITION, light0_position)
+                    glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_diffuse)
+                    glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_specular)
+                    glLightfv(GL_LIGHT0, GL_AMBIENT, light0_ambient)
+                    glShadeModel(GL_SMOOTH)
+                    glEnable(GL_LIGHT0)
+                    glEnable(GL_RESCALE_NORMAL)
+                    glEnable(GL_NORMALIZE)
+                    glEnable(GL_LIGHTING)
+
                 glPushMatrix()
                 glScalef(1.0, -1.0, 1.0)
                 self.alternative_mesh.render(selectedPart=self.highlight_colltype)
                 glPopMatrix()
+
+                if self.mode != MODE_TOPDOWN:
+                    glDisable(GL_LIGHTING)
 
         glDisable(GL_TEXTURE_2D)
         glColor4f(1.0, 1.0, 1.0, 1.0)
