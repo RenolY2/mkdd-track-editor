@@ -170,6 +170,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.spawnpoint = None
         self.alternative_mesh = None
         self.highlight_colltype = None
+        self.cull_faces = False
 
         self.shift_is_pressed = False
         self.rotation_is_pressed = False
@@ -867,7 +868,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
                 glPushMatrix()
                 glScalef(1.0, -1.0, 1.0)
-                self.alternative_mesh.render(selectedPart=self.highlight_colltype)
+                self.alternative_mesh.render(selectedPart=self.highlight_colltype,
+                                             cull_faces=self.cull_faces)
                 glPopMatrix()
 
                 if self.mode != MODE_TOPDOWN:
