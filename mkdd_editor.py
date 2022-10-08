@@ -1814,6 +1814,7 @@ class GenEditor(QMainWindow):
             pos.y += deltay
             pos.z += deltaz
 
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
 
         #if len(self.pikmin_gen_view.selected) == 1:
         #    obj = self.pikmin_gen_view.selected[0]

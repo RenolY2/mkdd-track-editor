@@ -119,6 +119,7 @@ class TopdownSelect(ClickDragAction):
         selectstartx, selectstartz = editor.mouse_coord_to_world_coord(x, y)
 
         editor.selectionbox_start = (selectstartx, selectstartz)
+        editor.selectionbox_end = None
 
         if editor.level_file is not None:
             editor.selectionqueue.queue_selection(x, y, 1, 1,
@@ -157,7 +158,6 @@ class Gizmo2DMoveX(ClickDragAction):
 
     def move(self, editor, buttons, event):
         if editor.gizmo.was_hit["gizmo_x"]:
-            editor.gizmo.hidden = True
             editor.gizmo.set_render_axis(AXIS_X)
             delta_x = event.x() - self.first_click.x
             self.first_click = Vector2(event.x(), event.y())
@@ -165,7 +165,6 @@ class Gizmo2DMoveX(ClickDragAction):
 
     def just_released(self, editor, buttons, event):
         super().just_released(editor, buttons, event)
-        editor.gizmo.hidden = False
         editor.gizmo.reset_axis()
         editor.gizmo.move_to_average(editor.selected_positions)
 
@@ -173,7 +172,6 @@ class Gizmo2DMoveX(ClickDragAction):
 class Gizmo2DMoveXZ(Gizmo2DMoveX):
     def move(self, editor, buttons, event):
         if editor.gizmo.was_hit["middle"]:
-            editor.gizmo.hidden = True
             #editor.gizmo.set_render_axis(AXIS_X)
             delta_x = event.x() - self.first_click.x
             delta_z = event.y() - self.first_click.y
@@ -184,7 +182,6 @@ class Gizmo2DMoveXZ(Gizmo2DMoveX):
 class Gizmo2DMoveZ(Gizmo2DMoveX):
     def move(self, editor, buttons, event):
         if editor.gizmo.was_hit["gizmo_z"]:
-            editor.gizmo.hidden = True
             editor.gizmo.set_render_axis(AXIS_Z)
             delta_z = event.y() - self.first_click.y
             self.first_click = Vector2(event.x(), event.y())
@@ -194,12 +191,9 @@ class Gizmo2DMoveZ(Gizmo2DMoveX):
 class Gizmo2DRotateY(Gizmo2DMoveX):
     def just_clicked(self, editor, buttons, event):
         super().just_clicked(editor, buttons, event)
-        self.was_hidden = False
 
     def move(self, editor, buttons, event):
         if editor.gizmo.was_hit["rotation_y"]:
-            editor.gizmo.hidden = True
-            self.was_hidden = True
             #editor.gizmo.set_render_axis(AXIS_Z)
 
             x, y = editor.mouse_coord_to_world_coord(self.first_click.x, self.first_click.y)
@@ -216,8 +210,6 @@ class Gizmo2DRotateY(Gizmo2DMoveX):
 
     def just_released(self, editor, buttons, event):
         super().just_released(editor, buttons, event)
-        if self.was_hidden:
-            editor.gizmo.hidden = False
         editor.gizmo.reset_axis()
         #editor.gizmo.move_to_average(editor.selected)
 
@@ -307,6 +299,7 @@ class Select3D(ClickDragAction):
 
         ray = editor.create_ray_from_mouseclick(event.x(), event.y())
         editor.selectionbox_projected_origin = ray.origin + ray.direction*ufac# * 0.1
+        editor.selectionbox_projected_coords = None
 
     def move(self, editor, buttons, event):
         upleft = editor.create_ray_from_mouseclick(self.first_click.x, event.y())
@@ -385,7 +378,6 @@ class Gizmo3DMoveX(Gizmo2DMoveX):
 
     def move(self, editor, buttons, event):
         if editor.gizmo.was_hit[self.axis_name]:
-            editor.gizmo.hidden = True
             editor.gizmo.set_render_axis(self.axis)
 
             proj = numpy.dot(editor.modelviewmatrix, self.dir)
@@ -448,8 +440,6 @@ class Gizmo3DRotateY(Gizmo2DRotateY):
 
     def move(self, editor, buttons, event):
         if editor.gizmo.was_hit[self.axis_name]:
-            editor.gizmo.hidden = True
-
             proj = numpy.dot(editor.mvp_mat, numpy.array([
                 editor.gizmo.position.x,
                 -editor.gizmo.position.z,
