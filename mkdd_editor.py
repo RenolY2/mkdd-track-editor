@@ -66,7 +66,16 @@ def detect_dol_region(dol):
     else:
         if dol.read(5) == b"title":
             return "JP"
+    
+    try:
+        dol.seek(0x80419020)
+    except UnmappedAddress:
+        pass
+    else:
+        if dol.read(5) == b"title":
+            return "US_DEBUG"
 
+    
     raise RuntimeError("Unsupported DOL version/region")
 
 
