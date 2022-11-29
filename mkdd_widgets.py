@@ -1031,7 +1031,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                     color_components[2] += 0.5
                     glColor3f(*color_components)
                     for groupB in self.level_file.enemypointgroups.groups:
-                        if group is groupB:
+                        if group is groupB or len(groupB.points) == 0:
                             continue
                         pointB = groupB.points[0]
                         if pointA.link == pointB.link:
