@@ -46,6 +46,8 @@ class Game(object):
         self.last_kart_z = None
 
         self.last_angles = []
+        
+        self.region = None
 
     def initialize(self):
         self.stay_focused_on_player = -1
@@ -70,8 +72,14 @@ class Game(object):
         if gameid != b"GM4E":
             gameid_str = str(gameid, encoding="ascii")
             return f"Game doesn't seem to be MKDD: Found Game ID '{gameid_str}'."
-
-        print("Success!")
+        
+        stringcheck = self.dolphin.read_ram(0x80419020-0x80000000, 5)
+        if stringcheck == b"title":
+            self.region = "US_DEBUG"
+        else:
+            self.region = "US"
+        
+        print("Success! Detected region", self.region)
         return ""
 
     def render_visual(self, renderer: BolMapViewer, selected):
@@ -130,7 +138,11 @@ class Game(object):
     def logic(self, renderer: BolMapViewer, delta, diff):
         self.timer += delta
         if self.dolphin.initialized():
-            kartctrlPtr = self.dolphin.read_uint32(0x803CC588)
+            if self.region == "US":
+                kartctrlPtr = self.dolphin.read_uint32(0x803CC588)
+            elif self.region == "US_DEBUG":
+                kartctrlPtr = self.dolphin.read_uint32(0x804171a0)
+                
             if kartctrlPtr is None or not self.dolphin.address_valid(kartctrlPtr):
                 self.dolphin.reset()
                 for i in range(8):
