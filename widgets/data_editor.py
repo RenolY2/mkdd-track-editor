@@ -645,8 +645,6 @@ class BOLEdit(DataEditor):
                                            MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.shadow_color = self.add_multiple_integer_input("Shadow Color", "shadow_color", ["r", "g", "b"],
                                                             MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.unk4 = self.add_integer_input("Unknown 4", "unk4",
-                                           MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.unk5 = self.add_integer_input("Unknown 5", "unk5",
                                            MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.unk6 = self.add_integer_input("Unknown 6", "unk6",
@@ -676,7 +674,6 @@ class BOLEdit(DataEditor):
         self.unk1.setText(str(obj.unk1))
         self.unk2.setChecked(obj.unk2 != 0)
         self.unk3.setText(str(obj.unk3))
-        self.unk4.setText(str(obj.unk4))
         self.unk5.setText(str(obj.unk5))
         self.unk6.setText(str(obj.unk6))
         self.shadow_color[0].setText(str(obj.shadow_color.r))
