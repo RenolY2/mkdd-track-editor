@@ -3,7 +3,7 @@ import traceback
 import os
 from time import sleep
 from timeit import default_timer
-from io import StringIO
+from collections import namedtuple
 from math import sin, cos, atan2, radians, degrees, pi, tan
 import json
 
@@ -35,6 +35,8 @@ from editor_controls import UserControl
 from lib.libpath import Paths
 from lib.libbol import BOL
 import numpy
+
+ObjectSelectionEntry = namedtuple("ObjectSelectionEntry", ["obj", "pos1", "pos2", "pos3", "rotation"])
 
 MOUSE_MODE_NONE = 0
 MOUSE_MODE_MOVEWP = 1
@@ -704,7 +706,13 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                 objlist = []
                 offset = 0
                 if self.minimap is not None and vismenu.minimap.is_selectable() and self.minimap.is_available():
-                    objlist.append((self.minimap, self.minimap.corner1, self.minimap.corner2, None))
+                    objlist.append(
+                        ObjectSelectionEntry(obj=self.minimap,
+                                             pos1=self.minimap.corner1,
+                                             pos2=self.minimap.corner2,
+                                             pos3=None,
+                                             rotation=None)
+                    )
                     self.models.render_generic_position_colored_id(self.minimap.corner1, id + (offset) * 4)
                     self.models.render_generic_position_colored_id(self.minimap.corner2, id + (offset) * 4 + 1)
                     offset = 1
@@ -719,7 +727,13 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
                 if vismenu.enemyroute.is_selectable():
                     for i, obj in enumerate(self.level_file.enemypointgroups.points()):
-                        objlist.append((obj, obj.position, None, None))
+                        objlist.append(
+                            ObjectSelectionEntry(obj=obj,
+                                                 pos1=obj.position,
+                                                 pos2=None,
+                                                 pos3=None,
+                                                 rotation=None)
+                        )
                         self.models.render_generic_position_colored_id(obj.position, id + (offset+i) * 4)
 
                 offset = len(objlist)
@@ -739,7 +753,12 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                                      (idx in camera_routes and selectable_cameraroutes) or
                                      (idx not in assigned_routes and selectable_unassignedroutes))):
                                 continue
-                            objlist.append((obj, obj.position, None, None))
+                            objlist.append(
+                                ObjectSelectionEntry(obj=obj,
+                                                 pos1=obj.position,
+                                                 pos2=None,
+                                                 pos3=None,
+                                                 rotation=None))
                             self.models.render_generic_position_colored_id(obj.position, id + (offset+i) * 4)
                             i += 1
 
@@ -747,15 +766,44 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
 
                 if vismenu.checkpoints.is_selectable():
                     for i, obj in enumerate(self.level_file.objects_with_2positions()):
-                        objlist.append((obj, obj.start, obj.end, None))
+                        objlist.append(
+                            ObjectSelectionEntry(obj=obj,
+                                             pos1=obj.start,
+                                             pos2=obj.end,
+                                             pos3=None,
+                                             rotation=None))
                         self.models.render_generic_position_colored_id(obj.start, id+(offset+i)*4)
                         self.models.render_generic_position_colored_id(obj.end, id+(offset+i)*4 + 1)
+
+                offset = len(objlist)
+
+                if vismenu.cameras.is_selectable():
+                    for i, obj in enumerate(self.level_file.cameras):
+                        if obj in self.selected:
+                            objlist.append(
+                                ObjectSelectionEntry(obj=obj,
+                                                     pos1=obj.position,
+                                                     pos2=obj.position2,
+                                                     pos3=obj.position3,
+                                                     rotation=obj.rotation))
+                            self.models.render_generic_position_rotation_colored_id(obj.position, obj.rotation,
+                                                                                    id + (offset + i) * 4)
+                            self.models.render_generic_position_colored_id(obj.position2, id + (offset + i) * 4 + 1)
+                            self.models.render_generic_position_colored_id(obj.position3, id + (offset + i) * 4 + 2)
+                        else:
+                            objlist.append(
+                                ObjectSelectionEntry(obj=obj,
+                                                     pos1=obj.position,
+                                                     pos2=None,
+                                                     pos3=None,
+                                                     rotation=obj.rotation))
+                            self.models.render_generic_position_rotation_colored_id(obj.position, obj.rotation,
+                                                                                    id + (offset + i) * 4)
 
                 for is_selectable, collection in (
                         (vismenu.objects.is_selectable(), self.level_file.objects.objects),
                         (vismenu.kartstartpoints.is_selectable(), self.level_file.kartpoints.positions),
                         (vismenu.areas.is_selectable(), self.level_file.areas.areas),
-                        (vismenu.cameras.is_selectable(), self.level_file.cameras),
                         (vismenu.respawnpoints.is_selectable(), self.level_file.respawnpoints)
                         ):
                     offset = len(objlist)
@@ -763,9 +811,16 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         continue
 
                     for i, obj in enumerate(collection):
-                        objlist.append((obj, obj.position, None, obj.rotation))
+                        objlist.append(
+                            ObjectSelectionEntry(obj=obj,
+                                                 pos1=obj.position,
+                                                 pos2=None,
+                                                 pos3=None,
+                                                 rotation=obj.rotation))
                         self.models.render_generic_position_rotation_colored_id(obj.position, obj.rotation,
-                                                                                id + (offset + i) * 4 + 2)
+                                                                                id + (offset + i) * 4)
+                for entry in objlist:
+                    assert isinstance(entry, ObjectSelectionEntry)
 
                 assert len(objlist)*4 < id
                 print("We queued up", len(objlist))
@@ -784,7 +839,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         index = (upper << 16) | (pixels[i * 3 + 1] << 8) | pixels[i * 3 + 2]
                         indexes.add(index)
 
-                for index in indexes:
+                """for index in indexes:
                     entry = objlist[index // 4]
                     obj = entry[0]
 
@@ -803,7 +858,32 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                                 selected_rotations.append(entry[3])
                         elif selected[obj] == 2:
                             selected[obj] = 3
-                            selected_positions.append(entry[1])
+                            selected_positions.append(entry[1])"""
+
+                for index in indexes:
+                    entry: ObjectSelectionEntry = objlist[index // 4]
+                    obj = entry.obj
+                    if obj not in selected:
+                        selected[obj] = 0
+
+                    elements_exist = selected[obj]
+
+                    if index & 0b11 == 0:  # First object position
+                        if entry.pos1 is not None and (elements_exist & 1) == 0:
+                            selected_positions.append(entry.pos1)
+                            if entry.rotation is not None:
+                                selected_rotations.append(entry.rotation)
+                            elements_exist |= 1
+                    if index & 0b11 == 1:  # Second object position
+                        if entry.pos2 is not None and (elements_exist & 2) == 0:
+                            selected_positions.append(entry.pos2)
+                            elements_exist |= 2
+                    if index & 0b11 == 2:  # Third object position
+                        if entry.pos3 is not None and (elements_exist & 4) == 0:
+                            selected_positions.append(entry.pos3)
+                            elements_exist |= 4
+
+                    selected[obj] = elements_exist
 
                 #print("select time taken", default_timer() - start)
                 #print("result:", selected)
