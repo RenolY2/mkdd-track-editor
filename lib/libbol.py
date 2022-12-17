@@ -979,12 +979,12 @@ class BOL(object):
         self.fog_color = ColorRGB(0x64, 0x64, 0x64)
         self.fog_startz = 8000.0
         self.fog_endz = 230000.0
-        self.unk1 = 0
-        self.unk2 = 0
-        self.unk3 = 0
+        self.lod_bias = 0
+        self.dummy_start_line = 0
+        self.snow_effects = 0
+        self.shadow_opacity = 0
         self.starting_point_count = 0
-        self.unk5 = 0
-        self.unk6 = 0
+        self.sky_follow = 0
 
         self.shadow_color = ColorRGB(0x00, 0x00, 0x00)
 
@@ -1068,16 +1068,21 @@ class BOL(object):
 
         bol.fog_startz = read_float(f)
         bol.fog_endz = read_float(f)
-        bol.unk1 = read_uint16(f)
-        bol.unk2 = read_uint8(f)
-        bol.unk3 = read_uint8(f)
+        bol.lod_bias = read_uint8(f)
+        bol.dummy_start_line = read_uint8(f)
+        assert bol.lod_bias in (0, 1)
+        assert bol.dummy_start_line in (0, 1)
+        bol.snow_effects = read_uint8(f)
+        bol.shadow_opacity = read_uint8(f)
         bol.shadow_color = ColorRGB.from_file(f)
         bol.starting_point_count = read_uint8(f)
-        bol.unk5 = read_uint8(f)
+        bol.sky_follow = read_uint8(f)
+        assert bol.sky_follow in (0, 1)
 
         sectioncounts[LIGHTPARAM] = read_uint8(f)
         sectioncounts[MINIGAME] = read_uint8(f)
-        bol.unk6 = read_uint8(f)
+        padding = read_uint8(f)
+        assert padding == 0
 
         filestart = read_uint32(f)
         print(hex(f.tell()), filestart)
@@ -1158,13 +1163,13 @@ class BOL(object):
 
         f.write(pack(">B", self.fog_type))
         self.fog_color.write(f)
-        f.write(pack(">ffHBB",
+        f.write(pack(">ffBBBB",
                 self.fog_startz, self.fog_endz,
-                self.unk1, self.unk2, self.unk3))
+                self.lod_bias, self.dummy_start_line, self.snow_effects, self.shadow_opacity))
         self.shadow_color.write(f)
-        f.write(pack(">BB", len(self.kartpoints.positions), self.unk5))
+        f.write(pack(">BB", len(self.kartpoints.positions), self.sky_follow))
         f.write(pack(">BB", len(self.lightparams), len(self.mgentries)))
-        f.write(pack(">B", self.unk6))
+        f.write(pack(">B", 0))  # padding
 
         f.write(b"\x00"*4) # Filestart 0
 
