@@ -1719,7 +1719,7 @@ class GenEditor(QMainWindow):
                 elif isinstance(obj, libbol.LightParam):
                     self.level_file.lightparams.append(obj)
                 elif isinstance(obj, libbol.MGEntry):
-                    self.level_file.lightparams.append(obj)
+                    self.level_file.mgentries.append(obj)
 
                 self.addobjectwindow_last_selected_category = self.add_object_window.category_menu.currentIndex()
                 self.object_to_be_added = None
