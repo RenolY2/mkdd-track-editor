@@ -265,8 +265,11 @@ class AddPikObjectWindow(QDialog):
         self.hbox2.addWidget(self.position_edit)
         self.hbox2.addWidget(self.label3)
 
-        self.group_edit.setDisabled(True)
-        self.position_edit.setDisabled(True)
+        self.label1.setVisible(False)
+        self.label2.setVisible(False)
+        self.label3.setVisible(False)
+        self.group_edit.setVisible(False)
+        self.position_edit.setVisible(False)
 
 
         self.editor_widget = None
@@ -353,13 +356,13 @@ class AddPikObjectWindow(QDialog):
             self.created_object = objecttype.new()
 
             if isinstance(self.created_object, (libbol.Checkpoint, libbol.EnemyPoint, libbol.RoutePoint)):
-                self.group_edit.setDisabled(False)
-                self.position_edit.setDisabled(False)
+                self.group_edit.setVisible(True)
+                self.position_edit.setVisible(True)
                 self.group_edit.setText("0")
                 self.position_edit.setText("-1")
             else:
-                self.group_edit.setDisabled(True)
-                self.position_edit.setDisabled(True)
+                self.group_edit.setVisible(False)
+                self.position_edit.setVisible(False)
                 self.group_edit.clear()
                 self.position_edit.clear()
 
@@ -375,8 +378,12 @@ class AddPikObjectWindow(QDialog):
             del self.created_object
             self.created_object = None
             self.button_savetext.setDisabled(True)
-            self.position_edit.setDisabled(True)
-            self.group_edit.setDisabled(True)
+            self.position_edit.setVisible(False)
+            self.group_edit.setVisible(False)
+
+        self.label1.setVisible(self.position_edit.isVisible())
+        self.label2.setVisible(self.position_edit.isVisible())
+        self.label3.setVisible(self.position_edit.isVisible())
 
 class SpawnpointEditor(QMdiSubWindow):
     triggered = pyqtSignal(object)
