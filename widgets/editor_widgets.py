@@ -204,13 +204,7 @@ class ErrorAnalyzer(QMdiSubWindow):
                                 break
 
 
-class AddPikObjectWindow(QMdiSubWindow):
-    triggered = pyqtSignal(object)
-    closing = pyqtSignal()
-
-    def closeEvent(self, event):
-        self.closing.emit()
-        super().closeEvent(event)
+class AddPikObjectWindow(QDialog):
 
     @catch_exception
     def __init__(self, *args, **kwargs):
@@ -223,8 +217,6 @@ class AddPikObjectWindow(QMdiSubWindow):
         self.resize(900, 500)
         self.setMinimumSize(QSize(300, 300))
 
-        self.centralwidget = QWidget(self)
-        self.setWidget(self.centralwidget)
         self.entity = None
 
         font = QFont()
@@ -237,7 +229,7 @@ class AddPikObjectWindow(QMdiSubWindow):
         self.dummywidget.setMaximumSize(0,0)
 
 
-        self.verticalLayout = QVBoxLayout(self.centralwidget)
+        self.verticalLayout = QVBoxLayout(self)
         self.verticalLayout.setAlignment(Qt.AlignTop)
         self.verticalLayout.addWidget(self.dummywidget)
 
@@ -251,14 +243,14 @@ class AddPikObjectWindow(QMdiSubWindow):
         self.hbox2 = QHBoxLayout()
 
 
-        self.label1 = QLabel(self.centralwidget)
-        self.label2 = QLabel(self.centralwidget)
-        self.label3 = QLabel(self.centralwidget)
+        self.label1 = QLabel(self)
+        self.label2 = QLabel(self)
+        self.label3 = QLabel(self)
         self.label1.setText("Group")
         self.label2.setText("Position in Group")
         self.label3.setText("(-1 means end of Group)")
-        self.group_edit = QLineEdit(self.centralwidget)
-        self.position_edit = QLineEdit(self.centralwidget)
+        self.group_edit = QLineEdit(self)
+        self.position_edit = QLineEdit(self)
 
         self.group_edit.setValidator(QtGui.QIntValidator(0, 2**31-1))
         self.position_edit.setValidator(QtGui.QIntValidator(-1, 2**31-1))
@@ -283,11 +275,12 @@ class AddPikObjectWindow(QMdiSubWindow):
         self.editor_layout = QScrollArea()#QVBoxLayout(self.centralwidget)
         self.verticalLayout.addWidget(self.editor_layout)
         #self.textbox_xml = QTextEdit(self.centralwidget)
-        self.button_savetext = QPushButton(self.centralwidget)
+        self.button_savetext = QPushButton(self)
         self.button_savetext.setText("Add Object")
         self.button_savetext.setToolTip("Hotkey: Ctrl+S")
         self.button_savetext.setMaximumWidth(400)
         self.button_savetext.setDisabled(True)
+        self.button_savetext.clicked.connect(self.accept)
 
         self.verticalLayout.addWidget(self.button_savetext)
         self.setWindowTitle(self.window_name)

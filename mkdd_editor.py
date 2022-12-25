@@ -113,7 +113,8 @@ class GenEditor(QMainWindow):
 
         self.current_coordinates = None
         self.editing_windows = {}
-        self.add_object_window = None
+        self.add_object_window = AddPikObjectWindow(self)
+        self.add_object_window.setWindowIcon(self.windowIcon())
         self.object_to_be_added = None
 
         self.history = EditorHistory(20)
@@ -122,8 +123,6 @@ class GenEditor(QMainWindow):
         self._window_title = ""
         self._user_made_change = False
         self._justupdatingselectedobject = False
-
-        self.addobjectwindow_last_selected = None
 
         self.loaded_archive = None
         self.loaded_archive_file = None
@@ -194,10 +193,6 @@ class GenEditor(QMainWindow):
 
         self.editing_windows = {}
 
-        if self.add_object_window is not None:
-            self.add_object_window.destroy()
-            self.add_object_window = None
-
         if self.edit_spawn_window is not None:
             self.edit_spawn_window.destroy()
             self.edit_spawn_window = None
@@ -208,9 +203,6 @@ class GenEditor(QMainWindow):
         #self.pik_control.button_move_object.setChecked(False)
         self._window_title = ""
         self._user_made_change = False
-
-        self.addobjectwindow_last_selected = None
-        self.addobjectwindow_last_selected_category = None
 
     def set_base_window_title(self, name):
         self._window_title = name
@@ -1668,81 +1660,44 @@ class GenEditor(QMainWindow):
         self.set_has_unsaved_changes(True)
 
     def button_open_add_item_window(self):
-        if self.add_object_window is None:
-            self.add_object_window = AddPikObjectWindow()
-            self.add_object_window.button_savetext.clicked.connect(
-                lambda _checked: self.button_add_item_window_save())
-            self.add_object_window.closing.connect(self.button_add_item_window_close)
-            print("hmmm")
-            if self.addobjectwindow_last_selected is not None:
-                self.add_object_window.category_menu.setCurrentIndex(self.addobjectwindow_last_selected_category)
-                self.add_object_window.template_menu.setCurrentIndex(self.addobjectwindow_last_selected)
-
-            self.add_object_window.show()
-
-        elif self.level_view.mousemode == mkdd_widgets.MOUSE_MODE_ADDWP:
+        accepted = self.add_object_window.exec_()
+        if accepted:
+            self.add_item_window_save()
+        else:
             self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
             self.pik_control.button_add_object.setChecked(False)
 
     def shortcut_open_add_item_window(self):
-        if self.add_object_window is None:
-            self.add_object_window = AddPikObjectWindow()
-            self.add_object_window.button_savetext.clicked.connect(
-                lambda _checked: self.button_add_item_window_save())
-            self.add_object_window.closing.connect(self.button_add_item_window_close)
-            print("object")
-            if self.addobjectwindow_last_selected is not None:
-                self.add_object_window.category_menu.setCurrentIndex(self.addobjectwindow_last_selected_category)
-                self.add_object_window.template_menu.setCurrentIndex(self.addobjectwindow_last_selected)
+        self.button_open_add_item_window()
 
+    def add_item_window_save(self):
+        self.object_to_be_added = self.add_object_window.get_content()
+        if self.object_to_be_added is None:
+            return
 
-            self.add_object_window.show()
+        obj = self.object_to_be_added[0]
 
-    @catch_exception
-    def button_add_item_window_save(self):
-        print("ohai")
-        if self.add_object_window is not None:
-            self.object_to_be_added = self.add_object_window.get_content()
-            if self.object_to_be_added is None:
-                return
+        if isinstance(obj, (libbol.EnemyPointGroup, libbol.CheckpointGroup, libbol.Route,
+                            libbol.LightParam, libbol.MGEntry)):
+            if isinstance(obj, libbol.EnemyPointGroup):
+                self.level_file.enemypointgroups.groups.append(obj)
+            elif isinstance(obj, libbol.CheckpointGroup):
+                self.level_file.checkpoints.groups.append(obj)
+            elif isinstance(obj, libbol.Route):
+                self.level_file.routes.append(obj)
+            elif isinstance(obj, libbol.LightParam):
+                self.level_file.lightparams.append(obj)
+            elif isinstance(obj, libbol.MGEntry):
+                self.level_file.mgentries.append(obj)
 
-            obj = self.object_to_be_added[0]
+            self.object_to_be_added = None
+            self.pik_control.button_add_object.setChecked(False)
+            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
+            self.leveldatatreeview.set_objects(self.level_file)
 
-            if isinstance(obj, (libbol.EnemyPointGroup, libbol.CheckpointGroup, libbol.Route,
-                                                    libbol.LightParam, libbol.MGEntry)):
-                if isinstance(obj, libbol.EnemyPointGroup):
-                    self.level_file.enemypointgroups.groups.append(obj)
-                elif isinstance(obj, libbol.CheckpointGroup):
-                    self.level_file.checkpoints.groups.append(obj)
-                elif isinstance(obj, libbol.Route):
-                    self.level_file.routes.append(obj)
-                elif isinstance(obj, libbol.LightParam):
-                    self.level_file.lightparams.append(obj)
-                elif isinstance(obj, libbol.MGEntry):
-                    self.level_file.mgentries.append(obj)
-
-                self.addobjectwindow_last_selected_category = self.add_object_window.category_menu.currentIndex()
-                self.object_to_be_added = None
-                self.add_object_window.destroy()
-                self.add_object_window = None
-                self.leveldatatreeview.set_objects(self.level_file)
-
-            elif self.object_to_be_added is not None:
-                self.addobjectwindow_last_selected_category = self.add_object_window.category_menu.currentIndex()
-                self.pik_control.button_add_object.setChecked(True)
-                #self.pik_control.button_move_object.setChecked(False)
-                self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
-                self.add_object_window.destroy()
-                self.add_object_window = None
-                #self.pikmin_gen_view.setContextMenuPolicy(Qt.DefaultContextMenu)
-
-    @catch_exception
-    def button_add_item_window_close(self):
-        # self.add_object_window.destroy()
-        print("Hmmm")
-        self.add_object_window = None
-        self.pik_control.button_add_object.setChecked(False)
-        self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
+        elif self.object_to_be_added is not None:
+            self.pik_control.button_add_object.setChecked(True)
+            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
 
     @catch_exception
     def action_add_object(self, x, z):
@@ -1875,8 +1830,6 @@ class GenEditor(QMainWindow):
             self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
             self.pik_control.button_add_object.setChecked(False)
             #self.pik_control.button_move_object.setChecked(False)
-            if self.add_object_window is not None:
-                self.add_object_window.close()
 
         if event.key() == Qt.Key_Shift:
             self.level_view.shift_is_pressed = True
