@@ -342,8 +342,27 @@ class AddPikObjectWindow(QDialog):
             "Minigame Param": libbol.MGEntry
         }
 
-        for item in sorted(self.objecttypes.keys()):
-            self.category_menu.addItem(item)
+        self.category_menu.addItem("Enemy Path")
+        self.category_menu.addItem("Enemy Point")
+        self.category_menu.insertSeparator(self.category_menu.count())
+        self.category_menu.addItem("Checkpoint Group")
+        self.category_menu.addItem("Checkpoint")
+        self.category_menu.insertSeparator(self.category_menu.count())
+        self.category_menu.addItem("Route")
+        self.category_menu.addItem("Route Point")
+        self.category_menu.insertSeparator(self.category_menu.count())
+        self.category_menu.addItem("Object")
+        self.category_menu.addItem("Kart Start Point")
+        self.category_menu.addItem("Area")
+        self.category_menu.addItem("Camera")
+        self.category_menu.addItem("Respawn Point")
+        self.category_menu.insertSeparator(self.category_menu.count())
+        self.category_menu.addItem("Light Param")
+        self.category_menu.addItem("Minigame Param")
+
+        for i in range(1, self.category_menu.count()):
+            text = self.category_menu.itemText(i)
+            assert not text or text in self.objecttypes
 
         self.category_menu.currentIndexChanged.connect(self.change_category)
 
