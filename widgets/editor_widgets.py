@@ -214,7 +214,9 @@ class AddPikObjectWindow(QDialog):
         else:
             self.window_name = "Add Object"
 
-        self.resize(900, 500)
+        width = self.fontMetrics().averageCharWidth() * 80
+        height = self.fontMetrics().height() * 42
+        self.resize(width, height)
         self.setMinimumSize(QSize(300, 300))
 
         self.entity = None
