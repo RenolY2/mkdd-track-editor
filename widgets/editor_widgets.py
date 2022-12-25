@@ -280,14 +280,16 @@ class AddPikObjectWindow(QDialog):
         self.editor_layout.setWidgetResizable(True)
         self.verticalLayout.addWidget(self.editor_layout)
         #self.textbox_xml = QTextEdit(self.centralwidget)
+        button_area_layout = QHBoxLayout()
         self.button_savetext = QPushButton(self)
         self.button_savetext.setText("Add Object")
         self.button_savetext.setToolTip("Hotkey: Ctrl+S")
-        self.button_savetext.setMaximumWidth(400)
         self.button_savetext.setDisabled(True)
         self.button_savetext.clicked.connect(self.accept)
+        button_area_layout.addStretch()
+        button_area_layout.addWidget(self.button_savetext)
 
-        self.verticalLayout.addWidget(self.button_savetext)
+        self.verticalLayout.addLayout(button_area_layout)
         self.setWindowTitle(self.window_name)
         self.created_object = None
         #QtWidgets.QShortcut(Qt.CTRL + Qt.Key_S, self).activated.connect(self.emit_add_object)
