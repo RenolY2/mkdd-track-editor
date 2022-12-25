@@ -1029,14 +1029,17 @@ class GenEditor(QMainWindow):
 
         self.level_view.customContextMenuRequested.connect(self.mapview_showcontextmenu)
 
-        self.pik_control.button_add_object.pressed.connect(self.button_open_add_item_window)
+        self.pik_control.button_add_object.clicked.connect(
+            lambda _checked: self.button_open_add_item_window())
         #self.pik_control.button_move_object.pressed.connect(self.button_move_objects)
         self.level_view.move_points.connect(self.action_move_objects)
         self.level_view.height_update.connect(self.action_change_object_heights)
         self.level_view.create_waypoint.connect(self.action_add_object)
         self.level_view.create_waypoint_3d.connect(self.action_add_object_3d)
-        self.pik_control.button_ground_object.pressed.connect(self.action_ground_objects)
-        self.pik_control.button_remove_object.pressed.connect(self.action_delete_objects)
+        self.pik_control.button_ground_object.clicked.connect(
+            lambda _checked: self.action_ground_objects())
+        self.pik_control.button_remove_object.clicked.connect(
+            lambda _checked: self.action_delete_objects())
 
         delete_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(Qt.Key_Delete), self)
         delete_shortcut.activated.connect(self.action_delete_objects)
@@ -1154,7 +1157,8 @@ class GenEditor(QMainWindow):
             ))
             self.edit_spawn_window.rotation.setText(str(self.pikmin_gen_file.startdir))
             self.edit_spawn_window.closing.connect(self.action_close_edit_startpos_window)
-            self.edit_spawn_window.button_savetext.pressed.connect(self.action_save_startpos)
+            self.edit_spawn_window.button_savetext.clicked.connect(
+                lambda _checked: self.action_save_startpos())
             self.edit_spawn_window.show()
 
     def update_recent_files_list(self, filepath):
@@ -1666,7 +1670,8 @@ class GenEditor(QMainWindow):
     def button_open_add_item_window(self):
         if self.add_object_window is None:
             self.add_object_window = AddPikObjectWindow()
-            self.add_object_window.button_savetext.pressed.connect(self.button_add_item_window_save)
+            self.add_object_window.button_savetext.clicked.connect(
+                lambda _checked: self.button_add_item_window_save())
             self.add_object_window.closing.connect(self.button_add_item_window_close)
             print("hmmm")
             if self.addobjectwindow_last_selected is not None:
@@ -1682,7 +1687,8 @@ class GenEditor(QMainWindow):
     def shortcut_open_add_item_window(self):
         if self.add_object_window is None:
             self.add_object_window = AddPikObjectWindow()
-            self.add_object_window.button_savetext.pressed.connect(self.button_add_item_window_save)
+            self.add_object_window.button_savetext.clicked.connect(
+                lambda _checked: self.button_add_item_window_save())
             self.add_object_window.closing.connect(self.button_add_item_window_close)
             print("object")
             if self.addobjectwindow_last_selected is not None:
