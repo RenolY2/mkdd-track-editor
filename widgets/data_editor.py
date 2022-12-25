@@ -61,6 +61,7 @@ class DataEditor(QWidget):
         self.bound_to = bound_to
         self.vbox = QVBoxLayout(self)
         self.vbox.setContentsMargins(0, 0, 0, 0)
+        self.vbox.setSpacing(3)
 
         self.setup_widgets()
 
@@ -85,6 +86,7 @@ class DataEditor(QWidget):
 
     def create_labeled_widget(self, parent, text, widget):
         layout = QHBoxLayout()
+        layout.setSpacing(5)
         label = self.create_label(text)
         label.setText(text)
         layout.addWidget(label)
@@ -93,6 +95,7 @@ class DataEditor(QWidget):
 
     def create_labeled_widgets(self, parent, text, widgetlist):
         layout = QHBoxLayout()
+        layout.setSpacing(5)
         label = self.create_label(text)
         label.setText(text)
         layout.addWidget(label)
