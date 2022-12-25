@@ -225,13 +225,9 @@ class AddPikObjectWindow(QDialog):
         font.setFixedPitch(True)
         font.setPointSize(10)
 
-        self.dummywidget = QWidget(self)
-        self.dummywidget.setMaximumSize(0,0)
-
 
         self.verticalLayout = QVBoxLayout(self)
         self.verticalLayout.setAlignment(Qt.AlignTop)
-        self.verticalLayout.addWidget(self.dummywidget)
 
 
 
