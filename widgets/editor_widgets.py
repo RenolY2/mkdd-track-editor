@@ -369,6 +369,9 @@ class AddPikObjectWindow(QDialog):
             data_editor = choose_data_editor(self.created_object)
             if data_editor is not None:
                 self.editor_widget = data_editor(self, self.created_object)
+                self.editor_widget.layout().addStretch()
+                margin = self.fontMetrics().averageCharWidth()
+                self.editor_widget.setContentsMargins(margin, margin, margin, margin)
                 self.editor_layout.setWidget(self.editor_widget)
                 self.editor_widget.update_data()
 
