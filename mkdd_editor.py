@@ -1733,6 +1733,9 @@ class GenEditor(QMainWindow):
                 placeobject.end.y = y
                 placeobject.end.z = z
                 self.last_position_clicked = []
+                # For convenience, create a group if none exists yet.
+                if group == 0 and not self.level_file.checkpoints.groups:
+                    self.level_file.checkpoints.groups.append(libbol.CheckpointGroup.new())
                 self.level_file.checkpoints.groups[group].points.insert(position, placeobject)
                 self.level_view.do_redraw()
                 self.set_has_unsaved_changes(True)
@@ -1747,9 +1750,15 @@ class GenEditor(QMainWindow):
             placeobject.position.z = z
 
             if isinstance(object, libbol.EnemyPoint):
+                # For convenience, create a group if none exists yet.
+                if group == 0 and not self.level_file.enemypointgroups.groups:
+                    self.level_file.enemypointgroups.groups.append(libbol.EnemyPointGroup.new())
                 placeobject.group = group
                 self.level_file.enemypointgroups.groups[group].points.insert(position, placeobject)
             elif isinstance(object, libbol.RoutePoint):
+                # For convenience, create a group if none exists yet.
+                if group == 0 and not self.level_file.routes:
+                    self.level_file.routes.append(libbol.Route.new())
                 self.level_file.routes[group].points.insert(position, placeobject)
             elif isinstance(object, libbol.MapObject):
                 self.level_file.objects.objects.append(placeobject)
