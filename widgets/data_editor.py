@@ -62,8 +62,6 @@ class DataEditor(QWidget):
         self.vbox = QVBoxLayout(self)
         self.vbox.setContentsMargins(0, 0, 0, 0)
 
-        self.description = self.add_label("Object")
-
         self.setup_widgets()
 
     def catch_text_update(self):
