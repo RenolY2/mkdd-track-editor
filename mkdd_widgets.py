@@ -550,6 +550,9 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         else:
             self.setContextMenuPolicy(Qt.DefaultContextMenu)
 
+        cursor_shape = QtCore.Qt.ArrowCursor if mode == MOUSE_MODE_NONE else QtCore.Qt.CrossCursor
+        self.setCursor(cursor_shape)
+
     @property
     def zoom_factor(self):
         return self._zoom_factor/10.0
