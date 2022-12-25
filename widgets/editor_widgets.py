@@ -274,6 +274,10 @@ class AddPikObjectWindow(QDialog):
 
         self.editor_widget = None
         self.editor_layout = QScrollArea()#QVBoxLayout(self.centralwidget)
+        palette = self.editor_layout.palette()
+        palette.setBrush(self.editor_layout.backgroundRole(), palette.dark())
+        self.editor_layout.setPalette(palette)
+        self.editor_layout.setWidgetResizable(True)
         self.verticalLayout.addWidget(self.editor_layout)
         #self.textbox_xml = QTextEdit(self.centralwidget)
         self.button_savetext = QPushButton(self)
