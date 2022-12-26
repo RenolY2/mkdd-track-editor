@@ -1,6 +1,8 @@
 import os
 import json
 
+from PyQt5 import QtCore, QtGui, QtWidgets
+
 from collections import OrderedDict
 from PyQt5.QtWidgets import QSizePolicy, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QCheckBox, QLineEdit, QComboBox, QSizePolicy
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator
@@ -50,6 +52,64 @@ class PythonIntValidator(QValidator):
 
     def fixup(self, s):
         pass
+
+
+class ClickableLabel(QtWidgets.QLabel):
+
+    clicked = pyqtSignal()
+
+    def mouseReleaseEvent(self, event):
+
+        if self.rect().contains(event.pos()):
+            event.accept()
+            self.clicked.emit()
+
+
+class ColorPicker(ClickableLabel):
+
+    color_changed = QtCore.pyqtSignal(QtGui.QColor)
+    color_picked = QtCore.pyqtSignal(QtGui.QColor)
+
+    def __init__(self, with_alpha=False):
+        super().__init__()
+
+        height = int(self.fontMetrics().height() / 1.5)
+        pixmap = QtGui.QPixmap(height, height)
+        pixmap.fill(QtCore.Qt.black)
+        self.setPixmap(pixmap)
+        self.setFixedWidth(height)
+
+        self.color = QtGui.QColor(0, 0, 0, 0)
+        self.with_alpha = with_alpha
+
+        self.clicked.connect(self.show_color_dialog)
+
+    def show_color_dialog(self):
+        dialog = QtWidgets.QColorDialog(self)
+        dialog.setOption(QtWidgets.QColorDialog.DontUseNativeDialog, True)
+        if self.with_alpha:
+            dialog.setOption(QtWidgets.QColorDialog.ShowAlphaChannel, True)
+        dialog.setCurrentColor(self.color)
+        dialog.currentColorChanged.connect(self.color_changed)
+        dialog.currentColorChanged.connect(self.update_color)
+
+        color = self.color
+
+        accepted = dialog.exec_()
+        if accepted:
+            self.color = dialog.currentColor()
+            self.color_picked.emit(self.color)
+        else:
+            self.color = color
+            self.update_color(self.color)
+            self.color_changed.emit(self.color)
+
+    def update_color(self, color):
+        color = QtGui.QColor(color)
+        color.setAlpha(255)
+        pixmap = self.pixmap()
+        pixmap.fill(color)
+        self.setPixmap(pixmap)
 
 
 class DataEditor(QWidget):
@@ -211,6 +271,52 @@ class DataEditor(QWidget):
         self.vbox.addLayout(layout)
 
         return combobox
+
+    def add_color_input(self, text, attribute, with_alpha=False):
+        line_edits = []
+        input_edited_callbacks = []
+
+        for subattr in ["r", "g", "b", "a"] if with_alpha else ["r", "g", "b"]:
+            line_edit = QLineEdit(self)
+            line_edit.setMaximumWidth(30)
+            line_edit.setValidator(QIntValidator(0, 255, self))
+            input_edited = create_setter(line_edit, self.bound_to, attribute, subattr, self.catch_text_update, isFloat=False)
+            input_edited_callbacks.append(input_edited)
+            line_edit.editingFinished.connect(input_edited)
+            line_edits.append(line_edit)
+
+        color_picker = ColorPicker(with_alpha=with_alpha)
+
+        def on_text_changed(text: str):
+            _ = text
+            r = int(line_edits[0].text() or '0')
+            g = int(line_edits[1].text() or '0')
+            b = int(line_edits[2].text() or '0')
+            a = int(line_edits[3].text() or '0') if len(line_edits) == 4 else 255
+            color_picker.color = QtGui.QColor(r, g, b, a)
+            color_picker.update_color(color_picker.color)
+
+        for line_edit in line_edits:
+            line_edit.textChanged.connect(on_text_changed)
+
+        def on_color_changed(color):
+            line_edits[0].setText(str(color.red()))
+            line_edits[1].setText(str(color.green()))
+            line_edits[2].setText(str(color.blue()))
+            if len(line_edits) == 4:
+                line_edits[3].setText(str(color.alpha()))
+
+        def on_color_picked(color):
+            for callback in input_edited_callbacks:
+                callback()
+
+        color_picker.color_changed.connect(on_color_changed)
+        color_picker.color_picked.connect(on_color_picked)
+
+        layout = self.create_labeled_widgets(self, text, line_edits + [color_picker])
+        self.vbox.addLayout(layout)
+
+        return line_edits
 
     def add_multiple_integer_input(self, text, attribute, subattributes, min_val, max_val):
         line_edits = []
@@ -618,10 +724,8 @@ ROLL_OPTIONS["Entire Track"] = 2
 class BOLEdit(DataEditor):
     def setup_widgets(self):
         self.roll = self.add_dropdown_input("Tilt", "roll", ROLL_OPTIONS)
-        self.rgb_ambient = self.add_multiple_integer_input("RGB Ambient", "rgb_ambient", ["r", "g", "b"],
-                                                           MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.rgba_light = self.add_multiple_integer_input("RGBA Light", "rgba_light", ["r", "g", "b", "a"],
-                                                          MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.rgb_ambient = self.add_color_input("RGB Ambient", "rgb_ambient")
+        self.rgba_light = self.add_color_input("RGBA Light", "rgba_light", with_alpha=True)
         self.lightsource = self.add_multiple_decimal_input("Light Position", "lightsource", ["x", "y", "z"],
                                                            -inf, +inf)
         self.lap_count = self.add_integer_input("Lap Count", "lap_count",
@@ -631,8 +735,7 @@ class BOLEdit(DataEditor):
                                                 REVERSE_MUSIC_IDS)
         self.fog_type = self.add_integer_input("Fog Type", "fog_type",
                                                MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.fog_color = self.add_multiple_integer_input("Fog Color", "fog_color", ["r", "g", "b"],
-                                                         MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.fog_color = self.add_color_input("Fog Color", "fog_color")
         self.fog_startz = self.add_decimal_input("Fog Near Z", "fog_startz",
                                                  -inf, +inf)
         self.fog_endz = self.add_decimal_input("Fog Far Z", "fog_endz",
@@ -644,8 +747,7 @@ class BOLEdit(DataEditor):
                                               off_value=0, on_value=1)
         self.shadow_opacity = self.add_integer_input("Shadow Opacity", "shadow_opacity",
                                                      MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.shadow_color = self.add_multiple_integer_input("Shadow Color", "shadow_color", ["r", "g", "b"],
-                                                            MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.shadow_color = self.add_color_input("Shadow Color", "shadow_color")
         self.sky_follow = self.add_checkbox("Sky Follow", "sky_follow", off_value=0, on_value=1)
 
     def update_data(self):
@@ -970,12 +1072,10 @@ class RespawnPointEdit(DataEditor):
 
 class LightParamEdit(DataEditor):
     def setup_widgets(self):
-        self.color1 = self.add_multiple_integer_input("RGBA 1", "color1", ["r", "g", "b", "a"],
-                                                        MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.color1 = self.add_color_input("RGBA 1", "color1", with_alpha=True)
         self.unkvec = self.add_multiple_decimal_input("Vector", "unkvec", ["x", "y", "z"],
                                                       -inf, +inf)
-        self.color2 = self.add_multiple_integer_input("RGBA 2", "color2", ["r", "g", "b", "a"],
-                                                      MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.color2 = self.add_color_input("RGBA 2", "color2", with_alpha=True)
 
     def update_data(self):
         obj: LightParam = self.bound_to
