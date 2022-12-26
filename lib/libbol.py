@@ -827,8 +827,13 @@ class Camera(object):
         self.startzoom = 0
         self.camduration = 0
         self.startcamera = 0
-        self.unk2 = 0
-        self.unk3 = 0
+
+        class Shimmer:
+            def __init__(self):
+                self.z0 = 0
+                self.z1 = 0
+
+        self.shimmer = Shimmer()
         self.route = -1
         self.routespeed = 0
         self.endzoom = 0
@@ -857,8 +862,8 @@ class Camera(object):
         cam.startzoom = read_uint16(f)
         cam.camduration = read_uint16(f)
         cam.startcamera = read_uint16(f)
-        cam.unk2 = read_uint16(f)
-        cam.unk3 = read_uint16(f)
+        cam.shimmer.z0 = read_uint16(f)
+        cam.shimmer.z1 = read_uint16(f)
         cam.route = read_int16(f)
         cam.routespeed = read_uint16(f)
         cam.endzoom = read_uint16(f)
@@ -874,7 +879,7 @@ class Camera(object):
         f.write(pack(">fff", self.position3.x, self.position3.y, self.position3.z))
         f.write(pack(">BBHHH", self.unkbyte, self.camtype, self.startzoom, self.camduration, self.startcamera))
         f.write(pack(">HHhHHh",
-                     self.unk2, self.unk3, self.route,
+                     self.shimmer.z0, self.shimmer.z1, self.route,
                      self.routespeed, self.endzoom, self.nextcam))
         assert len(self.name) == 4
         f.write(bytes(self.name, encoding="ascii"))

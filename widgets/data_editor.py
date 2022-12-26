@@ -897,10 +897,7 @@ class CameraEdit(DataEditor):
         self.camduration = self.add_integer_input("Camera Duration", "camduration",
                                                   MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.startcamera = self.add_checkbox("Start Camera", "startcamera", off_value=0, on_value=1)
-        self.unk2 = self.add_integer_input("Unknown 2", "unk2",
-                                           MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-        self.unk3 = self.add_integer_input("Unknown 3", "unk3",
-                                           MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.shimmer = self.add_multiple_integer_input("Shimmer", "shimmer", ["z0", "z1"], 0, 4095)
         self.route = self.add_integer_input("Route ID", "route",
                                             MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.routespeed = self.add_integer_input("Route Speed", "routespeed",
@@ -932,8 +929,8 @@ class CameraEdit(DataEditor):
         self.startzoom.setText(str(obj.startzoom))
         self.camduration.setText(str(obj.camduration))
         self.startcamera.setChecked(obj.startcamera != 0)
-        self.unk2.setText(str(obj.unk2))
-        self.unk3.setText(str(obj.unk3))
+        self.shimmer[0].setText(str(obj.shimmer.z0))
+        self.shimmer[1].setText(str(obj.shimmer.z1))
         self.route.setText(str(obj.route))
         self.routespeed.setText(str(obj.routespeed))
         self.endzoom.setText(str(obj.endzoom))
