@@ -824,7 +824,13 @@ class Camera(object):
 
         self.unkbyte = 0
         self.camtype = 0
-        self.startzoom = 0
+
+        class FOV:
+            def __ini__(self):
+                self.start = 0
+                self.end = 0
+
+        self.fov = FOV()
         self.camduration = 0
         self.startcamera = 0
 
@@ -836,7 +842,6 @@ class Camera(object):
         self.shimmer = Shimmer()
         self.route = -1
         self.routespeed = 0
-        self.endzoom = 0
         self.nextcam = -1
         self.name = "null"
 
@@ -859,14 +864,14 @@ class Camera(object):
         cam.position3 = Vector3(*unpack(">fff", f.read(12)))
         cam.unkbyte = read_uint8(f)
         cam.camtype = read_uint8(f)
-        cam.startzoom = read_uint16(f)
+        cam.fov.start = read_uint16(f)
         cam.camduration = read_uint16(f)
         cam.startcamera = read_uint16(f)
         cam.shimmer.z0 = read_uint16(f)
         cam.shimmer.z1 = read_uint16(f)
         cam.route = read_int16(f)
         cam.routespeed = read_uint16(f)
-        cam.endzoom = read_uint16(f)
+        cam.fov.end = read_uint16(f)
         cam.nextcam = read_int16(f)
         cam.name = str(f.read(4), encoding="ascii")
 
@@ -877,10 +882,10 @@ class Camera(object):
         self.rotation.write(f)
         f.write(pack(">fff", self.position2.x, self.position2.y, self.position2.z))
         f.write(pack(">fff", self.position3.x, self.position3.y, self.position3.z))
-        f.write(pack(">BBHHH", self.unkbyte, self.camtype, self.startzoom, self.camduration, self.startcamera))
+        f.write(pack(">BBHHH", self.unkbyte, self.camtype, self.fov.start, self.camduration, self.startcamera))
         f.write(pack(">HHhHHh",
                      self.shimmer.z0, self.shimmer.z1, self.route,
-                     self.routespeed, self.endzoom, self.nextcam))
+                     self.routespeed, self.fov.end, self.nextcam))
         assert len(self.name) == 4
         f.write(bytes(self.name, encoding="ascii"))
 

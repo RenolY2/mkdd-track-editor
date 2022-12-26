@@ -892,8 +892,8 @@ class CameraEdit(DataEditor):
                                               MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.camtype = self.add_integer_input("Camera Type", "camtype",
                                               MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.startzoom = self.add_integer_input("Start FOV", "startzoom",
-                                                MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.fov = self.add_multiple_integer_input("Start/End FOV", "fov", ["start", "end"],
+                                                   MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.camduration = self.add_integer_input("Camera Duration", "camduration",
                                                   MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.startcamera = self.add_checkbox("Start Camera", "startcamera", off_value=0, on_value=1)
@@ -902,8 +902,6 @@ class CameraEdit(DataEditor):
                                             MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.routespeed = self.add_integer_input("Route Speed", "routespeed",
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-        self.endzoom = self.add_integer_input("End FOV", "endzoom",
-                                              MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.nextcam = self.add_integer_input("Next Cam", "nextcam",
                                               MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.name = self.add_text_input("Camera Name", "name", 4)
@@ -926,14 +924,14 @@ class CameraEdit(DataEditor):
 
         self.unkbyte.setText(str(obj.unkbyte))
         self.camtype.setText(str(obj.camtype))
-        self.startzoom.setText(str(obj.startzoom))
+        self.fov[0].setText(str(obj.fov.start))
+        self.fov[1].setText(str(obj.fov.end))
         self.camduration.setText(str(obj.camduration))
         self.startcamera.setChecked(obj.startcamera != 0)
         self.shimmer[0].setText(str(obj.shimmer.z0))
         self.shimmer[1].setText(str(obj.shimmer.z1))
         self.route.setText(str(obj.route))
         self.routespeed.setText(str(obj.routespeed))
-        self.endzoom.setText(str(obj.endzoom))
         self.nextcam.setText(str(obj.nextcam))
         self.name.setText(obj.name)
 
