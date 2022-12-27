@@ -822,7 +822,6 @@ class Camera(object):
         self.position3 = Vector3(0.0, 0.0, 0.0)
         self.rotation = Rotation.default()
 
-        self.unkbyte = 0
         self.camtype = 0
 
         class FOV:
@@ -862,8 +861,7 @@ class Camera(object):
         cam.rotation = Rotation.from_file(f)
         cam.position2 = Vector3(*unpack(">fff", f.read(12)))
         cam.position3 = Vector3(*unpack(">fff", f.read(12)))
-        cam.unkbyte = read_uint8(f)
-        cam.camtype = read_uint8(f)
+        cam.camtype = read_uint16(f)
         cam.fov.start = read_uint16(f)
         cam.camduration = read_uint16(f)
         cam.startcamera = read_uint16(f)
@@ -882,7 +880,7 @@ class Camera(object):
         self.rotation.write(f)
         f.write(pack(">fff", self.position2.x, self.position2.y, self.position2.z))
         f.write(pack(">fff", self.position3.x, self.position3.y, self.position3.z))
-        f.write(pack(">BBHHH", self.unkbyte, self.camtype, self.fov.start, self.camduration, self.startcamera))
+        f.write(pack(">HHHH", self.camtype, self.fov.start, self.camduration, self.startcamera))
         f.write(pack(">HHhHHh",
                      self.shimmer.z0, self.shimmer.z1, self.route,
                      self.routespeed, self.fov.end, self.nextcam))
