@@ -904,9 +904,9 @@ class CameraEdit(DataEditor):
     def setup_widgets(self):
         self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
                                                         -inf, +inf)
-        self.position2 = self.add_multiple_decimal_input("End Point", "position2", ["x", "y", "z"],
-                                                        -inf, +inf)
         self.position3 = self.add_multiple_decimal_input("Start Point", "position3", ["x", "y", "z"],
+                                                        -inf, +inf)
+        self.position2 = self.add_multiple_decimal_input("End Point", "position2", ["x", "y", "z"],
                                                         -inf, +inf)
         self.rotation = self.add_rotation_input()
         self.camtype = self.add_dropdown_input("Type", "camtype", CAMERA_TYPES)
