@@ -1084,9 +1084,12 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         if point.swerve:
                             glColor3f(0.1, 0.9, 0.2)
                             self.models.draw_cylinder(point.position, 400, 400)
-                        if point.unknown:
+                        if point.driftsupplement:
                             glColor3f(0.9, 0.0, 0.9)
                             self.models.draw_cylinder(point.position, 300, 300)
+                        if point.nomushroomzone:
+                            glColor3f(0.1, 0.8, 1.0)
+                            self.models.draw_cylinder(point.position, 900, 900)
 
                         point_index += 1
 
