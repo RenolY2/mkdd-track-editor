@@ -915,13 +915,13 @@ class CameraEdit(DataEditor):
         self.camduration = self.add_integer_input("Camera Duration", "camduration",
                                                   MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.startcamera = self.add_checkbox("Start Camera", "startcamera", off_value=0, on_value=1)
+        self.nextcam = self.add_integer_input("Next Cam", "nextcam",
+                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.shimmer = self.add_multiple_integer_input("Shimmer", "shimmer", ["z0", "z1"], 0, 4095)
         self.route = self.add_integer_input("Route ID", "route",
                                             MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.routespeed = self.add_integer_input("Route Speed", "routespeed",
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-        self.nextcam = self.add_integer_input("Next Cam", "nextcam",
-                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.name = self.add_text_input("Camera Name", "name", 4)
 
         self.camtype.currentIndexChanged.connect(lambda _index: self.catch_text_update())
