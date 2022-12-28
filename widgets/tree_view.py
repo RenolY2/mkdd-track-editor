@@ -320,6 +320,25 @@ class LevelDataTreeView(QTreeWidget):
         self.mgentries.remove_children()
 
     def set_objects(self, boldata: BOL):
+        # Compute the location (based on indexes) of the currently selected item, if any.
+        selected_item_indexes = []
+        selected_items = self.selectedItems()
+        if selected_items:
+            item = selected_items[0]
+            while item is not None:
+                parent_item = item.parent()
+                if parent_item is not None:
+                    selected_item_indexes.insert(0, parent_item.indexOfChild(item))
+                else:
+                    selected_item_indexes.insert(0, self.indexOfTopLevelItem(item))
+                item = parent_item
+        selected_items = None
+
+        # Preserve the expansion state of the top-level items that can have nested groups.
+        enemyroutes_expansion_states = self._get_expansion_states(self.enemyroutes)
+        checkpointgroups_expansion_states = self._get_expansion_states(self.checkpointgroups)
+        routes_expansion_states = self._get_expansion_states(self.routes)
+
         self.reset()
 
         for group in boldata.enemypointgroups.groups:
@@ -363,6 +382,24 @@ class LevelDataTreeView(QTreeWidget):
         for mg in boldata.mgentries:
             item = MGEntry(self.mgentries, "MG", mg)
 
+        # Restore expansion states.
+        self._set_expansion_states(self.enemyroutes, enemyroutes_expansion_states)
+        self._set_expansion_states(self.checkpointgroups, checkpointgroups_expansion_states)
+        self._set_expansion_states(self.routes, routes_expansion_states)
+
+        # And restore previous selection.
+        if selected_item_indexes:
+            for item in self.selectedItems():
+                item.setSelected(False)
+            item = self.topLevelItem(selected_item_indexes.pop(0))
+            while selected_item_indexes:
+                index = selected_item_indexes.pop(0)
+                if index < item.childCount():
+                    item = item.child(index)
+                else:
+                    break
+            item.setSelected(True)
+
     def sort_objects(self):
         self.objects.sort()
         """items = []
@@ -373,3 +410,21 @@ class LevelDataTreeView(QTreeWidget):
 
         for item in items:
             self.objects.addChild(item)"""
+
+    def _get_expansion_states(self, parent_item: QTreeWidgetItem) -> 'tuple[bool]':
+        expansion_states = []
+        for i in range(parent_item.childCount()):
+            item = parent_item.child(i)
+            expansion_states.append(item.isExpanded())
+        return expansion_states
+
+    def _set_expansion_states(self, parent_item: QTreeWidgetItem, expansion_states: 'tuple[bool]'):
+        item_count = parent_item.childCount()
+        if item_count != len(expansion_states):
+            # If the number of children has changed, it is not possible to reliably restore the
+            # state without being very wrong in some cases.
+            return
+
+        for i in range(item_count):
+            item = parent_item.child(i)
+            item.setExpanded(expansion_states[i])
