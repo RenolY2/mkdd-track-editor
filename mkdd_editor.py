@@ -116,7 +116,6 @@ class GenEditor(QMainWindow):
         self.add_object_window = None
         self.object_to_be_added = None
 
-        self.history = EditorHistory(20)
         self.edit_spawn_window = None
 
         self._window_title = ""
@@ -184,7 +183,6 @@ class GenEditor(QMainWindow):
         self.last_position_clicked = []
         self.loaded_archive = None
         self.loaded_archive_file = None
-        self.history.reset()
         self.object_to_be_added = None
         self.level_view.reset(keep_collision=True)
 
@@ -1040,12 +1038,6 @@ class GenEditor(QMainWindow):
 
         delete_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(Qt.Key_Delete), self)
         delete_shortcut.activated.connect(self.action_delete_objects)
-
-        undo_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(Qt.CTRL + Qt.Key_Z), self)
-        undo_shortcut.activated.connect(self.action_undo)
-
-        redo_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(Qt.CTRL + Qt.Key_Y), self)
-        redo_shortcut.activated.connect(self.action_redo)
 
         self.level_view.rotate_current.connect(self.action_rotate_object)
         self.leveldatatreeview.select_all.connect(self.select_all_of_group)
@@ -2030,73 +2022,6 @@ class GenEditor(QMainWindow):
         self.level_view.do_redraw()
         self.set_has_unsaved_changes(True)
 
-    @catch_exception
-    def action_undo(self):
-        res = self.history.history_undo()
-        if res is None:
-            return
-        action, val = res
-
-        if action == "AddObject":
-            obj = val
-            self.pikmin_gen_file.generators.remove(obj)
-            if obj in self.editing_windows:
-                self.editing_windows[obj].destroy()
-                del self.editing_windows[obj]
-
-            if len(self.pikmin_gen_view.selected) == 1 and self.pikmin_gen_view.selected[0] is obj:
-                self.pik_control.reset_info()
-            elif obj in self.pik_control.objectlist:
-                self.pik_control.reset_info()
-            if obj in self.pikmin_gen_view.selected:
-                self.pikmin_gen_view.selected.remove(obj)
-                self.pikmin_gen_view.gizmo.hidden = True
-
-            #self.pikmin_gen_view.update()
-            self.pikmin_gen_view.do_redraw()
-
-        if action == "RemoveObjects":
-            for obj in val:
-                self.pikmin_gen_file.generators.append(obj)
-
-            #self.pikmin_gen_view.update()
-            self.pikmin_gen_view.do_redraw()
-        self.set_has_unsaved_changes(True)
-
-    @catch_exception
-    def action_redo(self):
-        res = self.history.history_redo()
-        if res is None:
-            return
-
-        action, val = res
-
-        if action == "AddObject":
-            obj = val
-            self.pikmin_gen_file.generators.append(obj)
-
-            #self.pikmin_gen_view.update()
-            self.pikmin_gen_view.do_redraw()
-
-        if action == "RemoveObjects":
-            for obj in val:
-                self.pikmin_gen_file.generators.remove(obj)
-                if obj in self.editing_windows:
-                    self.editing_windows[obj].destroy()
-                    del self.editing_windows[obj]
-
-                if len(self.pikmin_gen_view.selected) == 1 and self.pikmin_gen_view.selected[0] is obj:
-                    self.pik_control.reset_info()
-                elif obj in self.pik_control.objectlist:
-                    self.pik_control.reset_info()
-                if obj in self.pikmin_gen_view.selected:
-                    self.pikmin_gen_view.selected.remove(obj)
-                    self.pikmin_gen_view.gizmo.hidden = True
-
-            #self.pikmin_gen_view.update()
-            self.pikmin_gen_view.do_redraw()
-        self.set_has_unsaved_changes(True)
-
     def update_3d(self):
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
         self.level_view.do_redraw()
@@ -2188,54 +2113,6 @@ class GenEditor(QMainWindow):
         self.current_coordinates = pos
         self.statusbar.showMessage(str(pos))
 
-
-class EditorHistory(object):
-    def __init__(self, historysize):
-        self.history = []
-        self.step = 0
-        self.historysize = historysize
-
-    def reset(self):
-        del self.history
-        self.history = []
-        self.step = 0
-
-    def _add_history(self, entry):
-        if self.step == len(self.history):
-            self.history.append(entry)
-            self.step += 1
-        else:
-            for i in range(len(self.history) - self.step):
-                self.history.pop()
-            self.history.append(entry)
-            self.step += 1
-            assert len(self.history) == self.step
-
-        if len(self.history) > self.historysize:
-            for i in range(len(self.history) - self.historysize):
-                self.history.pop(0)
-                self.step -= 1
-
-    def add_history_addobject(self, pikobject):
-        self._add_history(("AddObject", pikobject))
-
-    def add_history_removeobjects(self, objects):
-        self._add_history(("RemoveObjects", objects))
-
-    def history_undo(self):
-        if self.step == 0:
-            return None
-
-        self.step -= 1
-        return self.history[self.step]
-
-    def history_redo(self):
-        if self.step == len(self.history):
-            return None
-
-        item = self.history[self.step]
-        self.step += 1
-        return item
 
 def find_file(rarc_folder, ending):
     for filename in rarc_folder.files.keys():
