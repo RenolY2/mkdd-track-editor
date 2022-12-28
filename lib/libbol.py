@@ -258,7 +258,8 @@ class EnemyPoint(object):
                  group,
                  driftacuteness,
                  driftduration,
-                 unknown):
+                 driftsupplement,
+                 nomushroomzone):
         self.position = position
         self.driftdirection = driftdirection
         self.link = link
@@ -268,12 +269,14 @@ class EnemyPoint(object):
         self.group = group
         self.driftacuteness = driftacuteness
         self.driftduration = driftduration
-        self.unknown = unknown
+        self.driftsupplement = driftsupplement
+        self.nomushroomzone = nomushroomzone
 
         assert self.swerve in (-3, -2, -1, 0, 1, 2, 3)
         assert self.itemsonly in (0, 1)
         assert self.driftdirection in (0, 1, 2)
         assert 0 <= self.driftacuteness <= 180
+        assert self.nomushroomzone in (0, 1)
 
     @classmethod
     def new(cls):
@@ -287,7 +290,7 @@ class EnemyPoint(object):
         start = f.tell()
         args = [Vector3(*unpack(">fff", f.read(12)))]
         if not old_bol:
-            args.extend(unpack(">HhfbBBBBH", f.read(15)))
+            args.extend(unpack(">HhfbBBBBBB", f.read(15)))
             padding = f.read(5)  # padding
             assert padding == b"\x00" * 5
         else:
@@ -304,7 +307,7 @@ class EnemyPoint(object):
         start = f.tell()
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         f.write(pack(">Hhf", self.driftdirection, self.link, self.scale))
-        f.write(pack(">bBBBBH", self.swerve, self.itemsonly, self.group, self.driftacuteness, self.driftduration, self.unknown))
+        f.write(pack(">bBBBBBB", self.swerve, self.itemsonly, self.group, self.driftacuteness, self.driftduration, self.driftsupplement, self.nomushroomzone))
         f.write(b"\x00"*5)
         #assert f.tell() - start == self._size
 

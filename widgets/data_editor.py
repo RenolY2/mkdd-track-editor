@@ -612,16 +612,18 @@ class EnemyPointEdit(DataEditor):
                                                      MIN_UNSIGNED_BYTE, 180)
         self.driftduration = self.add_integer_input("Drift Duration", "driftduration",
                                                     MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.unknown = self.add_integer_input("Unknown", "unknown",
-                                              MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.driftsupplement = self.add_integer_input("Drift Supplement", "driftsupplement",
+                                                      MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.nomushroomzone = self.add_checkbox("No Mushroom Zone", "nomushroomzone",
+                                                off_value=0, on_value=1)
 
         for widget in self.position:
             widget.editingFinished.connect(self.catch_text_update)
-        for widget in (self.itemsonly, ):
+        for widget in (self.itemsonly, self.nomushroomzone):
             widget.stateChanged.connect(lambda _state: self.catch_text_update())
         for widget in (self.swerve, self.driftdirection):
             widget.currentIndexChanged.connect(lambda _index: self.catch_text_update())
-        for widget in (self.link, self.driftacuteness, self.driftduration, self.unknown):
+        for widget in (self.link, self.driftacuteness, self.driftduration, self.driftsupplement):
             widget.editingFinished.connect(self.catch_text_update)
 
     def update_data(self):
@@ -636,7 +638,8 @@ class EnemyPointEdit(DataEditor):
         self.group.setText(str(obj.group))
         self.driftacuteness.setText(str(obj.driftacuteness))
         self.driftduration.setText(str(obj.driftduration))
-        self.unknown.setText(str(obj.unknown))
+        self.driftsupplement.setText(str(obj.driftsupplement))
+        self.nomushroomzone.setChecked(bool(obj.nomushroomzone))
 
         if obj.swerve in SWERVE_IDS:
             name = SWERVE_IDS[obj.swerve]
