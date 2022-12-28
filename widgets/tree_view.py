@@ -214,6 +214,7 @@ class LevelDataTreeView(QTreeWidget):
         self.resize(200, self.height())
         self.setColumnCount(1)
         self.setHeaderLabel("Track Data Entries")
+        self.setHeaderHidden(True)
 
         self.bolheader = BolHeader()
         self.addTopLevelItem(self.bolheader)
