@@ -953,7 +953,7 @@ class MGEntry(object):
 
     @classmethod
     def new(cls):
-        return cls(0)
+        return cls()
 
     @classmethod
     def from_file(cls, f):

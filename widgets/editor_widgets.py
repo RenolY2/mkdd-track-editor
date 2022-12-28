@@ -204,13 +204,7 @@ class ErrorAnalyzer(QMdiSubWindow):
                                 break
 
 
-class AddPikObjectWindow(QMdiSubWindow):
-    triggered = pyqtSignal(object)
-    closing = pyqtSignal()
-
-    def closeEvent(self, event):
-        self.closing.emit()
-        super().closeEvent(event)
+class AddPikObjectWindow(QDialog):
 
     @catch_exception
     def __init__(self, *args, **kwargs):
@@ -220,11 +214,11 @@ class AddPikObjectWindow(QMdiSubWindow):
         else:
             self.window_name = "Add Object"
 
-        self.resize(900, 500)
+        width = self.fontMetrics().averageCharWidth() * 80
+        height = self.fontMetrics().height() * 42
+        self.resize(width, height)
         self.setMinimumSize(QSize(300, 300))
 
-        self.centralwidget = QWidget(self)
-        self.setWidget(self.centralwidget)
         self.entity = None
 
         font = QFont()
@@ -233,13 +227,9 @@ class AddPikObjectWindow(QMdiSubWindow):
         font.setFixedPitch(True)
         font.setPointSize(10)
 
-        self.dummywidget = QWidget(self)
-        self.dummywidget.setMaximumSize(0,0)
 
-
-        self.verticalLayout = QVBoxLayout(self.centralwidget)
+        self.verticalLayout = QVBoxLayout(self)
         self.verticalLayout.setAlignment(Qt.AlignTop)
-        self.verticalLayout.addWidget(self.dummywidget)
 
 
 
@@ -251,14 +241,14 @@ class AddPikObjectWindow(QMdiSubWindow):
         self.hbox2 = QHBoxLayout()
 
 
-        self.label1 = QLabel(self.centralwidget)
-        self.label2 = QLabel(self.centralwidget)
-        self.label3 = QLabel(self.centralwidget)
+        self.label1 = QLabel(self)
+        self.label2 = QLabel(self)
+        self.label3 = QLabel(self)
         self.label1.setText("Group")
         self.label2.setText("Position in Group")
         self.label3.setText("(-1 means end of Group)")
-        self.group_edit = QLineEdit(self.centralwidget)
-        self.position_edit = QLineEdit(self.centralwidget)
+        self.group_edit = QLineEdit(self)
+        self.position_edit = QLineEdit(self)
 
         self.group_edit.setValidator(QtGui.QIntValidator(0, 2**31-1))
         self.position_edit.setValidator(QtGui.QIntValidator(-1, 2**31-1))
@@ -275,21 +265,31 @@ class AddPikObjectWindow(QMdiSubWindow):
         self.hbox2.addWidget(self.position_edit)
         self.hbox2.addWidget(self.label3)
 
-        self.group_edit.setDisabled(True)
-        self.position_edit.setDisabled(True)
+        self.label1.setVisible(False)
+        self.label2.setVisible(False)
+        self.label3.setVisible(False)
+        self.group_edit.setVisible(False)
+        self.position_edit.setVisible(False)
 
 
         self.editor_widget = None
         self.editor_layout = QScrollArea()#QVBoxLayout(self.centralwidget)
+        palette = self.editor_layout.palette()
+        palette.setBrush(self.editor_layout.backgroundRole(), palette.dark())
+        self.editor_layout.setPalette(palette)
+        self.editor_layout.setWidgetResizable(True)
         self.verticalLayout.addWidget(self.editor_layout)
         #self.textbox_xml = QTextEdit(self.centralwidget)
-        self.button_savetext = QPushButton(self.centralwidget)
+        button_area_layout = QHBoxLayout()
+        self.button_savetext = QPushButton(self)
         self.button_savetext.setText("Add Object")
         self.button_savetext.setToolTip("Hotkey: Ctrl+S")
-        self.button_savetext.setMaximumWidth(400)
         self.button_savetext.setDisabled(True)
+        self.button_savetext.clicked.connect(self.accept)
+        button_area_layout.addStretch()
+        button_area_layout.addWidget(self.button_savetext)
 
-        self.verticalLayout.addWidget(self.button_savetext)
+        self.verticalLayout.addLayout(button_area_layout)
         self.setWindowTitle(self.window_name)
         self.created_object = None
         #QtWidgets.QShortcut(Qt.CTRL + Qt.Key_S, self).activated.connect(self.emit_add_object)
@@ -342,8 +342,27 @@ class AddPikObjectWindow(QMdiSubWindow):
             "Minigame Param": libbol.MGEntry
         }
 
-        for item in sorted(self.objecttypes.keys()):
-            self.category_menu.addItem(item)
+        self.category_menu.addItem("Enemy Path")
+        self.category_menu.addItem("Enemy Point")
+        self.category_menu.insertSeparator(self.category_menu.count())
+        self.category_menu.addItem("Checkpoint Group")
+        self.category_menu.addItem("Checkpoint")
+        self.category_menu.insertSeparator(self.category_menu.count())
+        self.category_menu.addItem("Route")
+        self.category_menu.addItem("Route Point")
+        self.category_menu.insertSeparator(self.category_menu.count())
+        self.category_menu.addItem("Object")
+        self.category_menu.addItem("Kart Start Point")
+        self.category_menu.addItem("Area")
+        self.category_menu.addItem("Camera")
+        self.category_menu.addItem("Respawn Point")
+        self.category_menu.insertSeparator(self.category_menu.count())
+        self.category_menu.addItem("Light Param")
+        self.category_menu.addItem("Minigame Param")
+
+        for i in range(1, self.category_menu.count()):
+            text = self.category_menu.itemText(i)
+            assert not text or text in self.objecttypes
 
         self.category_menu.currentIndexChanged.connect(self.change_category)
 
@@ -362,19 +381,22 @@ class AddPikObjectWindow(QMdiSubWindow):
             self.created_object = objecttype.new()
 
             if isinstance(self.created_object, (libbol.Checkpoint, libbol.EnemyPoint, libbol.RoutePoint)):
-                self.group_edit.setDisabled(False)
-                self.position_edit.setDisabled(False)
+                self.group_edit.setVisible(True)
+                self.position_edit.setVisible(True)
                 self.group_edit.setText("0")
                 self.position_edit.setText("-1")
             else:
-                self.group_edit.setDisabled(True)
-                self.position_edit.setDisabled(True)
+                self.group_edit.setVisible(False)
+                self.position_edit.setVisible(False)
                 self.group_edit.clear()
                 self.position_edit.clear()
 
             data_editor = choose_data_editor(self.created_object)
             if data_editor is not None:
                 self.editor_widget = data_editor(self, self.created_object)
+                self.editor_widget.layout().addStretch()
+                margin = self.fontMetrics().averageCharWidth()
+                self.editor_widget.setContentsMargins(margin, margin, margin, margin)
                 self.editor_layout.setWidget(self.editor_widget)
                 self.editor_widget.update_data()
 
@@ -384,8 +406,12 @@ class AddPikObjectWindow(QMdiSubWindow):
             del self.created_object
             self.created_object = None
             self.button_savetext.setDisabled(True)
-            self.position_edit.setDisabled(True)
-            self.group_edit.setDisabled(True)
+            self.position_edit.setVisible(False)
+            self.group_edit.setVisible(False)
+
+        self.label1.setVisible(self.position_edit.isVisible())
+        self.label2.setVisible(self.position_edit.isVisible())
+        self.label3.setVisible(self.position_edit.isVisible())
 
 class SpawnpointEditor(QMdiSubWindow):
     triggered = pyqtSignal(object)
