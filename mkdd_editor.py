@@ -92,6 +92,12 @@ class GenEditor(QMainWindow):
         super().__init__()
         self.level_file = BOL()
 
+        self.undo_history: list[tuple[int, bytes]] = []
+        self.redo_history: list[tuple[int, bytes]] = []
+
+        document = self.level_file.to_bytes()
+        self.undo_history.append((hash(document), document))
+
         try:
             self.configuration = read_config()
             print("Config file loaded")
@@ -231,6 +237,46 @@ class GenEditor(QMainWindow):
                 self.setWindowTitle("MKDD Track Editor - " + self._window_title)
             else:
                 self.setWindowTitle("MKDD Track Editor")
+
+    def load_top_bol_file_from_undo_history(self):
+        if not self.undo_history:
+            return
+
+        _document_hash, document = self.undo_history[-1]
+
+        self.level_file = BOL.from_bytes(document)
+        self.level_view.level_file = self.level_file
+        self.leveldatatreeview.set_objects(self.level_file)
+        self.level_view.do_redraw()
+        self.set_has_unsaved_changes(True)
+
+    def on_undo_action_triggered(self):
+        if len(self.undo_history) > 1:
+            self.redo_history.insert(0, self.undo_history.pop())
+            self.update_undo_redo_actions()
+            self.load_top_bol_file_from_undo_history()
+
+    def on_redo_action_triggered(self):
+        if self.redo_history:
+            self.undo_history.append(self.redo_history.pop(0))
+            self.update_undo_redo_actions()
+            self.load_top_bol_file_from_undo_history()
+
+    def on_document_potentially_changed(self, update_unsaved_changes=True):
+        document = self.level_file.to_bytes()
+        document_hash = hash(document)
+
+        if self.undo_history[-1][0] != document_hash:
+            self.undo_history.append((document_hash, document))
+            self.redo_history.clear()
+            self.update_undo_redo_actions()
+
+            if update_unsaved_changes:
+                self.set_has_unsaved_changes(True)
+
+    def update_undo_redo_actions(self):
+        self.undo_action.setEnabled(len(self.undo_history) > 1)
+        self.redo_action.setEnabled(bool(self.redo_history))
 
     @catch_exception_with_dialog
     def do_goto_action(self, item, index):
@@ -461,6 +507,19 @@ class GenEditor(QMainWindow):
 
         self.file_menu.aboutToShow.connect(self.on_file_menu_aboutToShow)
 
+        self.edit_menu = QMenu(self)
+        self.edit_menu.setTitle("Edit")
+        self.undo_action = self.edit_menu.addAction('Undo')
+        self.undo_action.setShortcut(QtGui.QKeySequence('Ctrl+Z'))
+        self.undo_action.triggered.connect(self.on_undo_action_triggered)
+        self.redo_action = self.edit_menu.addAction('Redo')
+        self.redo_action.setShortcuts([
+            QtGui.QKeySequence('Ctrl+Shift+Z'),
+            QtGui.QKeySequence('Ctrl+Y'),
+        ])
+        self.redo_action.triggered.connect(self.on_redo_action_triggered)
+        self.update_undo_redo_actions()
+
         self.visibility_menu = mkdd_widgets.FilterViewMenu(self)
         self.visibility_menu.filter_update.connect(self.on_filter_update)
         filters = self.editorconfig["filter_view"].split(",")
@@ -558,6 +617,7 @@ class GenEditor(QMainWindow):
         self.choose_bco_area.setShortcut("Ctrl+3")
 
         self.menubar.addAction(self.file_menu.menuAction())
+        self.menubar.addAction(self.edit_menu.menuAction())
         self.menubar.addAction(self.visibility_menu.menuAction())
         self.menubar.addAction(self.collision_menu.menuAction())
         self.menubar.addAction(self.minimap_menu.menuAction())
@@ -1446,6 +1506,8 @@ class GenEditor(QMainWindow):
         # self.pikmin_gen_view.update()
         self.level_view.do_redraw()
 
+        self.on_document_potentially_changed(update_unsaved_changes=False)
+
         print("File loaded")
         # self.bw_map_screen.update()
         # path_parts = path.split(filepath)
@@ -2134,6 +2196,24 @@ def except_hook(cls, exception, traceback):
 
 
 
+POTENTIALLY_EDITING_EVENTS = (
+    QtCore.QEvent.KeyRelease,
+    QtCore.QEvent.MouseButtonRelease,
+)
+
+
+class Application(QtWidgets.QApplication):
+
+    document_potentially_changed = QtCore.pyqtSignal()
+
+    def notify(self, receiver: QtCore.QObject, event: QtCore.QEvent) -> bool:
+        if event.type() in POTENTIALLY_EDITING_EVENTS:
+            if isinstance(receiver, QtGui.QWindow):
+                self.document_potentially_changed.emit()
+
+        return super().notify(receiver, event)
+
+
 if __name__ == "__main__":
     #import sys
     import platform
@@ -2154,7 +2234,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    app = QApplication(sys.argv)
+    app = Application(sys.argv)
 
     signal.signal(signal.SIGINT, lambda _signal, _frame: app.quit())
 
@@ -2204,6 +2284,9 @@ if __name__ == "__main__":
         print("Python version: ", sys.version)
         editor_gui = GenEditor()
         editor_gui.setWindowIcon(QtGui.QIcon('resources/icon.ico'))
+
+        app.document_potentially_changed.connect(
+            editor_gui.on_document_potentially_changed)
 
         editor_gui.show()
 
