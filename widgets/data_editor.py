@@ -261,6 +261,11 @@ class DataEditor(QWidget):
         for val in keyval_dict:
             combobox.addItem(val)
 
+        policy = combobox.sizePolicy()
+        policy.setHorizontalPolicy(QSizePolicy.Expanding)
+        combobox.setSizePolicy(policy)
+        combobox.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+
         layout = self.create_labeled_widget(self, text, combobox)
 
         def item_selected(item):
@@ -982,38 +987,47 @@ class AreaEdit(DataEditor):
         self.lightparam_index.setText(str(obj.lightparam_index))
 
 
+CAMERA_TYPES = OrderedDict()
+CAMERA_TYPES["000 - Fix | StartFix"] = 0x0000
+CAMERA_TYPES["001 - FixPath | StartOnlyPath"] = 0x0001
+CAMERA_TYPES["002 - FixChase"] = 0x0002
+CAMERA_TYPES["003 - FixSpl"] = 0x0003
+CAMERA_TYPES["004 - StartFixPath"] = 0x0004
+CAMERA_TYPES["005 - DemoPath | StartPath"] = 0x0005
+CAMERA_TYPES["006 - StartLookPath"] = 0x0006
+CAMERA_TYPES["007 - FixPala"] = 0x0007
+CAMERA_TYPES["008 - ?"] = 0x0008
+CAMERA_TYPES["100 - FixSearch"] = 0x0100
+CAMERA_TYPES["101 - ChasePath | StartChasePath"] = 0x0101
+CAMERA_TYPES["102 - Chase"] = 0x0102
+CAMERA_TYPES["103 - ChaseSpl"] = 0x0103
+
+
 class CameraEdit(DataEditor):
     def setup_widgets(self):
         self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
                                                         -inf, +inf)
-        self.position2 = self.add_multiple_decimal_input("End Point", "position2", ["x", "y", "z"],
-                                                        -inf, +inf)
         self.position3 = self.add_multiple_decimal_input("Start Point", "position3", ["x", "y", "z"],
                                                         -inf, +inf)
+        self.position2 = self.add_multiple_decimal_input("End Point", "position2", ["x", "y", "z"],
+                                                        -inf, +inf)
         self.rotation = self.add_rotation_input()
-        self.unkbyte = self.add_integer_input("Unknown 1", "unkbyte",
-                                              MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.camtype = self.add_integer_input("Camera Type", "camtype",
-                                              MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.startzoom = self.add_integer_input("Start FOV", "startzoom",
-                                                MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.camtype = self.add_dropdown_input("Type", "camtype", CAMERA_TYPES)
+        self.fov = self.add_multiple_integer_input("Start/End FOV", "fov", ["start", "end"],
+                                                   MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.camduration = self.add_integer_input("Camera Duration", "camduration",
                                                   MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-        self.startcamera = self.add_integer_input("Start Camera", "startcamera",
-                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-        self.unk2 = self.add_integer_input("Unknown 2", "unk2",
-                                           MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-        self.unk3 = self.add_integer_input("Unknown 3", "unk3",
-                                           MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.startcamera = self.add_checkbox("Start Camera", "startcamera", off_value=0, on_value=1)
+        self.nextcam = self.add_integer_input("Next Cam", "nextcam",
+                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.shimmer = self.add_multiple_integer_input("Shimmer", "shimmer", ["z0", "z1"], 0, 4095)
         self.route = self.add_integer_input("Route ID", "route",
                                             MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.routespeed = self.add_integer_input("Route Speed", "routespeed",
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-        self.endzoom = self.add_integer_input("End FOV", "endzoom",
-                                              MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-        self.nextcam = self.add_integer_input("Next Cam", "nextcam",
-                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.name = self.add_text_input("Camera Name", "name", 4)
+
+        self.camtype.currentIndexChanged.connect(lambda _index: self.catch_text_update())
 
     def update_data(self):
         obj: Camera = self.bound_to
@@ -1031,16 +1045,15 @@ class CameraEdit(DataEditor):
 
         self.update_rotation(*self.rotation)
 
-        self.unkbyte.setText(str(obj.unkbyte))
-        self.camtype.setText(str(obj.camtype))
-        self.startzoom.setText(str(obj.startzoom))
+        self.camtype.setCurrentIndex(list(CAMERA_TYPES.values()).index(obj.camtype))
+        self.fov[0].setText(str(obj.fov.start))
+        self.fov[1].setText(str(obj.fov.end))
         self.camduration.setText(str(obj.camduration))
-        self.startcamera.setText(str(obj.startcamera))
-        self.unk2.setText(str(obj.unk2))
-        self.unk3.setText(str(obj.unk3))
+        self.startcamera.setChecked(obj.startcamera != 0)
+        self.shimmer[0].setText(str(obj.shimmer.z0))
+        self.shimmer[1].setText(str(obj.shimmer.z1))
         self.route.setText(str(obj.route))
         self.routespeed.setText(str(obj.routespeed))
-        self.endzoom.setText(str(obj.endzoom))
         self.nextcam.setText(str(obj.nextcam))
         self.name.setText(obj.name)
 

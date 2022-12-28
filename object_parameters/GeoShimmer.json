@@ -1,10 +1,10 @@
 {
   "Object Parameters":
-          ["Unknown 1",
-            "Unknown 2",
-            "Unknown 3",
-            "Unknown 4",
-            "Unknown 5",
+          ["Texture-based Shimmering",
+            "Offset Z0",
+            "Offset Z1",
+            "Blend Rate Z0",
+            "Blend Rate Z1",
             "Unused",
             "Unused",
             "Unused"],

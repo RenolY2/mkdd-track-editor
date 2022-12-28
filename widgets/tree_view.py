@@ -180,7 +180,7 @@ class AreaEntry(NamedItem):
 
 class CameraEntry(NamedItem):
     def update_name(self):
-        self.setText(0, "Camera {0} (Type: {1})".format(self.index, self.bound_to.camtype))
+        self.setText(0, "Camera {0} (Type: {1:03X})".format(self.index, self.bound_to.camtype))
 
 
 class RespawnEntry(NamedItem):
