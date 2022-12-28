@@ -637,18 +637,16 @@ class BOLEdit(DataEditor):
                                                  -inf, +inf)
         self.fog_endz = self.add_decimal_input("Fog Far Z", "fog_endz",
                                                -inf, +inf)
-        self.unk1 = self.add_integer_input("Unknown 1", "unk1",
-                                           MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-        self.unk2 = self.add_checkbox("Sherbet Land Env. Effects", "unk2",
-                                           off_value=0, on_value=1)
-        self.unk3 = self.add_integer_input("Unknown 3", "unk3",
-                                           MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.lod_bias = self.add_checkbox("LOD Bias", "lod_bias", off_value=0, on_value=1)
+        self.dummy_start_line = self.add_checkbox("Dummy Start Line", "dummy_start_line",
+                                                  off_value=0, on_value=1)
+        self.snow_effects = self.add_checkbox("Sherbet Land Env. Effects", "snow_effects",
+                                              off_value=0, on_value=1)
+        self.shadow_opacity = self.add_integer_input("Shadow Opacity", "shadow_opacity",
+                                                     MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.shadow_color = self.add_multiple_integer_input("Shadow Color", "shadow_color", ["r", "g", "b"],
                                                             MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.unk5 = self.add_integer_input("Unknown 5", "unk5",
-                                           MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.unk6 = self.add_integer_input("Unknown 6", "unk6",
-                                           MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.sky_follow = self.add_checkbox("Sky Follow", "sky_follow", off_value=0, on_value=1)
 
     def update_data(self):
         obj: BOL = self.bound_to
@@ -671,11 +669,11 @@ class BOLEdit(DataEditor):
         self.fog_color[2].setText(str(obj.fog_color.b))
         self.fog_startz.setText(str(obj.fog_startz))
         self.fog_endz.setText(str(obj.fog_endz))
-        self.unk1.setText(str(obj.unk1))
-        self.unk2.setChecked(obj.unk2 != 0)
-        self.unk3.setText(str(obj.unk3))
-        self.unk5.setText(str(obj.unk5))
-        self.unk6.setText(str(obj.unk6))
+        self.lod_bias.setChecked(obj.lod_bias != 0)
+        self.dummy_start_line.setChecked(obj.dummy_start_line != 0)
+        self.snow_effects.setChecked(obj.snow_effects != 0)
+        self.shadow_opacity.setText(str(obj.shadow_opacity))
+        self.sky_follow.setChecked(obj.sky_follow != 0)
         self.shadow_color[0].setText(str(obj.shadow_color.r))
         self.shadow_color[1].setText(str(obj.shadow_color.g))
         self.shadow_color[2].setText(str(obj.shadow_color.b))
