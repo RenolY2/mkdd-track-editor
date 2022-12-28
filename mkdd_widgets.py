@@ -246,7 +246,6 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.modelviewmatrix = None
         self.projectionmatrix = None
 
-        self.arrow = None
         self.minimap = Minimap(Vector3(-1000.0, 0.0, -1000.0), Vector3(1000.0, 0.0, 1000.0), 0,
                                None)
 
@@ -263,10 +262,6 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         glEndList()
 
         self.models.init_gl()
-        self.arrow = Material(texturepath="resources/arrow.png")
-
-        self.minimap = Minimap(Vector3(-1000.0, 0.0, -1000.0), Vector3(1000.0, 0.0, 1000.0), 0,
-                               "resources/arrow.png")
 
         # If multisampling is enabled, a secondary mono-sampled framebuffer needs to be created, as
         # reading pixels from multisampled framebuffers is not a supported GL operation.
