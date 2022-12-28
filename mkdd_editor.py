@@ -2177,7 +2177,7 @@ class Application(QtWidgets.QApplication):
     def notify(self, receiver: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if event.type() in POTENTIALLY_EDITING_EVENTS:
             if isinstance(receiver, QtGui.QWindow):
-                self.document_potentially_changed.emit()
+                QtCore.QTimer.singleShot(0, self.document_potentially_changed)
 
         return super().notify(receiver, event)
 
