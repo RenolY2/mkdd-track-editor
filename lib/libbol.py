@@ -1124,6 +1124,10 @@ class BOL(object):
 
         return bol
 
+    @classmethod
+    def from_bytes(cls, data: bytes) -> 'BOL':
+        return BOL.from_file(BytesIO(data))
+
     def write(self, f):
         f.write(b"0015")
         f.write(pack(">B", self.roll))
@@ -1218,6 +1222,11 @@ class BOL(object):
         f.seek(offset_start)
         for offset in offsets:
             f.write(pack(">I", offset))
+
+    def to_bytes(self) -> bytes:
+        f = BytesIO()
+        self.write(f)
+        return f.getvalue()
 
 
 with open("lib/mkddobjects.json", "r") as f:
