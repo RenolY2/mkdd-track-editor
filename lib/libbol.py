@@ -1,7 +1,6 @@
 import json
 from struct import unpack, pack
 from numpy import ndarray, array
-from binascii import hexlify
 from math import cos, sin
 from .vectors import Vector3
 from collections import OrderedDict
@@ -90,9 +89,6 @@ class Rotation(object):
 
         self.mtx[3][0] = self.mtx[3][1] = self.mtx[3][2] = 0.0
         self.mtx[3][3] = 1.0
-        #print(forward.x, -forward.z, forward.y)
-        #print(self.mtx)
-        #print([x for x in self.mtx])
 
     def rotate_around_x(self, degrees):
         mtx = ndarray(shape=(4,4), dtype=float, order="F", buffer=array([
@@ -369,7 +365,6 @@ class EnemyPointGroups(object):
 
         for i in range(count):
             enemypoint = EnemyPoint.from_file(f, old_bol)
-            print("Point", i, "in group", enemypoint.group, "links to", enemypoint.link)
             if enemypoint.group not in enemypointgroups._group_ids:
                 # start of group
                 curr_group = EnemyPointGroup()
@@ -506,7 +501,6 @@ class Checkpoint(object):
         start = Vector3(*unpack(">fff", f.read(12)))
         end = Vector3(*unpack(">fff", f.read(12)))
         unk1, unk2, unk3, unk4 = unpack(">BBBB", f.read(4))
-        #print(start, end)
         assert unk4 == 0
         assert unk2 == 0 or unk2 == 1
         assert unk3 == 0 or unk3 == 1
@@ -853,11 +847,6 @@ class Camera(object):
 
     @classmethod
     def from_file(cls, f):
-        start = f.tell()
-        hexd = f.read(4*3*4)
-        f.seek(start)
-        print(hexlify(hexd))
-
         position = Vector3(*unpack(">fff", f.read(12)))
 
         cam = cls(position)
@@ -1056,7 +1045,6 @@ class BOL(object):
     def from_file(cls, f):
         bol = cls()
         magic = f.read(4)
-        print(magic, type(magic))
         assert magic == b"0015" or magic == b"0012"
         old_bol = magic == b"0012"
 
@@ -1096,7 +1084,6 @@ class BOL(object):
         assert padding == 0
 
         filestart = read_uint32(f)
-        print(hex(f.tell()), filestart)
         assert filestart == 0
 
         sectionoffsets = {}
@@ -1152,6 +1139,10 @@ class BOL(object):
         bol.mgentries = ObjectContainer.from_file(f, sectioncounts[MINIGAME], MGEntry)
 
         return bol
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> 'BOL':
+        return BOL.from_file(BytesIO(data))
 
     def write(self, f):
         f.write(b"0015")
@@ -1243,11 +1234,15 @@ class BOL(object):
         offsets.append(f.tell())
         for mgentry in self.mgentries:
             mgentry.write(f)
-        print(len(offsets))
         assert len(offsets) == 11
         f.seek(offset_start)
         for offset in offsets:
             f.write(pack(">I", offset))
+
+    def to_bytes(self) -> bytes:
+        f = BytesIO()
+        self.write(f)
+        return f.getvalue()
 
 
 with open("lib/mkddobjects.json", "r") as f:
