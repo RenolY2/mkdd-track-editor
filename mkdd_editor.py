@@ -133,8 +133,6 @@ class GenEditor(QMainWindow):
         self.loaded_archive_file = None
         self.last_position_clicked = []
 
-        self.analyzer_window = None
-
         self._dontselectfromtree = False
 
         self.dolphin = Game()
@@ -1000,12 +998,9 @@ class GenEditor(QMainWindow):
         self.collision_area_dialog.finished.connect(on_dialog_finished)
 
     def analyze_for_mistakes(self):
-        if self.analyzer_window is not None:
-            self.analyzer_window.destroy()
-            self.analyzer_window = None
-
-        self.analyzer_window = ErrorAnalyzer(self.level_file)
-        self.analyzer_window.show()
+        analyzer_window = ErrorAnalyzer(self.level_file, parent=self)
+        analyzer_window.exec_()
+        analyzer_window.deleteLater()
 
     def on_file_menu_aboutToShow(self):
         recent_files = self.get_recent_files_list()

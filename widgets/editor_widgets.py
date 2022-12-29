@@ -57,7 +57,7 @@ def open_error_dialog(errormsg, self):
     errorbox.setFixedSize(500, 200)
 
 
-class ErrorAnalyzer(QMdiSubWindow):
+class ErrorAnalyzer(QDialog):
 
     @catch_exception
     def __init__(self, bol, *args, **kwargs):
@@ -70,11 +70,17 @@ class ErrorAnalyzer(QMdiSubWindow):
 
         self.setWindowTitle("Analysis Results")
         self.text_widget = QTextEdit(self)
-        self.setWidget(self.text_widget)
-        self.resize(900, 500)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.text_widget)
+
         self.setMinimumSize(QSize(300, 300))
         self.text_widget.setFont(font)
         self.text_widget.setReadOnly(True)
+
+        width = self.text_widget.fontMetrics().averageCharWidth() * 80
+        height = self.text_widget.fontMetrics().height() * 20
+        self.resize(width, height)
 
         lines = ErrorAnalyzer.analyze_bol(bol)
         if not lines:
