@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
-from lib.libbol import BOL, get_full_name
+from lib.libbol import BOL, get_full_name, AREA_TYPES
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QAction, QMenu
 
@@ -175,7 +175,7 @@ class KartpointEntry(NamedItem):
 
 class AreaEntry(NamedItem):
     def update_name(self):
-        self.setText(0, "Area (Type: {0})".format(self.bound_to.area_type))
+        self.setText(0, AREA_TYPES[self.bound_to.area_type])
 
 
 class CameraEntry(NamedItem):
