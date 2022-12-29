@@ -779,6 +779,8 @@ class Area(object):
         self.shadow_id = 0
         self.lightparam_index = 0
 
+        self.widget = None
+
     @classmethod
     def new(cls):
         return cls(Vector3(0.0, 0.0, 0.0))
@@ -857,6 +859,8 @@ class Camera(object):
         self.nextcam = -1
         self.name = "null"
 
+        self.widget = None
+
     @classmethod
     def new(cls):
         return cls(Vector3(0.0, 0.0, 0.0))
@@ -906,6 +910,8 @@ class JugemPoint(object):
         self.unk1 = 0
         self.unk2 = 0
         self.unk3 = 0
+
+        self.widget = None
 
     @classmethod
     def new(cls):

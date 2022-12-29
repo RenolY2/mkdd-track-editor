@@ -626,6 +626,8 @@ class EnemyPointEdit(DataEditor):
         for widget in (self.link, self.driftacuteness, self.driftduration, self.driftsupplement):
             widget.editingFinished.connect(self.catch_text_update)
 
+        self.link.editingFinished.connect(self.update_name)
+
     def update_data(self):
         obj: EnemyPoint = self.bound_to
         self.position[0].setText(str(round(obj.position.x, 3)))
@@ -647,6 +649,11 @@ class EnemyPointEdit(DataEditor):
             name = SWERVE_IDS[0]
         index = self.swerve.findText(name)
         self.swerve.setCurrentIndex(index)
+
+    def update_name(self):
+        if self.bound_to.widget is None:
+            return
+        self.bound_to.widget.update_name()
 
 
 class CheckpointGroupEdit(DataEditor):
@@ -966,6 +973,8 @@ class AreaEdit(DataEditor):
         self.lightparam_index = self.add_integer_input("LightParam Index", "lightparam_index",
                                                        MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
 
+        self.area_type.currentTextChanged.connect(self.update_name)
+
     def update_data(self):
         obj: Area = self.bound_to
         self.position[0].setText(str(round(obj.position.x, 3)))
@@ -987,6 +996,11 @@ class AreaEdit(DataEditor):
         self.unkshort.setText(str(obj.unkshort))
         self.shadow_id.setText(str(obj.shadow_id))
         self.lightparam_index.setText(str(obj.lightparam_index))
+
+    def update_name(self):
+        if self.bound_to.widget is None:
+            return
+        self.bound_to.widget.update_name()
 
 
 CAMERA_TYPES = OrderedDict()
@@ -1030,6 +1044,7 @@ class CameraEdit(DataEditor):
         self.name = self.add_text_input("Camera Name", "name", 4)
 
         self.camtype.currentIndexChanged.connect(lambda _index: self.catch_text_update())
+        self.camtype.currentTextChanged.connect(self.update_name)
 
     def update_data(self):
         obj: Camera = self.bound_to
@@ -1059,6 +1074,11 @@ class CameraEdit(DataEditor):
         self.nextcam.setText(str(obj.nextcam))
         self.name.setText(obj.name)
 
+    def update_name(self):
+        if self.bound_to.widget is None:
+            return
+        self.bound_to.widget.update_name()
+
 
 class RespawnPointEdit(DataEditor):
     def setup_widgets(self):
@@ -1074,6 +1094,8 @@ class RespawnPointEdit(DataEditor):
         self.unk3 = self.add_integer_input("Previous Checkpoint", "unk3",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
 
+        self.respawn_id.editingFinished.connect(self.update_name)
+
     def update_data(self):
         obj: JugemPoint = self.bound_to
         self.position[0].setText(str(round(obj.position.x, 3)))
@@ -1085,6 +1107,10 @@ class RespawnPointEdit(DataEditor):
         self.unk2.setText(str(obj.unk2))
         self.unk3.setText(str(obj.unk3))
 
+    def update_name(self):
+        if self.bound_to.widget is None:
+            return
+        self.bound_to.widget.update_name()
 
 class LightParamEdit(DataEditor):
     def setup_widgets(self):
