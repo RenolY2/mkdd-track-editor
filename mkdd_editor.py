@@ -87,16 +87,26 @@ def get_treeitem(root:QTreeWidgetItem, obj):
     return None
 
 
+class UndoEntry:
+
+    def __init__(self, bol_document: bytes, minimap_data: tuple):
+        self.bol_document = bol_document
+        self.minimap_data = minimap_data
+
+        self.bol_hash = hash(bol_document)
+        self.hash = hash((self.bol_hash, self.minimap_data))
+
+    def __eq__(self, other) -> bool:
+        return self.hash == other.hash
+
+
 class GenEditor(QMainWindow):
     def __init__(self):
         super().__init__()
         self.level_file = BOL()
 
-        self.undo_history: list[tuple[int, bytes]] = []
-        self.redo_history: list[tuple[int, bytes]] = []
-
-        document = self.level_file.to_bytes()
-        self.undo_history.append((hash(document), document))
+        self.undo_history: list[UndoEntry] = []
+        self.redo_history: list[UndoEntry] = []
 
         try:
             self.configuration = read_config()
@@ -142,6 +152,8 @@ class GenEditor(QMainWindow):
         self.first_time_3dview = True
 
         self.restore_geometry()
+
+        self.undo_history.append(self.generate_undo_entry())
 
     def save_geometry(self):
         if "geometry" not in self.configuration:
@@ -228,44 +240,74 @@ class GenEditor(QMainWindow):
             else:
                 self.setWindowTitle("MKDD Track Editor")
 
-    def load_top_bol_file_from_undo_history(self):
+    def generate_undo_entry(self) -> UndoEntry:
+        bol_document = self.level_file.to_bytes()
+
+        minimap = self.level_view.minimap
+        minimap_data = (
+            minimap.corner1.x, minimap.corner1.y, minimap.corner1.z,
+            minimap.corner2.x, minimap.corner2.y, minimap.corner2.z,
+            minimap.orientation
+        )
+
+        return UndoEntry(bol_document, minimap_data)
+
+    def load_top_undo_entry(self):
         if not self.undo_history:
             return
 
-        _document_hash, document = self.undo_history[-1]
+        current_undo_entry = self.generate_undo_entry()
+        undo_entry = self.undo_history[-1]
 
-        self.level_file = BOL.from_bytes(document)
+        bol_changed = current_undo_entry.bol_hash != undo_entry.bol_hash
+
+        self.level_file = BOL.from_bytes(undo_entry.bol_document)
         self.level_view.level_file = self.level_file
         self.leveldatatreeview.set_objects(self.level_file)
-        self.level_view.do_redraw()
-        self.set_has_unsaved_changes(True)
-        self.error_analyzer_button.analyze_bol(self.level_file)
+
+        minimap = self.level_view.minimap
+        minimap.corner1.x = undo_entry.minimap_data[0]
+        minimap.corner1.y = undo_entry.minimap_data[1]
+        minimap.corner1.z = undo_entry.minimap_data[2]
+        minimap.corner2.x = undo_entry.minimap_data[3]
+        minimap.corner2.y = undo_entry.minimap_data[4]
+        minimap.corner2.z = undo_entry.minimap_data[5]
+        minimap.orientation = undo_entry.minimap_data[6]
+
+        self.update_3d()
+        self.pik_control.update_info()
+
+        if bol_changed:
+            self.set_has_unsaved_changes(True)
+            self.error_analyzer_button.analyze_bol(self.level_file)
 
     def on_undo_action_triggered(self):
         if len(self.undo_history) > 1:
             self.redo_history.insert(0, self.undo_history.pop())
             self.update_undo_redo_actions()
-            self.load_top_bol_file_from_undo_history()
+            self.load_top_undo_entry()
 
     def on_redo_action_triggered(self):
         if self.redo_history:
             self.undo_history.append(self.redo_history.pop(0))
             self.update_undo_redo_actions()
-            self.load_top_bol_file_from_undo_history()
+            self.load_top_undo_entry()
 
     def on_document_potentially_changed(self, update_unsaved_changes=True):
-        document = self.level_file.to_bytes()
-        document_hash = hash(document)
+        undo_entry = self.generate_undo_entry()
 
-        if self.undo_history[-1][0] != document_hash:
-            self.undo_history.append((document_hash, document))
+        if self.undo_history[-1] != undo_entry:
+            bol_changed = self.undo_history[-1].bol_hash != undo_entry.bol_hash
+
+            self.undo_history.append(undo_entry)
             self.redo_history.clear()
             self.update_undo_redo_actions()
 
-            if update_unsaved_changes:
-                self.set_has_unsaved_changes(True)
+            if bol_changed:
+                if update_unsaved_changes:
+                    self.set_has_unsaved_changes(True)
 
-            self.error_analyzer_button.analyze_bol(self.level_file)
+                self.error_analyzer_button.analyze_bol(self.level_file)
 
     def update_undo_redo_actions(self):
         self.undo_action.setEnabled(len(self.undo_history) > 1)
