@@ -653,6 +653,7 @@ class GenEditor(QMainWindow):
 
         if filepath:
             self.level_view.minimap.set_texture(filepath)
+            self.level_view.do_redraw()
 
             self.pathsconfig["minimap_png"] = filepath
             save_cfg(self.configuration)
@@ -699,6 +700,7 @@ class GenEditor(QMainWindow):
                 self.level_view.minimap.corner2.x = read_float(dol)
                 dol.seek(int(corner2z, 16))
                 self.level_view.minimap.corner2.z = read_float(dol)
+                self.level_view.do_redraw()
 
             self.pathsconfig["dol"] = filepath
             save_cfg(self.configuration)
@@ -753,6 +755,7 @@ class GenEditor(QMainWindow):
             write_float(dol, self.level_view.minimap.corner2.x)
             dol.seek(int(corner2z, 16))
             write_float(dol, self.level_view.minimap.corner2.z)
+            self.level_view.do_redraw()
 
             with open(filepath, "wb") as f:
                 dol.save(f)
