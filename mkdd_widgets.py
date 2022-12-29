@@ -565,7 +565,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         else:
             mult = 40.0
 
-        if 10 < (self._zoom_factor + fac*mult) <= 1500:
+        if 10 < (self._zoom_factor + fac*mult):
             self._zoom_factor += int(fac*mult)
             #self.update()
             self.do_redraw()
