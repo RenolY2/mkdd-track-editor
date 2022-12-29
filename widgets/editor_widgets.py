@@ -116,6 +116,10 @@ class ErrorAnalyzer(QDialog):
                     i, group_index, point.link
                 ))
         for group_index, group in enumerate(bol.enemypointgroups.groups):
+            if not group.points:
+                write_line("Empty enemy path {0}.".format(group_index))
+                continue
+
             if group.points[0].link == -1:
                 write_line("Start point of enemy point group {0} has no valid link to form a loop".format(group_index))
             if group.points[-1].link == -1:
