@@ -10,7 +10,7 @@ from math import inf
 from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint, Route, RoutePoint,
                         MapObject, KartStartPoint, Area, Camera, BOL, JugemPoint, MapObject,
                         LightParam, MGEntry, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS,
-                        SWERVE_IDS, REVERSE_SWERVE_IDS)
+                        SWERVE_IDS, REVERSE_SWERVE_IDS, REVERSE_AREA_TYPES)
 from lib.vectors import Vector3
 from lib.model_rendering import Minimap
 from PyQt5.QtCore import pyqtSignal
@@ -950,8 +950,7 @@ class AreaEdit(DataEditor):
         self.rotation = self.add_rotation_input()
         self.check_flag = self.add_integer_input("Check Flag", "check_flag",
                                                  MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.area_type = self.add_integer_input("Area Type", "area_type",
-                                                MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.area_type = self.add_dropdown_input("Area Type", "area_type", REVERSE_AREA_TYPES)
         self.camera_index = self.add_integer_input("Camera Index", "camera_index",
                                                    MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.unk1 = self.add_integer_input("Unknown 1", "unk1",
@@ -980,7 +979,7 @@ class AreaEdit(DataEditor):
         self.update_rotation(*self.rotation)
 
         self.check_flag.setText(str(obj.check_flag))
-        self.area_type.setText(str(obj.area_type))
+        self.area_type.setCurrentIndex(obj.area_type)
         self.camera_index.setText(str(obj.camera_index))
         self.unk1.setText(str(obj.unk1))
         self.unk2.setText(str(obj.unk2))

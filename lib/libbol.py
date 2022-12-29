@@ -750,6 +750,20 @@ class KartStartPoints(object):
 
 # Section 7
 # Areas
+
+AREA_TYPES = {
+    0: "Shadow",
+    1: "Camera",
+    2: "Ceiling",
+    3: "No Dead Zone",
+    4: "Unknown 1",
+    5: "Unknown 2",
+    6: "Sound Effect",
+    7: "Lighting",
+}
+
+REVERSE_AREA_TYPES = dict(zip(AREA_TYPES.values(), AREA_TYPES.keys()))
+
 class Area(object):
     def __init__(self, position):
         self.position = position
@@ -785,6 +799,8 @@ class Area(object):
         area.unkshort = read_int16(f)
         area.shadow_id = read_int16(f)
         area.lightparam_index = read_int16(f)
+
+        assert area.area_type in list(AREA_TYPES.keys())
 
         return area
 
