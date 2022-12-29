@@ -58,6 +58,7 @@ def open_error_dialog(errormsg, self):
 
 
 class ErrorAnalyzer(QMdiSubWindow):
+
     @catch_exception
     def __init__(self, bol, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -75,15 +76,20 @@ class ErrorAnalyzer(QMdiSubWindow):
         self.text_widget.setFont(font)
         self.text_widget.setReadOnly(True)
 
-        self.analyze_bol_and_write_results(bol)
+        lines = ErrorAnalyzer.analyze_bol(bol)
+        if not lines:
+            text = "No known common errors detected!"
+        else:
+            text ='\n\n'.join(lines)
+        self.text_widget.setText(text)
 
+    @classmethod
     @catch_exception
-    def analyze_bol_and_write_results(self, bol):
-        results = StringIO()
+    def analyze_bol(cls, bol: libbol.BOL) -> 'list[str]':
+        lines: list[str] = []
 
         def write_line(line):
-            results.write(line)
-            results.write("\n")
+            lines.append(line)
 
         # Check enemy point linkage errors
         links = {}
@@ -167,14 +173,12 @@ class ErrorAnalyzer(QMdiSubWindow):
         if len(bol.enemypointgroups.groups) == 0:
             write_line("You need at least one enemy point group!")
 
-        self.check_checkpoints_convex(bol, write_line)
+        cls.check_checkpoints_convex(bol, write_line)
 
-        text = results.getvalue()
-        if not text:
-            text = "No known common errors detected!"
-        self.text_widget.setText(text)
+        return lines
 
-    def check_checkpoints_convex(self, bol, write_line):
+    @classmethod
+    def check_checkpoints_convex(cls, bol, write_line):
         for gindex, group in enumerate(bol.checkpoints.groups):
             if len(group.points) > 1:
                 for i in range(1, len(group.points)):
