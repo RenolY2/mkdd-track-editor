@@ -1736,6 +1736,8 @@ class GenEditor(QMainWindow):
 
         if isinstance(obj, (libbol.EnemyPointGroup, libbol.CheckpointGroup, libbol.Route,
                             libbol.LightParam, libbol.MGEntry)):
+            obj = deepcopy(obj)
+
             if isinstance(obj, libbol.EnemyPointGroup):
                 self.level_file.enemypointgroups.groups.append(obj)
             elif isinstance(obj, libbol.CheckpointGroup):
