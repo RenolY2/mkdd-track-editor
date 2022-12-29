@@ -34,11 +34,9 @@ def catch_exception(func):
 def catch_exception_with_dialog(func):
     def handle(*args, **kwargs):
         try:
-            print(args, kwargs)
             return func(*args, **kwargs)
         except Exception as e:
             traceback.print_exc()
-            print("hey")
             open_error_dialog(str(e), None)
     return handle
 
@@ -46,7 +44,6 @@ def catch_exception_with_dialog(func):
 def catch_exception_with_dialog_nokw(func):
     def handle(*args, **kwargs):
         try:
-            print(args, kwargs)
             return func(*args, **kwargs)
         except Exception as e:
             traceback.print_exc()
@@ -107,7 +104,6 @@ class ErrorAnalyzer(QMdiSubWindow):
                     i, group_index, point.link
                 ))
         for group_index, group in enumerate(bol.enemypointgroups.groups):
-            print(group.points[0].link, group.points[-1].link)
             if group.points[0].link == -1:
                 write_line("Start point of enemy point group {0} has no valid link to form a loop".format(group_index))
             if group.points[-1].link == -1:
