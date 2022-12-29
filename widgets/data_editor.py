@@ -947,6 +947,11 @@ class KartStartPointEdit(DataEditor):
         self.playerid.setText(str(obj.playerid))
         self.unknown.setText(str(obj.unknown))
 
+AREA_SHAPE = {
+    "Box": 0,
+    "Cylinder": 1,
+}
+
 
 class AreaEdit(DataEditor):
     def setup_widgets(self):
@@ -955,8 +960,7 @@ class AreaEdit(DataEditor):
         self.scale = self.add_multiple_decimal_input("Scale", "scale", ["x", "y", "z"],
                                                      -inf, +inf)
         self.rotation = self.add_rotation_input()
-        self.check_flag = self.add_integer_input("Check Flag", "check_flag",
-                                                 MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.shape = self.add_dropdown_input("Shape", "shape", AREA_SHAPE)
         self.area_type = self.add_dropdown_input("Area Type", "area_type", REVERSE_AREA_TYPES)
         self.camera_index = self.add_integer_input("Camera Index", "camera_index",
                                                    MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
@@ -987,7 +991,7 @@ class AreaEdit(DataEditor):
 
         self.update_rotation(*self.rotation)
 
-        self.check_flag.setText(str(obj.check_flag))
+        self.shape.setCurrentIndex(obj.shape)
         self.area_type.setCurrentIndex(obj.area_type)
         self.camera_index.setText(str(obj.camera_index))
         self.unk1.setText(str(obj.unk1))
