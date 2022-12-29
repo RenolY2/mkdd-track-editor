@@ -1130,14 +1130,21 @@ class MGEntryEdit(DataEditor):
         self.unk4.setText(str(obj.unk4))
 
 
+ORIENTATION_OPTIONS = OrderedDict()
+ORIENTATION_OPTIONS["Upwards"] = 0
+ORIENTATION_OPTIONS["Leftwards"] = 1
+ORIENTATION_OPTIONS["Downwards"] = 2
+ORIENTATION_OPTIONS["Rightwards"] = 3
+
+
 class MinimapEdit(DataEditor):
     def setup_widgets(self):
         self.topleft = self.add_multiple_decimal_input("TopLeft", "corner1", ["x", "y", "z"],
                                                        -inf, +inf)
         self.bottomright = self.add_multiple_decimal_input("BottomRight", "corner2", ["x", "y", "z"],
                                                            -inf, +inf)
-        self.orientation = self.add_integer_input("Orientation", "orientation",
-                                                  0, 3)
+        self.orientation = self.add_dropdown_input("Orientation", "orientation", ORIENTATION_OPTIONS)
+        self.orientation.currentIndexChanged.connect(lambda _index: self.catch_text_update())
 
     def update_data(self):
         obj: Minimap = self.bound_to
@@ -1148,4 +1155,4 @@ class MinimapEdit(DataEditor):
         self.bottomright[1].setText(str(round(obj.corner2.y, 3)))
         self.bottomright[2].setText(str(round(obj.corner2.z, 3)))
 
-        self.orientation.setText(str(obj.orientation))
+        self.orientation.setCurrentIndex(obj.orientation)

@@ -1,4 +1,5 @@
 import json
+import math
 import re
 import sys
 from time import time
@@ -900,6 +901,7 @@ ORIENTATIONS = {
     3: [(0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0)]
 }
 
+ORIENTATION_ANGLE = (0.0, 90.0, 180.0, 270.0)
 
 class Minimap(object):
     def __init__(self, corner1, corner2, orientation, texpath=None):
@@ -913,7 +915,7 @@ class Minimap(object):
         print("fully initialized")
 
     def is_available(self):
-        return self.ID is not None
+        return True
 
     def set_texture(self, path):
         if self.ID is not None:
@@ -932,35 +934,49 @@ class Minimap(object):
         self.ID = ID
 
     def render(self):
-        if self.ID is None:
-            return
-
         corner1, corner2 = self.corner1, self.corner2
 
         glDisable(GL_ALPHA_TEST)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glEnable(GL_BLEND)
-        #glEnable(GL_DEPTH_TEST)
-        glColor4f(1.0, 1.0, 1.0, 0.70)
-        glEnable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, self.ID)
-        glBegin(GL_TRIANGLE_FAN)
 
-        glTexCoord2f(*ORIENTATIONS[self.orientation][0])
-        glVertex3f(corner1.x, -corner1.z, corner1.y)
-        glTexCoord2f(*ORIENTATIONS[self.orientation][1])
-        glVertex3f(corner1.x, -corner2.z, corner1.y)
-        glTexCoord2f(*ORIENTATIONS[self.orientation][2])
-        glVertex3f(corner2.x, -corner2.z, corner1.y)
-        glTexCoord2f(*ORIENTATIONS[self.orientation][3])
-        glVertex3f(corner2.x, -corner1.z, corner1.y)
-        glEnd()
+        if self.ID is not None:
+            glColor4f(1.0, 1.0, 1.0, 0.70)
+            glEnable(GL_TEXTURE_2D)
+            glBindTexture(GL_TEXTURE_2D, self.ID)
+            glBegin(GL_TRIANGLE_FAN)
+            glTexCoord2f(*ORIENTATIONS[self.orientation][0])
+            glVertex3f(corner1.x, -corner1.z, corner1.y)
+            glTexCoord2f(*ORIENTATIONS[self.orientation][1])
+            glVertex3f(corner1.x, -corner2.z, corner1.y)
+            glTexCoord2f(*ORIENTATIONS[self.orientation][2])
+            glVertex3f(corner2.x, -corner2.z, corner1.y)
+            glTexCoord2f(*ORIENTATIONS[self.orientation][3])
+            glVertex3f(corner2.x, -corner1.z, corner1.y)
+            glEnd()
+            glDisable(GL_TEXTURE_2D)
+        else:
+            glColor4f(0.0, 0.0, 0.0, 0.70)
+            glPushMatrix()
+            glTranslate((corner2.x + corner1.x) / 2, -(corner2.z + corner1.z) / 2, corner1.y)
+            glScale(corner2.x - corner1.x, corner2.z - corner1.z, 1.0)
+            glRotate(90.0 * self.orientation, 0.0, 0.0, 1.0)
+            glBegin(GL_TRIANGLES)
+            glVertex3f(0.0, 0.5, 0.0)
+            glVertex3f(-0.5, 0.1, 0.0)
+            glVertex3f(0.5, 0.1, 0.0)
+            glVertex3f(-0.25, -0.5, 0.0)
+            glVertex3f(0.25, 0.1, 0.0)
+            glVertex3f(-0.25, 0.1, 0.0)
+            glVertex3f(-0.25, -0.5, 0.0)
+            glVertex3f(0.25, -0.5, 0.0)
+            glVertex3f(0.25, 0.1, 0.0)
+            glEnd()
+            glPopMatrix()
 
         glColor4f(1.0, 1.0, 1.0, 1.0)
-        #glDisable(GL_DEPTH_TEST)
         glDisable(GL_BLEND)
         glBlendFunc(GL_ZERO, GL_ONE)
-        glDisable(GL_TEXTURE_2D)
         glEnable(GL_ALPHA_TEST)
 
 
