@@ -210,6 +210,30 @@ class ErrorAnalyzer(QDialog):
                                 break
 
 
+class ErrorAnalyzerButton(QtWidgets.QPushButton):
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+
+        self.success_icon = QtGui.QIcon('resources/success.svg')
+        self.warning_icon = QtGui.QIcon('resources/warning.svg')
+
+        self.setEnabled(False)
+
+        background_color = self.palette().dark().color().name()
+        self.setStyleSheet("QPushButton { border: 0px; padding: 2px; } "
+                           f"QPushButton:hover {{ background: {background_color}; }}")
+
+    def analyze_bol(self, bol: libbol.BOL):
+        lines = ErrorAnalyzer.analyze_bol(bol)
+        if lines:
+            self.setIcon(self.warning_icon)
+            self.setText(str(len(lines)))
+        else:
+            self.setIcon(self.success_icon)
+            self.setText(str())
+        self.setEnabled(True)
+
+
 class AddPikObjectWindow(QDialog):
 
     @catch_exception

@@ -33,7 +33,7 @@ import lib.libbol as libbol
 from lib.rarc import Archive
 from lib.BCOllider import RacetrackCollision
 from lib.model_rendering import TexturedModel, CollisionModel, Minimap
-from widgets.editor_widgets import ErrorAnalyzer
+from widgets.editor_widgets import ErrorAnalyzer, ErrorAnalyzerButton
 from lib.dolreader import DolFile, read_float, write_float, read_load_immediate_r0, write_load_immediate_r0, UnmappedAddress
 from widgets.file_select import FileSelect
 from PyQt5.QtWidgets import QTreeWidgetItem
@@ -239,6 +239,7 @@ class GenEditor(QMainWindow):
         self.leveldatatreeview.set_objects(self.level_file)
         self.level_view.do_redraw()
         self.set_has_unsaved_changes(True)
+        self.error_analyzer_button.analyze_bol(self.level_file)
 
     def on_undo_action_triggered(self):
         if len(self.undo_history) > 1:
@@ -263,6 +264,8 @@ class GenEditor(QMainWindow):
 
             if update_unsaved_changes:
                 self.set_has_unsaved_changes(True)
+
+            self.error_analyzer_button.analyze_bol(self.level_file)
 
     def update_undo_redo_actions(self):
         self.undo_action.setEnabled(len(self.undo_history) > 1)
@@ -458,6 +461,10 @@ class GenEditor(QMainWindow):
         self.statusbar = QStatusBar(self)
         self.statusbar.setObjectName("statusbar")
         self.setStatusBar(self.statusbar)
+
+        self.error_analyzer_button = ErrorAnalyzerButton()
+        self.error_analyzer_button.clicked.connect(lambda _checked: self.analyze_for_mistakes())
+        self.statusbar.addPermanentWidget(self.error_analyzer_button)
 
         self.connect_actions()
 
