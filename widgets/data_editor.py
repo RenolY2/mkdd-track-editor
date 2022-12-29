@@ -964,10 +964,8 @@ class AreaEdit(DataEditor):
         self.area_type = self.add_dropdown_input("Area Type", "area_type", REVERSE_AREA_TYPES)
         self.camera_index = self.add_integer_input("Camera Index", "camera_index",
                                                    MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
-        self.unk1 = self.add_integer_input("Unknown 1", "unk1",
-                                           MIN_UNSIGNED_INT, MAX_UNSIGNED_INT)
-        self.unk2 = self.add_integer_input("Unknown 2", "unk2",
-                                           MIN_UNSIGNED_INT, MAX_UNSIGNED_INT)
+        self.feather = self.add_multiple_integer_input("Feather", "feather", ["i0", "i1"],
+                                                       MIN_UNSIGNED_INT, MAX_SIGNED_INT)
         self.unkfixedpoint = self.add_integer_input("Unknown 3 Fixed Point", "unkfixedpoint",
                                                     MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.unkshort = self.add_integer_input("Unknown 4", "unkshort",
@@ -994,8 +992,8 @@ class AreaEdit(DataEditor):
         self.shape.setCurrentIndex(obj.shape)
         self.area_type.setCurrentIndex(obj.area_type)
         self.camera_index.setText(str(obj.camera_index))
-        self.unk1.setText(str(obj.unk1))
-        self.unk2.setText(str(obj.unk2))
+        self.feather[0].setText(str(obj.feather.i0))
+        self.feather[1].setText(str(obj.feather.i1))
         self.unkfixedpoint.setText(str(obj.unkfixedpoint))
         self.unkshort.setText(str(obj.unkshort))
         self.shadow_id.setText(str(obj.shadow_id))

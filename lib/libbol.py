@@ -795,8 +795,15 @@ class Area(object):
         area.shape = read_uint8(f)
         area.area_type = read_uint8(f)
         area.camera_index = read_int16(f)
-        area.unk1 = read_uint32(f)
-        area.unk2 = read_uint32(f)
+
+        class Feather:
+            def __init__(self):
+                self.i0 = 0
+                self.i1 = 0
+
+        area.feather = Feather()
+        area.feather.i0 = read_uint32(f)
+        area.feather.i1 = read_uint32(f)
         area.unkfixedpoint = read_int16(f)
         area.unkshort = read_int16(f)
         area.shadow_id = read_int16(f)
@@ -812,7 +819,7 @@ class Area(object):
         f.write(pack(">fff", self.scale.x, self.scale.y, self.scale.z))
         self.rotation.write(f)
         f.write(pack(">BBh", self.shape, self.area_type, self.camera_index))
-        f.write(pack(">II", self.unk1, self.unk2))
+        f.write(pack(">II", self.feather.i0, self.feather.i1))
         f.write(pack(">hhhh", self.unkfixedpoint, self.unkshort, self.shadow_id, self.lightparam_index))
 
 
