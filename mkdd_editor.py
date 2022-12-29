@@ -1612,6 +1612,9 @@ class GenEditor(QMainWindow):
             traceback.print_exc()
             open_error_dialog(str(e), self)
 
+        finally:
+            self.update_3d()
+
     def button_load_collision_bmd(self):
         try:
             filepath, choosentype = QFileDialog.getOpenFileName(
@@ -1646,6 +1649,9 @@ class GenEditor(QMainWindow):
         except Exception as e:
             traceback.print_exc()
             open_error_dialog(str(e), self)
+
+        finally:
+            self.update_3d()
 
     def button_load_collision_bco(self):
         try:
@@ -1682,6 +1688,9 @@ class GenEditor(QMainWindow):
         except Exception as e:
             traceback.print_exc()
             open_error_dialog(str(e), self)
+
+        finally:
+            self.update_3d()
 
     def clear_collision(self):
         self.level_view.clear_collision()
