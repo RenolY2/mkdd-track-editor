@@ -1144,6 +1144,7 @@ class MinimapEdit(DataEditor):
         self.bottomright = self.add_multiple_decimal_input("BottomRight", "corner2", ["x", "y", "z"],
                                                            -inf, +inf)
         self.orientation = self.add_dropdown_input("Orientation", "orientation", ORIENTATION_OPTIONS)
+        self.orientation.currentIndexChanged.connect(lambda _index: self.catch_text_update())
 
     def update_data(self):
         obj: Minimap = self.bound_to
