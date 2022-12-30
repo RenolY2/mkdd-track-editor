@@ -125,6 +125,15 @@ class ErrorAnalyzer(QDialog):
             if group.points[-1].link == -1:
                 write_line("End point of enemy point group {0} has no valid link to form a loop".format(group_index))
 
+        # Check enemy paths unique ID.
+        enemy_paths_ids = {}
+        for enemy_path_index, enemy_path in enumerate(bol.enemypointgroups.groups):
+            if enemy_path.id in enemy_paths_ids:
+                write_line(f"Enemy path {group_index} using ID {enemy_path.id} that is already "
+                           f"used by enemy path {enemy_paths_ids[enemy_path.id]}.")
+            else:
+                enemy_paths_ids[enemy_path.id] = enemy_path_index
+
         # Check prev/next groups of checkpoints
         for i, group in enumerate(bol.checkpoints.groups):
             for index in chain(group.prevgroup, group.nextgroup):
