@@ -89,11 +89,13 @@ def get_treeitem(root:QTreeWidgetItem, obj):
 
 class UndoEntry:
 
-    def __init__(self, bol_document: bytes, minimap_data: tuple):
+    def __init__(self, bol_document: bytes, enemy_path_data: 'tuple[tuple[bool, int]]',
+                 minimap_data: tuple):
         self.bol_document = bol_document
+        self.enemy_path_data = enemy_path_data
         self.minimap_data = minimap_data
 
-        self.bol_hash = hash(bol_document)
+        self.bol_hash = hash((bol_document, enemy_path_data))
         self.hash = hash((self.bol_hash, self.minimap_data))
 
     def __eq__(self, other) -> bool:
@@ -243,6 +245,10 @@ class GenEditor(QMainWindow):
     def generate_undo_entry(self) -> UndoEntry:
         bol_document = self.level_file.to_bytes()
 
+        # List containing a tuple with the emptiness and ID of each of the enemy paths.
+        enemy_paths = self.level_file.enemypointgroups.groups
+        enemy_path_data = tuple((not path.points, path.id) for path in enemy_paths)
+
         minimap = self.level_view.minimap
         minimap_data = (
             minimap.corner1.x, minimap.corner1.y, minimap.corner1.z,
@@ -250,7 +256,7 @@ class GenEditor(QMainWindow):
             minimap.orientation
         )
 
-        return UndoEntry(bol_document, minimap_data)
+        return UndoEntry(bol_document, enemy_path_data, minimap_data)
 
     def load_top_undo_entry(self):
         if not self.undo_history:
@@ -262,6 +268,22 @@ class GenEditor(QMainWindow):
         bol_changed = current_undo_entry.bol_hash != undo_entry.bol_hash
 
         self.level_file = BOL.from_bytes(undo_entry.bol_document)
+
+        # The BOL document cannot store information on empty enemy paths; this information is
+        # sourced from a separate list.
+        bol_enemy_paths = list(self.level_file.enemypointgroups.groups)
+        self.level_file.enemypointgroups.groups.clear()
+        enemy_path_data = undo_entry.enemy_path_data
+        for empty, enemy_path_id in enemy_path_data:
+            if empty:
+                empty_enemy_path = libbol.EnemyPointGroup()
+                empty_enemy_path.id = enemy_path_id
+                self.level_file.enemypointgroups.groups.append(empty_enemy_path)
+            else:
+                enemy_path = bol_enemy_paths.pop(0)
+                assert enemy_path.id == enemy_path_id
+                self.level_file.enemypointgroups.groups.append(enemy_path)
+
         self.level_view.level_file = self.level_file
         self.leveldatatreeview.set_objects(self.level_file)
 
