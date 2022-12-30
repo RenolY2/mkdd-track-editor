@@ -356,24 +356,24 @@ class EnemyPointGroup(object):
 class EnemyPointGroups(object):
     def __init__(self):
         self.groups = []
-        self._group_ids = {}
 
     @classmethod
     def from_file(cls, f, count, old_bol=False):
         enemypointgroups = cls()
+        group_ids = {}
         curr_group = None
 
         for i in range(count):
             enemypoint = EnemyPoint.from_file(f, old_bol)
-            if enemypoint.group not in enemypointgroups._group_ids:
+            if enemypoint.group not in group_ids:
                 # start of group
                 curr_group = EnemyPointGroup()
                 curr_group.id = enemypoint.group
-                enemypointgroups._group_ids[enemypoint.group] = curr_group
+                group_ids[enemypoint.group] = curr_group
                 curr_group.points.append(enemypoint)
                 enemypointgroups.groups.append(curr_group)
             else:
-                enemypointgroups._group_ids[enemypoint.group].points.append(enemypoint)
+                group_ids[enemypoint.group].points.append(enemypoint)
 
         return enemypointgroups
 
