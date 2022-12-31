@@ -689,6 +689,13 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                 if do_gizmo and hit != 0xFF:
                     self.gizmo.run_callback(hit)
                     self.gizmo.was_hit_at_all = True
+
+                    # Clear the potential marquee selection, which may have been just created as a
+                    # result of a mouse move event that was processed slightly earlier than this
+                    # current paint event.
+                    self.selectionbox_start = self.selectionbox_end = None
+                    self.selectionbox_projected_origin = self.selectionbox_projected_coords = None
+
                 #if hit != 0xFF and do_:
 
             glClearColor(1.0, 1.0, 1.0, 1.0)
