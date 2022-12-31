@@ -126,12 +126,17 @@ class Game(object):
                 renderer.models.render_player_position_colored(self.kart_targets[p], False, p)
             p += 1
 
-    def render_collision(self, renderer: BolMapViewer, objlist):
+    def render_collision(self, renderer: BolMapViewer, objlist, objselectioncls):
         if self.dolphin.initialized():
             idbase = 0x100000
             offset = len(objlist)
             for ptr, pos in self.karts:
-                objlist.append((ptr, pos, None, None))
+                objlist.append(objselectioncls(
+                    obj=ptr,
+                    pos1=pos,
+                    pos2=None,
+                    pos3=None,
+                    rotation=None))
                 renderer.models.render_generic_position_colored_id(pos, idbase + (offset) * 4)
                 offset += 1
 

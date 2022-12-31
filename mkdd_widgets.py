@@ -727,7 +727,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                     self.models.render_generic_position_colored_id(pos, id + (offset) * 4)
                     offset += 1"""
 
-                self.dolphin.render_collision(self, objlist)
+                self.dolphin.render_collision(self, objlist, ObjectSelectionEntry)
                 offset = len(objlist)
 
                 if vismenu.enemyroute.is_selectable():
