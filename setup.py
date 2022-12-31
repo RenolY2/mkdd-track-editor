@@ -14,7 +14,7 @@ include_files = ["resources/",
                 ("lib/music_ids.json", "lib/music_ids.json"),
                 ("lib/color_coding.json", "lib/color_coding.json"),
                 ("lib/minimap_locations.json", "lib/minimap_locations.json"),
-                ("lib/superbmd/", "lib/superbmd/")
+                ("lib/superbmd/", "lib/superbmd/"),
                 ("lib/temp/", "lib/temp/")]
 
 build_exe_options = {
