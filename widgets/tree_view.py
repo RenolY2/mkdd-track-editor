@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
-from lib.libbol import BOL, get_full_name
+from lib.libbol import BOL, get_full_name, AREA_TYPES
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QAction, QMenu
 
@@ -91,6 +91,10 @@ class NamedItem(QTreeWidgetItem):
 
 
 class EnemyRoutePoint(NamedItem):
+    def __init__(self, parent, name, bound_to, index=None):
+        super().__init__(parent, name, bound_to, index)
+        bound_to.widget = self
+
     def update_name(self):
         group_item = self.parent()
         group = group_item.bound_to
@@ -174,16 +178,28 @@ class KartpointEntry(NamedItem):
 
 
 class AreaEntry(NamedItem):
+    def __init__(self, parent, name, bound_to, index=None):
+        super().__init__(parent, name, bound_to, index)
+        bound_to.widget = self
+
     def update_name(self):
-        self.setText(0, "Area (Type: {0})".format(self.bound_to.area_type))
+        self.setText(0, AREA_TYPES[self.bound_to.area_type])
 
 
 class CameraEntry(NamedItem):
+    def __init__(self, parent, name, bound_to, index=None):
+        super().__init__(parent, name, bound_to, index)
+        bound_to.widget = self
+
     def update_name(self):
         self.setText(0, "Camera {0} (Type: {1:03X})".format(self.index, self.bound_to.camtype))
 
 
 class RespawnEntry(NamedItem):
+    def __init__(self, parent, name, bound_to, index=None):
+        super().__init__(parent, name, bound_to, index)
+        bound_to.widget = self
+
     def update_name(self):
         for i in range(self.parent().childCount()):
             if self == self.parent().child(i):

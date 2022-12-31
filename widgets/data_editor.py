@@ -10,7 +10,7 @@ from math import inf
 from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint, Route, RoutePoint,
                         MapObject, KartStartPoint, Area, Camera, BOL, JugemPoint, MapObject,
                         LightParam, MGEntry, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS,
-                        SWERVE_IDS, REVERSE_SWERVE_IDS)
+                        SWERVE_IDS, REVERSE_SWERVE_IDS, REVERSE_AREA_TYPES)
 from lib.vectors import Vector3
 from lib.model_rendering import Minimap
 from PyQt5.QtCore import pyqtSignal
@@ -626,6 +626,8 @@ class EnemyPointEdit(DataEditor):
         for widget in (self.link, self.driftacuteness, self.driftduration, self.driftsupplement):
             widget.editingFinished.connect(self.catch_text_update)
 
+        self.link.editingFinished.connect(self.update_name)
+
     def update_data(self):
         obj: EnemyPoint = self.bound_to
         self.position[0].setText(str(round(obj.position.x, 3)))
@@ -647,6 +649,11 @@ class EnemyPointEdit(DataEditor):
             name = SWERVE_IDS[0]
         index = self.swerve.findText(name)
         self.swerve.setCurrentIndex(index)
+
+    def update_name(self):
+        if self.bound_to.widget is None:
+            return
+        self.bound_to.widget.update_name()
 
 
 class CheckpointGroupEdit(DataEditor):
@@ -940,6 +947,11 @@ class KartStartPointEdit(DataEditor):
         self.playerid.setText(str(obj.playerid))
         self.unknown.setText(str(obj.unknown))
 
+AREA_SHAPE = {
+    "Box": 0,
+    "Cylinder": 1,
+}
+
 
 class AreaEdit(DataEditor):
     def setup_widgets(self):
@@ -948,16 +960,12 @@ class AreaEdit(DataEditor):
         self.scale = self.add_multiple_decimal_input("Scale", "scale", ["x", "y", "z"],
                                                      -inf, +inf)
         self.rotation = self.add_rotation_input()
-        self.check_flag = self.add_integer_input("Check Flag", "check_flag",
-                                                 MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.area_type = self.add_integer_input("Area Type", "area_type",
-                                                MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.shape = self.add_dropdown_input("Shape", "shape", AREA_SHAPE)
+        self.area_type = self.add_dropdown_input("Area Type", "area_type", REVERSE_AREA_TYPES)
         self.camera_index = self.add_integer_input("Camera Index", "camera_index",
                                                    MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
-        self.unk1 = self.add_integer_input("Unknown 1", "unk1",
-                                           MIN_UNSIGNED_INT, MAX_UNSIGNED_INT)
-        self.unk2 = self.add_integer_input("Unknown 2", "unk2",
-                                           MIN_UNSIGNED_INT, MAX_UNSIGNED_INT)
+        self.feather = self.add_multiple_integer_input("Feather", "feather", ["i0", "i1"],
+                                                       MIN_UNSIGNED_INT, MAX_SIGNED_INT)
         self.unkfixedpoint = self.add_integer_input("Unknown 3 Fixed Point", "unkfixedpoint",
                                                     MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.unkshort = self.add_integer_input("Unknown 4", "unkshort",
@@ -966,6 +974,8 @@ class AreaEdit(DataEditor):
                                                 MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.lightparam_index = self.add_integer_input("LightParam Index", "lightparam_index",
                                                        MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+
+        self.area_type.currentTextChanged.connect(self.update_name)
 
     def update_data(self):
         obj: Area = self.bound_to
@@ -979,15 +989,20 @@ class AreaEdit(DataEditor):
 
         self.update_rotation(*self.rotation)
 
-        self.check_flag.setText(str(obj.check_flag))
-        self.area_type.setText(str(obj.area_type))
+        self.shape.setCurrentIndex(obj.shape)
+        self.area_type.setCurrentIndex(obj.area_type)
         self.camera_index.setText(str(obj.camera_index))
-        self.unk1.setText(str(obj.unk1))
-        self.unk2.setText(str(obj.unk2))
+        self.feather[0].setText(str(obj.feather.i0))
+        self.feather[1].setText(str(obj.feather.i1))
         self.unkfixedpoint.setText(str(obj.unkfixedpoint))
         self.unkshort.setText(str(obj.unkshort))
         self.shadow_id.setText(str(obj.shadow_id))
         self.lightparam_index.setText(str(obj.lightparam_index))
+
+    def update_name(self):
+        if self.bound_to.widget is None:
+            return
+        self.bound_to.widget.update_name()
 
 
 CAMERA_TYPES = OrderedDict()
@@ -1031,6 +1046,7 @@ class CameraEdit(DataEditor):
         self.name = self.add_text_input("Camera Name", "name", 4)
 
         self.camtype.currentIndexChanged.connect(lambda _index: self.catch_text_update())
+        self.camtype.currentTextChanged.connect(self.update_name)
 
     def update_data(self):
         obj: Camera = self.bound_to
@@ -1060,6 +1076,11 @@ class CameraEdit(DataEditor):
         self.nextcam.setText(str(obj.nextcam))
         self.name.setText(obj.name)
 
+    def update_name(self):
+        if self.bound_to.widget is None:
+            return
+        self.bound_to.widget.update_name()
+
 
 class RespawnPointEdit(DataEditor):
     def setup_widgets(self):
@@ -1075,6 +1096,8 @@ class RespawnPointEdit(DataEditor):
         self.unk3 = self.add_integer_input("Previous Checkpoint", "unk3",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
 
+        self.respawn_id.editingFinished.connect(self.update_name)
+
     def update_data(self):
         obj: JugemPoint = self.bound_to
         self.position[0].setText(str(round(obj.position.x, 3)))
@@ -1086,6 +1109,10 @@ class RespawnPointEdit(DataEditor):
         self.unk2.setText(str(obj.unk2))
         self.unk3.setText(str(obj.unk3))
 
+    def update_name(self):
+        if self.bound_to.widget is None:
+            return
+        self.bound_to.widget.update_name()
 
 class LightParamEdit(DataEditor):
     def setup_widgets(self):

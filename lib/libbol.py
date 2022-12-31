@@ -750,12 +750,26 @@ class KartStartPoints(object):
 
 # Section 7
 # Areas
+
+AREA_TYPES = {
+    0: "Shadow",
+    1: "Camera",
+    2: "Ceiling",
+    3: "No Dead Zone",
+    4: "Unknown 1",
+    5: "Unknown 2",
+    6: "Sound Effect",
+    7: "Lighting",
+}
+
+REVERSE_AREA_TYPES = dict(zip(AREA_TYPES.values(), AREA_TYPES.keys()))
+
 class Area(object):
     def __init__(self, position):
         self.position = position
         self.scale = Vector3(1.0, 1.0, 1.0)
         self.rotation = Rotation.default()
-        self.check_flag = 0
+        self.shape = 0
         self.area_type = 0
         self.camera_index = -1
         self.unk1 = 0
@@ -764,6 +778,8 @@ class Area(object):
         self.unkshort = 0
         self.shadow_id = 0
         self.lightparam_index = 0
+
+        self.widget = None
 
     @classmethod
     def new(cls):
@@ -776,15 +792,25 @@ class Area(object):
         area = cls(position)
         area.scale = Vector3(*unpack(">fff", f.read(12)))
         area.rotation = Rotation.from_file(f)
-        area.check_flag = read_uint8(f)
+        area.shape = read_uint8(f)
         area.area_type = read_uint8(f)
         area.camera_index = read_int16(f)
-        area.unk1 = read_uint32(f)
-        area.unk2 = read_uint32(f)
+
+        class Feather:
+            def __init__(self):
+                self.i0 = 0
+                self.i1 = 0
+
+        area.feather = Feather()
+        area.feather.i0 = read_uint32(f)
+        area.feather.i1 = read_uint32(f)
         area.unkfixedpoint = read_int16(f)
         area.unkshort = read_int16(f)
         area.shadow_id = read_int16(f)
         area.lightparam_index = read_int16(f)
+
+        assert area.shape in (0, 1)
+        assert area.area_type in list(AREA_TYPES.keys())
 
         return area
 
@@ -792,8 +818,8 @@ class Area(object):
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         f.write(pack(">fff", self.scale.x, self.scale.y, self.scale.z))
         self.rotation.write(f)
-        f.write(pack(">BBh", self.check_flag, self.area_type, self.camera_index))
-        f.write(pack(">II", self.unk1, self.unk2))
+        f.write(pack(">BBh", self.shape, self.area_type, self.camera_index))
+        f.write(pack(">II", self.feather.i0, self.feather.i1))
         f.write(pack(">hhhh", self.unkfixedpoint, self.unkshort, self.shadow_id, self.lightparam_index))
 
 
@@ -840,6 +866,8 @@ class Camera(object):
         self.routespeed = 0
         self.nextcam = -1
         self.name = "null"
+
+        self.widget = None
 
     @classmethod
     def new(cls):
@@ -890,6 +918,8 @@ class JugemPoint(object):
         self.unk1 = 0
         self.unk2 = 0
         self.unk3 = 0
+
+        self.widget = None
 
     @classmethod
     def new(cls):
