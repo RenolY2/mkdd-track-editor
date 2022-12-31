@@ -33,7 +33,7 @@ import lib.libbol as libbol
 from lib.rarc import Archive
 from lib.BCOllider import RacetrackCollision
 from lib.model_rendering import TexturedModel, CollisionModel, Minimap
-from widgets.editor_widgets import ErrorAnalyzer
+from widgets.editor_widgets import ErrorAnalyzer, ErrorAnalyzerButton
 from lib.dolreader import DolFile, read_float, write_float, read_load_immediate_r0, write_load_immediate_r0, UnmappedAddress
 from widgets.file_select import FileSelect
 from PyQt5.QtWidgets import QTreeWidgetItem
@@ -132,8 +132,6 @@ class GenEditor(QMainWindow):
         self.loaded_archive = None
         self.loaded_archive_file = None
         self.last_position_clicked = []
-
-        self.analyzer_window = None
 
         self._dontselectfromtree = False
 
@@ -241,6 +239,7 @@ class GenEditor(QMainWindow):
         self.leveldatatreeview.set_objects(self.level_file)
         self.level_view.do_redraw()
         self.set_has_unsaved_changes(True)
+        self.error_analyzer_button.analyze_bol(self.level_file)
 
     def on_undo_action_triggered(self):
         if len(self.undo_history) > 1:
@@ -265,6 +264,8 @@ class GenEditor(QMainWindow):
 
             if update_unsaved_changes:
                 self.set_has_unsaved_changes(True)
+
+            self.error_analyzer_button.analyze_bol(self.level_file)
 
     def update_undo_redo_actions(self):
         self.undo_action.setEnabled(len(self.undo_history) > 1)
@@ -460,6 +461,10 @@ class GenEditor(QMainWindow):
         self.statusbar = QStatusBar(self)
         self.statusbar.setObjectName("statusbar")
         self.setStatusBar(self.statusbar)
+
+        self.error_analyzer_button = ErrorAnalyzerButton()
+        self.error_analyzer_button.clicked.connect(lambda _checked: self.analyze_for_mistakes())
+        self.statusbar.addPermanentWidget(self.error_analyzer_button)
 
         self.connect_actions()
 
@@ -1000,12 +1005,9 @@ class GenEditor(QMainWindow):
         self.collision_area_dialog.finished.connect(on_dialog_finished)
 
     def analyze_for_mistakes(self):
-        if self.analyzer_window is not None:
-            self.analyzer_window.destroy()
-            self.analyzer_window = None
-
-        self.analyzer_window = ErrorAnalyzer(self.level_file)
-        self.analyzer_window.show()
+        analyzer_window = ErrorAnalyzer(self.level_file, parent=self)
+        analyzer_window.exec_()
+        analyzer_window.deleteLater()
 
     def on_file_menu_aboutToShow(self):
         recent_files = self.get_recent_files_list()

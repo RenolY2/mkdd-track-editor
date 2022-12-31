@@ -34,11 +34,9 @@ def catch_exception(func):
 def catch_exception_with_dialog(func):
     def handle(*args, **kwargs):
         try:
-            print(args, kwargs)
             return func(*args, **kwargs)
         except Exception as e:
             traceback.print_exc()
-            print("hey")
             open_error_dialog(str(e), None)
     return handle
 
@@ -46,7 +44,6 @@ def catch_exception_with_dialog(func):
 def catch_exception_with_dialog_nokw(func):
     def handle(*args, **kwargs):
         try:
-            print(args, kwargs)
             return func(*args, **kwargs)
         except Exception as e:
             traceback.print_exc()
@@ -60,7 +57,8 @@ def open_error_dialog(errormsg, self):
     errorbox.setFixedSize(500, 200)
 
 
-class ErrorAnalyzer(QMdiSubWindow):
+class ErrorAnalyzer(QDialog):
+
     @catch_exception
     def __init__(self, bol, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -72,21 +70,32 @@ class ErrorAnalyzer(QMdiSubWindow):
 
         self.setWindowTitle("Analysis Results")
         self.text_widget = QTextEdit(self)
-        self.setWidget(self.text_widget)
-        self.resize(900, 500)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.text_widget)
+
         self.setMinimumSize(QSize(300, 300))
         self.text_widget.setFont(font)
         self.text_widget.setReadOnly(True)
 
-        self.analyze_bol_and_write_results(bol)
+        width = self.text_widget.fontMetrics().averageCharWidth() * 80
+        height = self.text_widget.fontMetrics().height() * 20
+        self.resize(width, height)
 
+        lines = ErrorAnalyzer.analyze_bol(bol)
+        if not lines:
+            text = "No known common errors detected!"
+        else:
+            text ='\n\n'.join(lines)
+        self.text_widget.setText(text)
+
+    @classmethod
     @catch_exception
-    def analyze_bol_and_write_results(self, bol):
-        results = StringIO()
+    def analyze_bol(cls, bol: libbol.BOL) -> 'list[str]':
+        lines: list[str] = []
 
         def write_line(line):
-            results.write(line)
-            results.write("\n")
+            lines.append(line)
 
         # Check enemy point linkage errors
         links = {}
@@ -107,11 +116,23 @@ class ErrorAnalyzer(QMdiSubWindow):
                     i, group_index, point.link
                 ))
         for group_index, group in enumerate(bol.enemypointgroups.groups):
-            print(group.points[0].link, group.points[-1].link)
+            if not group.points:
+                write_line("Empty enemy path {0}.".format(group_index))
+                continue
+
             if group.points[0].link == -1:
                 write_line("Start point of enemy point group {0} has no valid link to form a loop".format(group_index))
             if group.points[-1].link == -1:
                 write_line("End point of enemy point group {0} has no valid link to form a loop".format(group_index))
+
+        # Check enemy paths unique ID.
+        enemy_paths_ids = {}
+        for enemy_path_index, enemy_path in enumerate(bol.enemypointgroups.groups):
+            if enemy_path.id in enemy_paths_ids:
+                write_line(f"Enemy path {group_index} using ID {enemy_path.id} that is already "
+                           f"used by enemy path {enemy_paths_ids[enemy_path.id]}.")
+            else:
+                enemy_paths_ids[enemy_path.id] = enemy_path_index
 
         # Check prev/next groups of checkpoints
         for i, group in enumerate(bol.checkpoints.groups):
@@ -171,14 +192,12 @@ class ErrorAnalyzer(QMdiSubWindow):
         if len(bol.enemypointgroups.groups) == 0:
             write_line("You need at least one enemy point group!")
 
-        self.check_checkpoints_convex(bol, write_line)
+        cls.check_checkpoints_convex(bol, write_line)
 
-        text = results.getvalue()
-        if not text:
-            text = "No known common errors detected!"
-        self.text_widget.setText(text)
+        return lines
 
-    def check_checkpoints_convex(self, bol, write_line):
+    @classmethod
+    def check_checkpoints_convex(cls, bol, write_line):
         for gindex, group in enumerate(bol.checkpoints.groups):
             if len(group.points) > 1:
                 for i in range(1, len(group.points)):
@@ -202,6 +221,30 @@ class ErrorAnalyzer(QMdiSubWindow):
                                     i-1, i, gindex
                                 ))
                                 break
+
+
+class ErrorAnalyzerButton(QtWidgets.QPushButton):
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+
+        self.success_icon = QtGui.QIcon('resources/success.svg')
+        self.warning_icon = QtGui.QIcon('resources/warning.svg')
+
+        self.setEnabled(False)
+
+        background_color = self.palette().dark().color().name()
+        self.setStyleSheet("QPushButton { border: 0px; padding: 2px; } "
+                           f"QPushButton:hover {{ background: {background_color}; }}")
+
+    def analyze_bol(self, bol: libbol.BOL):
+        lines = ErrorAnalyzer.analyze_bol(bol)
+        if lines:
+            self.setIcon(self.warning_icon)
+            self.setText(str(len(lines)))
+        else:
+            self.setIcon(self.success_icon)
+            self.setText(str())
+        self.setEnabled(True)
 
 
 class AddPikObjectWindow(QDialog):
