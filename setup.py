@@ -9,7 +9,14 @@ def files_from_folder(folder):
 
 #include_files = files_from_folder("resources/")
 #include_files.extend(files_from_folder("object_templates"))
-include_files = ["resources/", "lib/mkddobjects.json", "lib/music_ids.json"]
+include_files = ["resources/", 
+                ("lib/mkddobjects.json", "lib/mkddobjects.json"), 
+                ("lib/music_ids.json", "lib/music_ids.json"),
+                ("lib/color_coding.json", "lib/color_coding.json"),
+                ("lib/minimap_locations.json", "lib/minimap_locations.json"),
+                ("lib/superbmd/", "lib/superbmd/")
+                ("lib/temp/", "lib/temp/")]
+
 build_exe_options = {
 "packages": ["OpenGL", "numpy.core._methods", "numpy.lib.format"],
 "includes": ["widgets"], 
