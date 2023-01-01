@@ -846,7 +846,7 @@ class Camera(object):
         self.camtype = 0
 
         class FOV:
-            def __ini__(self):
+            def __init__(self):
                 self.start = 0
                 self.end = 0
 
