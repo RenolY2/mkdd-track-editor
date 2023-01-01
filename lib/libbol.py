@@ -1068,6 +1068,30 @@ class BOL(object):
             assert respawn is not None
             yield respawn
 
+    def get_all_objects(self):
+        objects = []
+
+        for group in self.enemypointgroups.groups:
+            objects.append(group)
+            objects.extend(group.points)
+
+        for group in self.checkpoints.groups:
+            objects.append(group)
+            objects.extend(group.points)
+
+        for route in self.routes:
+            objects.append(route)
+            objects.extend(route.points)
+
+        objects.extend(self.objects.objects)
+        objects.extend(self.kartpoints.positions)
+        objects.extend(self.areas.areas)
+        objects.extend(self.cameras)
+        objects.extend(self.respawnpoints)
+        objects.extend(self.lightparams)
+        objects.extend(self.mgentries)
+
+        return objects
 
     @classmethod
     def from_file(cls, f):
