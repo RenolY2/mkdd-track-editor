@@ -1,3 +1,4 @@
+import pickle
 import traceback
 import os
 from timeit import default_timer
@@ -580,6 +581,17 @@ class GenEditor(QMainWindow):
         ])
         self.redo_action.triggered.connect(self.on_redo_action_triggered)
         self.update_undo_redo_actions()
+
+        self.edit_menu.addSeparator()
+        self.cut_action = self.edit_menu.addAction("Cut")
+        self.cut_action.setShortcut(QtGui.QKeySequence('Ctrl+X'))
+        self.cut_action.triggered.connect(self.on_cut_action_triggered)
+        self.copy_action = self.edit_menu.addAction("Copy")
+        self.copy_action.setShortcut(QtGui.QKeySequence('Ctrl+C'))
+        self.copy_action.triggered.connect(self.on_copy_action_triggered)
+        self.paste_action = self.edit_menu.addAction("Paste")
+        self.paste_action.setShortcut(QtGui.QKeySequence('Ctrl+V'))
+        self.paste_action.triggered.connect(self.on_paste_action_triggered)
 
         self.visibility_menu = mkdd_widgets.FilterViewMenu(self)
         self.visibility_menu.filter_update.connect(self.on_filter_update)
@@ -2131,6 +2143,171 @@ class GenEditor(QMainWindow):
         #self.pikmin_gen_view.update()
         self.level_view.do_redraw()
         self.set_has_unsaved_changes(True)
+
+    def on_cut_action_triggered(self):
+        self.on_copy_action_triggered()
+        self.action_delete_objects()
+
+    def on_copy_action_triggered(self):
+        # Widgets are unpickleable, so they need to be temporarily stashed. This needs to be done
+        # recursively, as top-level groups main contain points associated with widgets too.
+        object_to_widget = {}
+        pending = list(self.level_view.selected)
+        while pending:
+            obj = pending.pop(0)
+            if hasattr(obj, 'widget'):
+                object_to_widget[obj] = obj.widget
+                obj.widget = None
+            if hasattr(obj, '__dict__'):
+                pending.extend(list(obj.__dict__.values()))
+            if isinstance(obj, list):
+                pending.extend(obj)
+        try:
+            # Effectively serialize the data.
+            data = pickle.dumps(self.level_view.selected)
+        finally:
+            # Restore the widgets.
+            for obj, widget in object_to_widget.items():
+                obj.widget = widget
+
+        mimedata = QtCore.QMimeData()
+        mimedata.setData("application/mkdd-track-editor", QtCore.QByteArray(data))
+        QtWidgets.QApplication.instance().clipboard().setMimeData(mimedata)
+
+    def on_paste_action_triggered(self):
+        mimedata = QtWidgets.QApplication.instance().clipboard().mimeData()
+        data = bytes(mimedata.data("application/mkdd-track-editor"))
+        if not data:
+            return
+
+        copied_objects = pickle.loads(data)
+        if not copied_objects:
+            return
+
+        # If an tree item is selected, use it as a reference point for adding the objects that are
+        # about to be pasted.
+        selected_items = self.leveldatatreeview.selectedItems()
+        selected_obj = selected_items[-1].bound_to if selected_items else None
+
+        target_path = None
+        target_checkpoint_group = None
+        target_route = None
+
+        if isinstance(selected_obj, libbol.EnemyPointGroup):
+            target_path = selected_obj
+        elif isinstance(selected_obj, libbol.EnemyPoint):
+            for group in self.level_file.enemypointgroups.groups:
+                if group.id == selected_obj.group:
+                    target_path = group
+                    break
+
+        if isinstance(selected_obj, libbol.CheckpointGroup):
+            target_checkpoint_group = selected_obj
+        elif isinstance(selected_obj, libbol.Checkpoint):
+            for group in self.level_file.checkpoints.groups:
+                if selected_obj in group.points:
+                    target_checkpoint_group = group
+                    break
+
+        if isinstance(selected_obj, libbol.Route):
+            target_route = selected_obj
+        elif isinstance(selected_obj, libbol.RoutePoint):
+            for route in self.level_file.routes:
+                if selected_obj in route.points:
+                    target_route = route
+                    break
+
+        added = []
+
+        for obj in copied_objects:
+            # Group objects.
+            if isinstance(obj, libbol.EnemyPointGroup):
+                obj.id = self.level_file.enemypointgroups.new_group_id()
+                self.level_file.enemypointgroups.groups.append(obj)
+                for point in obj.points:
+                    point.link = -1
+                    point.group_id = obj.id
+            elif isinstance(obj, libbol.CheckpointGroup):
+                self.level_file.checkpoints.groups.append(obj)
+            elif isinstance(obj, libbol.Route):
+                self.level_file.routes.append(obj)
+
+            # Objects in group objects.
+            elif isinstance(obj, libbol.EnemyPoint):
+                if target_path is None:
+                    if not self.level_file.enemypointgroups.groups:
+                        self.level_file.enemypointgroups.groups.append(libbol.EnemyPointGroup.new())
+                    target_path = self.level_file.enemypointgroups.groups[-1]
+
+                obj.group = target_path.id
+                if not target_path.points:
+                    obj.link = 0
+                else:
+                    obj.link = target_path.points[-1].link
+                    if len(target_path.points) > 1:
+                        target_path.points[-1].link = -1
+                target_path.points.append(obj)
+
+            elif isinstance(obj, libbol.Checkpoint):
+                if target_checkpoint_group is None:
+                    if not self.level_file.checkpoints.groups:
+                        self.level_file.checkpoints.groups.append(libbol.CheckpointGroup.new())
+                    target_checkpoint_group = self.level_file.checkpoints.groups[-1]
+
+                target_checkpoint_group.points.append(obj)
+
+            elif isinstance(obj, libbol.RoutePoint):
+                if target_route is None:
+                    if not self.level_file.routes:
+                        self.level_file.routes.append(libbol.Route.new())
+                    target_route = self.level_file.routes[-1]
+
+                target_route.points.append(obj)
+
+            # Autonomous objects.
+            elif isinstance(obj, libbol.MapObject):
+                self.level_file.objects.objects.append(obj)
+            elif isinstance(obj, libbol.KartStartPoint):
+                self.level_file.kartpoints.positions.append(obj)
+            elif isinstance(obj, libbol.JugemPoint):
+                max_respawn_id = -1
+                for point in self.level_file.respawnpoints:
+                    max_respawn_id = max(point.respawn_id, max_respawn_id)
+                obj.respawn_id = max_respawn_id + 1
+                self.level_file.respawnpoints.append(obj)
+            elif isinstance(obj, libbol.Area):
+                self.level_file.areas.areas.append(obj)
+            elif isinstance(obj, libbol.Camera):
+                self.level_file.cameras.append(obj)
+            elif isinstance(obj, libbol.LightParam):
+                self.level_file.lightparams.append(obj)
+            elif isinstance(obj, libbol.MGEntry):
+                self.level_file.mgentries.append(obj)
+            else:
+                continue
+
+            added.append(obj)
+
+        if not added:
+            return
+
+        self.set_has_unsaved_changes(True)
+        self.leveldatatreeview.set_objects(self.level_file)
+
+        self.select_tree_item_bound_to(added[-1])
+        self.level_view.selected = added
+        self.level_view.selected_positions = []
+        self.level_view.selected_rotations = []
+        for obj in added:
+            if hasattr(obj, 'position'):
+                self.level_view.selected_positions.append(obj.position)
+            if hasattr(obj, 'start') and hasattr(obj, 'end'):
+                self.level_view.selected_positions.append(obj.start)
+                self.level_view.selected_positions.append(obj.end)
+            if hasattr(obj, 'rotation'):
+                self.level_view.selected_rotations.append(obj.rotation)
+
+        self.update_3d()
 
     def update_3d(self):
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
