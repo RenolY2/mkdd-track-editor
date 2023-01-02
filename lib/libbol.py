@@ -764,6 +764,13 @@ AREA_TYPES = {
 
 REVERSE_AREA_TYPES = dict(zip(AREA_TYPES.values(), AREA_TYPES.keys()))
 
+
+class Feather:
+    def __init__(self):
+        self.i0 = 0
+        self.i1 = 0
+
+
 class Area(object):
     def __init__(self, position):
         self.position = position
@@ -772,12 +779,6 @@ class Area(object):
         self.shape = 0
         self.area_type = 0
         self.camera_index = -1
-
-        class Feather:
-            def __init__(self):
-                self.i0 = 0
-                self.i1 = 0
-
         self.feather = Feather()
         self.unkfixedpoint = 0
         self.unkshort = 0
@@ -836,29 +837,29 @@ class Areas(object):
 
 # Section 8
 # Cameras
+
+class FOV:
+    def __init__(self):
+        self.start = 0
+        self.end = 0
+
+
+class Shimmer:
+    def __init__(self):
+        self.z0 = 0
+        self.z1 = 0
+
+
 class Camera(object):
     def __init__(self, position):
         self.position = position
         self.position2 = Vector3(0.0, 0.0, 0.0)
         self.position3 = Vector3(0.0, 0.0, 0.0)
         self.rotation = Rotation.default()
-
         self.camtype = 0
-
-        class FOV:
-            def __init__(self):
-                self.start = 0
-                self.end = 0
-
         self.fov = FOV()
         self.camduration = 0
         self.startcamera = 0
-
-        class Shimmer:
-            def __init__(self):
-                self.z0 = 0
-                self.z1 = 0
-
         self.shimmer = Shimmer()
         self.route = -1
         self.routespeed = 0
