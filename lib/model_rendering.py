@@ -370,7 +370,7 @@ class TexturedModel(object):
                                     lasttex = None
 
                                 lastmat = " ".join(mtlargs[1:])
-                            elif mtlargs[0].lower() == "Kd":
+                            elif mtlargs[0].lower() == "kd":
                                 r, g, b = map(float, mtlargs[1:4])
                                 lastdiffuse = (r,g,b)
                             elif mtlargs[0].lower() == "map_kd":
