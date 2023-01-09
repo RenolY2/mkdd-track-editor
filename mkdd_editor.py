@@ -1802,6 +1802,34 @@ class GenEditor(QMainWindow):
     def shortcut_open_add_item_window(self):
         self.button_open_add_item_window()
 
+    def select_tree_item_bound_to(self, obj):
+        # Iteratively traverse all the tree widget items.
+        pending_items = [self.leveldatatreeview.invisibleRootItem()]
+        while pending_items:
+            item = pending_items.pop(0)
+            for child_index in range(item.childCount()):
+                child_item = item.child(child_index)
+
+                # Check whether the item contains any item that happens to be bound to the target
+                # object.
+                bound_item = get_treeitem(child_item, obj)
+                if bound_item is not None:
+                    # If found, deselect current selection, and select the new item.
+                    for selected_item in self.leveldatatreeview.selectedItems():
+                        selected_item.setSelected(False)
+                    bound_item.setSelected(True)
+
+                    # Ensure that the new item is visible.
+                    parent_item = bound_item.parent()
+                    while parent_item is not None:
+                        parent_item.setExpanded(True)
+                        parent_item = parent_item.parent()
+                    self.leveldatatreeview.scrollToItem(bound_item)
+
+                    return
+                else:
+                    pending_items.append(child_item)
+
     def add_item_window_save(self):
         self.object_to_be_added = self.add_object_window.get_content()
         if self.object_to_be_added is None:
@@ -1828,6 +1856,8 @@ class GenEditor(QMainWindow):
             self.pik_control.button_add_object.setChecked(False)
             self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
             self.leveldatatreeview.set_objects(self.level_file)
+
+            self.select_tree_item_bound_to(obj)
 
         elif self.object_to_be_added is not None:
             self.pik_control.button_add_object.setChecked(True)
@@ -1874,6 +1904,8 @@ class GenEditor(QMainWindow):
                 self.level_view.do_redraw()
                 self.set_has_unsaved_changes(True)
                 self.leveldatatreeview.set_objects(self.level_file)
+
+                self.select_tree_item_bound_to(placeobject)
             else:
                 self.last_position_clicked = [(x, y, z)]
 
@@ -1911,6 +1943,7 @@ class GenEditor(QMainWindow):
             self.leveldatatreeview.set_objects(self.level_file)
             self.set_has_unsaved_changes(True)
 
+            self.select_tree_item_bound_to(placeobject)
 
 
     @catch_exception
@@ -2203,6 +2236,20 @@ class GenEditor(QMainWindow):
             else:
                 self.pik_control.reset_info("{0} objects selected".format(len(self.level_view.selected)))
                 self.pik_control.set_objectlist(selected)
+
+                # Without emitting any signal, programmatically update the currently selected item
+                # in the tree view.
+                with QtCore.QSignalBlocker(self.leveldatatreeview):
+                    if selected:
+                        # When there is more than one object selected, pick the last one.
+                        self.select_tree_item_bound_to(selected[-1])
+                    else:
+                        # If no selection occurred, ensure that no tree item remains selected. This
+                        # is relevant to ensure that non-pickable objects (such as the top-level
+                        # items) do not remain selected when the user clicks on an empty space in
+                        # the viewport.
+                        for selected_item in self.leveldatatreeview.selectedItems():
+                            selected_item.setSelected(False)
 
     @catch_exception
     def mapview_showcontextmenu(self, position):
