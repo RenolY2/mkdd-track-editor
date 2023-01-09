@@ -92,12 +92,14 @@ class ObjectModels(object):
     def draw_arrow_head(self, frompos, topos):
         glPushMatrix()
         dir = topos-frompos
-        dir.normalize()
-
-        glMultMatrixf([dir.x, -dir.z, 0, 0,
-                       -dir.z, -dir.x, 0, 0,
-                       0, 0, 1, 0,
-                       topos.x, -topos.z, topos.y, 1])
+        if not dir.is_zero():
+            dir.normalize()
+            glMultMatrixf([dir.x, -dir.z, 0, 0,
+                           -dir.z, -dir.x, 0, 0,
+                           0, 0, 1, 0,
+                           topos.x, -topos.z, topos.y, 1])
+        else:
+            glTranslatef(topos.x, -topos.z, topos.y)
         self.arrow_head.render()
         glPopMatrix()
         #glBegin(GL_LINES)

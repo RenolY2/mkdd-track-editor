@@ -897,7 +897,6 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                     self.selected = selected
                     self.selected_positions = selected_positions
                     self.selected_rotations = selected_rotations
-                    self.select_update.emit()
 
                 else:
                     for obj in selected:
@@ -911,7 +910,23 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         if rot not in self.selected_rotations:
                             self.selected_rotations.append(rot)
 
-                    self.select_update.emit()
+                # Store selection in a logical order that matches the order of the objects in their
+                # respective groups. This is relevant to ensure that potentially copied, route-like
+                # objects, where order matters, are pasted in the same order.
+                # Objects that are not part of the BOL document are kept at the end of the list in
+                # the same initial, arbitrary pick order.
+                selected = self.selected
+                self.selected = []
+                selected_set = set(selected)
+                for obj in self.level_file.get_all_objects():
+                    if obj in selected_set:
+                        self.selected.append(obj)
+                        selected_set.remove(obj)
+                for obj in selected:
+                    if obj in selected_set:
+                        self.selected.append(obj)
+
+                self.select_update.emit()
 
                 self.gizmo.move_to_average(self.selected_positions)
                 if len(selected) == 0:
