@@ -30,6 +30,7 @@ def make_default_config():
         "hidden_collision_types": "",
         "hidden_collision_type_groups": "",
         "filter_view": "",
+        "addi_file_on_load": "Choose",
     }
 
     with open("editor_config.ini", "w") as f:
