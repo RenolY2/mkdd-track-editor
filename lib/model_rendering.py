@@ -906,6 +906,7 @@ ORIENTATION_ANGLE = (0.0, 90.0, 180.0, 270.0)
 class Minimap(object):
     def __init__(self, corner1, corner2, orientation, texpath=None):
         self.ID = None
+        self.qimage = None
         if texpath is not None:
             self.set_texture(texpath)
 
@@ -932,6 +933,14 @@ class Minimap(object):
         imgdata = bytes(qimage.bits().asarray(qimage.width() * qimage.height() * 4))
         glTexImage2D(GL_TEXTURE_2D, 0, 4, qimage.width(), qimage.height(), 0, GL_BGRA, GL_UNSIGNED_BYTE, imgdata)
         self.ID = ID
+        self.qimage = qimage
+
+    def has_texture(self):
+        return bool(self.qimage)
+
+    def save_texture(self, filepath):
+        if self.qimage is not None:
+            self.qimage.save(filepath)
 
     def render(self):
         corner1, corner2 = self.corner1, self.corner2
