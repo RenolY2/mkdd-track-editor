@@ -27,7 +27,7 @@ from configuration import read_config, make_default_config, save_cfg
 
 import mkdd_widgets # as mkddwidgets
 from widgets.side_widget import PikminSideWidget
-from widgets.editor_widgets import open_error_dialog, catch_exception_with_dialog
+from widgets.editor_widgets import open_error_dialog, open_info_dialog, catch_exception_with_dialog
 from mkdd_widgets import BolMapViewer, MODE_TOPDOWN
 from lib.libbol import BOL, MGEntry, Route, get_full_name
 import lib.libbol as libbol
@@ -652,6 +652,7 @@ class GenEditor(QMainWindow):
         self.minimap_menu = QMenu(self.menubar)
         self.minimap_menu.setTitle("Minimap")
         load_minimap = QAction("Load Minimap Image", self)
+        save_minimap = QAction("Save Minimap Image", self)
         load_coordinates_dol = QAction("Load Data from DOL", self)
         save_coordinates_dol = QAction("Save Data to DOL", self)
         load_coordinates_json = QAction("Load Data from JSON", self)
@@ -659,11 +660,13 @@ class GenEditor(QMainWindow):
 
 
         load_minimap.triggered.connect(self.action_load_minimap_image)
+        save_minimap.triggered.connect(self.action_save_minimap_image)
         load_coordinates_dol.triggered.connect(self.action_load_dol)
         save_coordinates_dol.triggered.connect(self.action_save_to_dol)
         load_coordinates_json.triggered.connect(self.action_load_coordinates_json)
         save_coordinates_json.triggered.connect(self.action_save_coordinates_json)
         self.minimap_menu.addAction(load_minimap)
+        self.minimap_menu.addAction(save_minimap)
         self.minimap_menu.addAction(load_coordinates_dol)
         self.minimap_menu.addAction(save_coordinates_dol)
         self.minimap_menu.addAction(load_coordinates_json)
@@ -760,6 +763,22 @@ class GenEditor(QMainWindow):
         if filepath:
             self.level_view.minimap.set_texture(filepath)
             self.level_view.do_redraw()
+
+            self.pathsconfig["minimap_png"] = filepath
+            save_cfg(self.configuration)
+
+    def action_save_minimap_image(self):
+        if not self.level_view.minimap.has_texture():
+            open_info_dialog('No minimap image has been loaded yet.', self)
+            return
+
+        filepath, _choosentype = QFileDialog.getSaveFileName(
+            self, "Save File",
+            self.pathsconfig["minimap_png"],
+            "Image (*.png)")
+
+        if filepath:
+            self.level_view.minimap.save_texture(filepath)
 
             self.pathsconfig["minimap_png"] = filepath
             save_cfg(self.configuration)
