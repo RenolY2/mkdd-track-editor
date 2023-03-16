@@ -57,6 +57,12 @@ def open_error_dialog(errormsg, self):
     errorbox.setFixedSize(500, 200)
 
 
+def open_info_dialog(msg, self):
+    box = QtWidgets.QMessageBox()
+    box.information(self, "Info", msg)
+    box.setFixedSize(500, 200)
+
+
 class ErrorAnalyzer(QDialog):
 
     @catch_exception
