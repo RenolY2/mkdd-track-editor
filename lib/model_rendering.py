@@ -918,12 +918,16 @@ class Minimap(object):
     def is_available(self):
         return True
 
-    def set_texture(self, path):
+    def set_texture(self, filepath_or_qimage):
         if self.ID is not None:
             glDeleteTextures(1, int(self.ID))
 
-        qimage = QtGui.QImage(path, "png")
-        qimage = qimage.convertToFormat(QtGui.QImage.Format_ARGB32)
+        if isinstance(filepath_or_qimage, QtGui.QImage):
+            qimage = filepath_or_qimage
+        else:
+            filepath = filepath_or_qimage
+            qimage = QtGui.QImage(filepath, "png")
+            qimage = qimage.convertToFormat(QtGui.QImage.Format_ARGB32)
         ID = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, ID)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
