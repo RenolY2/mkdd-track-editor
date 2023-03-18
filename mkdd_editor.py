@@ -35,7 +35,7 @@ import lib.libbol as libbol
 from lib.rarc import Archive
 from lib.BCOllider import RacetrackCollision
 from lib.model_rendering import TexturedModel, CollisionModel, Minimap
-from widgets.editor_widgets import ErrorAnalyzer, ErrorAnalyzerButton
+from widgets.editor_widgets import ErrorAnalyzer, ErrorAnalyzerButton, show_minimap_generator
 from lib.dolreader import DolFile, read_float, write_float, read_load_immediate_r0, write_load_immediate_r0, UnmappedAddress
 from widgets.file_select import FileSelect
 from PyQt5.QtWidgets import QTreeWidgetItem
@@ -144,6 +144,7 @@ class GenEditor(QMainWindow):
         self._user_made_change = False
         self._justupdatingselectedobject = False
 
+        self.bco_coll = None
         self.loaded_archive = None
         self.loaded_archive_file = None
         self.last_position_clicked = []
@@ -673,6 +674,8 @@ class GenEditor(QMainWindow):
         save_coordinates_dol = QAction("Save Data to DOL", self)
         load_coordinates_json = QAction("Load Data from JSON", self)
         save_coordinates_json = QAction("Save Data to JSON", self)
+        minimap_generator_action = QAction("Minimap Generator", self)
+        minimap_generator_action.setShortcut("Ctrl+M")
 
 
         load_minimap.triggered.connect(self.action_load_minimap_image)
@@ -681,12 +684,15 @@ class GenEditor(QMainWindow):
         save_coordinates_dol.triggered.connect(self.action_save_to_dol)
         load_coordinates_json.triggered.connect(self.action_load_coordinates_json)
         save_coordinates_json.triggered.connect(self.action_save_coordinates_json)
+        minimap_generator_action.triggered.connect(self.minimap_generator_action)
         self.minimap_menu.addAction(load_minimap)
         self.minimap_menu.addAction(save_minimap)
         self.minimap_menu.addAction(load_coordinates_dol)
         self.minimap_menu.addAction(save_coordinates_dol)
         self.minimap_menu.addAction(load_coordinates_json)
         self.minimap_menu.addAction(save_coordinates_json)
+        self.minimap_menu.addSeparator()
+        self.minimap_menu.addAction(minimap_generator_action)
 
         # Misc
         self.misc_menu = QMenu(self.menubar)
@@ -942,6 +948,17 @@ class GenEditor(QMainWindow):
 
             self.pathsconfig["minimap_json"] = filepath
             save_cfg(self.configuration)
+
+    @catch_exception_with_dialog
+    def minimap_generator_action(self, checked):
+        _ = checked
+
+        if self.bco_coll is None:
+            open_info_dialog('No BCO file has been loaded yet.', self)
+            return
+
+        with self.undo_history_disabled():
+            show_minimap_generator(self)
 
     def action_choose_bco_area(self):
         if not isinstance(self.level_view.alternative_mesh, CollisionModel):
@@ -1523,6 +1540,7 @@ class GenEditor(QMainWindow):
 
         with open(collisionfile, "rb") as f:
             bco_coll.load_file(f)
+        self.bco_coll = bco_coll
 
         for vert in bco_coll.vertices:
             verts.append(vert)
@@ -1564,6 +1582,7 @@ class GenEditor(QMainWindow):
         faces = []
 
         bco_coll.load_file(collisionfile)
+        self.bco_coll = bco_coll
 
         for vert in bco_coll.vertices:
             verts.append(vert)
@@ -1611,6 +1630,7 @@ class GenEditor(QMainWindow):
             bco_coll = RacetrackCollision()
             with open(collisionfile, "rb") as f:
                 bco_coll.load_file(f)
+            self.bco_coll = bco_coll
 
             verts = []
             for vert in bco_coll.vertices:
@@ -1666,6 +1686,7 @@ class GenEditor(QMainWindow):
 
             bco_coll = RacetrackCollision()
             bco_coll.load_file(collisionfile)
+            self.bco_coll = bco_coll
 
             verts = []
             for vert in bco_coll.vertices:
@@ -1854,9 +1875,11 @@ class GenEditor(QMainWindow):
                     collision_file = find_file(rarc.root, "_course.bco")
                     bco = rarc[root_name][collision_file]
                     bco_coll.load_file(bco)
+                    self.bco_coll = bco_coll
                 else:
                     with open(filepath, "rb") as f:
                         bco_coll.load_file(f)
+                    self.bco_coll = bco_coll
 
                 for vert in bco_coll.vertices:
                     verts.append(vert)
@@ -1874,6 +1897,7 @@ class GenEditor(QMainWindow):
             self.update_3d()
 
     def clear_collision(self):
+        self.bco_coll = None
         self.level_view.clear_collision()
 
         # Synchronously force a draw operation to provide immediate feedback.

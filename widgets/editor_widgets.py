@@ -1,9 +1,12 @@
+import contextlib
 import traceback
 from io import StringIO
 from itertools import chain
 from math import acos, pi
 import os
 import sys
+
+from PIL import Image
 
 from PyQt5.QtGui import QMouseEvent, QWheelEvent, QPainter, QColor, QFont, QFontMetrics, QPolygon, QImage, QPixmap, QKeySequence
 from PyQt5.QtWidgets import (QWidget, QListWidget, QListWidgetItem, QDialog, QMenu, QLineEdit, QFileDialog, QScrollArea,
@@ -14,9 +17,11 @@ from PyQt5.QtCore import QSize, pyqtSignal, QPoint, QRect
 from PyQt5.QtCore import Qt
 import PyQt5.QtGui as QtGui
 
+import configuration
 import lib.libbol as libbol
 from widgets.data_editor import choose_data_editor
 from lib.libbol import get_full_name
+from lib import minimap_generator
 
 
 def catch_exception(func):
@@ -510,3 +515,325 @@ class SpawnpointEditor(QMdiSubWindow):
         assert len(pos) == 3
 
         return pos, direction
+
+
+@contextlib.contextmanager
+def blocked_signals(obj: QtCore.QObject):
+    # QSignalBlocker may or may not be available in some versions of the different Qt bindings.
+    signals_were_blocked = obj.blockSignals(True)
+    try:
+        yield
+    finally:
+        if not signals_were_blocked:
+            obj.blockSignals(False)
+
+
+class SpinnableSlider(QtWidgets.QWidget):
+
+    value_changed = QtCore.pyqtSignal(int)
+
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+
+        self.setContentsMargins(0, 0, 0, 0)
+
+        self.__slider = QtWidgets.QSlider()
+        self.__slider.setOrientation(QtCore.Qt.Horizontal)
+        self.__slider.valueChanged.connect(self._on_value_changed)
+        self.__spinbox = QtWidgets.QSpinBox()
+        self.__spinbox.valueChanged.connect(self._on_value_changed)
+
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setSpacing(2)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.__slider)
+        layout.addWidget(self.__spinbox)
+
+    def set_range(self, min_value: int, max_value: int, value: int):
+        self.__slider.setMinimum(min_value)
+        self.__slider.setMaximum(max_value)
+        self.__spinbox.setMinimum(min_value)
+        self.__spinbox.setMaximum(max_value)
+        self.__slider.setValue(value)
+        self.__spinbox.setValue(value)
+
+    def set_value(self, value: int):
+        self.__slider.setValue(value)
+
+    def get_value(self) -> int:
+        return self.__slider.value()
+
+    def set_step(self, single_step: int, page_step: int):
+        self.__slider.setSingleStep(single_step)
+        self.__slider.setPageStep(page_step)
+        self.__spinbox.setSingleStep(single_step)
+
+    def _on_value_changed(self, value: int):
+        with blocked_signals(self.__slider):
+            self.__slider.setValue(value)
+        with blocked_signals(self.__spinbox):
+            self.__spinbox.setValue(value)
+        self.value_changed.emit(value)
+
+
+def show_minimap_generator(editor: 'GenEditor'):
+    dialog = QtWidgets.QDialog(editor)
+    dialog.setMinimumWidth(dialog.fontMetrics().averageCharWidth() * 60)
+    dialog.setWindowTitle('Minimap Generator')
+
+    description = (
+        'Adjust orientation and margin so that the minimap fits the canvas optimally without any '
+        'clipping at the edges.'
+        '<br/><br/>'
+        'Generated minimaps will often require manual editing in an image editor to achieve '
+        'professional results. When in doubt, study how minimaps in stock courses look like.')
+    description_label = QtWidgets.QLabel()
+    description_label.setWordWrap(True)
+    description_label.setSizePolicy(description_label.sizePolicy().horizontalPolicy(),
+                                    QtWidgets.QSizePolicy.Fixed)
+    description_label.setText(description)
+
+    form_layout = QtWidgets.QFormLayout()
+    form_layout.setLabelAlignment(QtCore.Qt.AlignRight)
+    orientation_combobox = QtWidgets.QComboBox()
+    orientation_combobox.addItem('Upwards')
+    orientation_combobox.addItem('Leftwards')
+    orientation_combobox.addItem('Downwards')
+    orientation_combobox.addItem('Rightwards')
+    orientation_combobox.setCurrentIndex(minimap_generator.DEFAULT_ORIENTATION)
+    form_layout.addRow('Orientation', orientation_combobox)
+    margin_slider = SpinnableSlider()
+    margin_slider.set_step(1, 1)
+    margin_slider.set_range(
+        0,
+        min(minimap_generator.MINIMAP_WIDTH, minimap_generator.MINIMAP_HEIGHT) * 3 // 8,
+        minimap_generator.DEFAULT_MARGIN)
+    form_layout.addRow('Margin', margin_slider)
+    outline_slider = SpinnableSlider()
+    outline_slider.set_step(1, 1)
+    outline_slider.set_range(0, 50, minimap_generator.DEFAULT_OUTLINE)
+    form_layout.addRow('Outline', outline_slider)
+    outline_rasterization_mode_tool_tip = (
+        'Choose <b>Combined Pass</b> for courses with overlapped areas; choose '
+        '<b>Separate Passes</b> for better results in courses with no overlapped areas.')
+    outline_rasterization_mode_widget = QtWidgets.QWidget()
+    outline_rasterization_mode_widget.setToolTip(outline_rasterization_mode_tool_tip)
+    outline_rasterization_mode_layout = QtWidgets.QHBoxLayout(outline_rasterization_mode_widget)
+    outline_rasterization_mode_layout.setContentsMargins(0, 0, 0, 0)
+    outline_rasterization_mode_separate_passes_radiobutton = QtWidgets.QRadioButton(
+        'Separate Passes')
+    outline_rasterization_mode_combined_pass_radiobutton = QtWidgets.QRadioButton('Combined Pass')
+    outline_rasterization_mode_combined_pass_radiobutton.setChecked(True)
+    outline_rasterization_mode_layout.addWidget(
+        outline_rasterization_mode_separate_passes_radiobutton)
+    outline_rasterization_mode_layout.addWidget(
+        outline_rasterization_mode_combined_pass_radiobutton)
+    outline_rasterization_mode_layout.addStretch()
+    form_layout.addRow('Outline Rasterization Mode', outline_rasterization_mode_widget)
+    form_layout.labelForField(outline_rasterization_mode_widget).setToolTip(
+        outline_rasterization_mode_tool_tip)
+    outline_vertical_offset_tool_tip = (
+        'Vertical offset of the outline associated with the triangle being rasterized. Greater '
+        '[absolute] values guarantee that a triangle does not overlap with its outline, at the '
+        'expense of potentially overlapping with nearby triangles.'
+        '<br/><br/>'
+        'This value needs to be adjusted in a per-case basis.')
+    outline_vertical_offset_slider = SpinnableSlider()
+    outline_vertical_offset_slider.setToolTip(outline_vertical_offset_tool_tip)
+    outline_vertical_offset_slider.set_step(10, 100)
+    outline_vertical_offset_slider.set_range(-10000, 0,
+                                             minimap_generator.DEFAULT_OUTLINE_VERTICAL_OFFSET)
+    form_layout.addRow('Outline Vertical Offset', outline_vertical_offset_slider)
+    form_layout.labelForField(outline_vertical_offset_slider).setToolTip(
+        outline_vertical_offset_tool_tip)
+    multisampling_tool_tip = (
+        'For faster previsualization, temporarily reduce the number of samples to <b>1x</b>. Set '
+        'to at least <b>3x</b> before exporting the image.')
+    multisampling_combobox = QtWidgets.QComboBox()
+    multisampling_combobox.setToolTip(multisampling_tool_tip)
+    for i in range(5):
+        multisampling_combobox.addItem(f'{i + 1}x')
+    multisampling_combobox.setCurrentIndex(minimap_generator.DEFAULT_MULTISAMPLING - 1)
+    form_layout.addRow('Multisampling', multisampling_combobox)
+    form_layout.labelForField(multisampling_combobox).setToolTip(multisampling_tool_tip)
+
+    menu = QtWidgets.QMenu()
+    save_image_action = menu.addAction('Save Image as PNG')
+    save_data_action = menu.addAction('Save Data to JSON')
+    menu.addSeparator()
+    copy_action = menu.addAction('Copy to Clipboard')
+
+    image_placeholder = []
+
+    def on_copy_action_triggered():
+        if not image_placeholder:
+            return
+
+        image = image_placeholder[0]
+        data = image.tobytes("raw", "RGBA")
+        QtWidgets.QApplication.instance().clipboard().setPixmap(
+            QtGui.QPixmap.fromImage(
+                QtGui.QImage(data, image.width, image.height, QtGui.QImage.Format_RGBA8888)))
+
+    save_image_action.triggered.connect(editor.action_save_minimap_image)
+    save_data_action.triggered.connect(editor.action_save_coordinates_json)
+    copy_action.triggered.connect(on_copy_action_triggered)
+
+    image_widget = QtWidgets.QLabel()
+    image_widget.setAlignment(QtCore.Qt.AlignCenter)
+    image_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+    image_widget.customContextMenuRequested.connect(
+        lambda pos: menu.exec_(image_widget.mapToGlobal(pos)))
+    palette = image_widget.palette()
+    palette.setColor(image_widget.foregroundRole(), QtGui.QColor(170, 20, 20))
+    image_widget.setPalette(palette)
+
+    image_frame = QtWidgets.QFrame()
+    image_frame.setAutoFillBackground(True)
+    image_frame.setFrameStyle(QtWidgets.QFrame.StyledPanel)
+    image_frame_margin = dialog.fontMetrics().height() / 2
+    image_frame.setMinimumSize(minimap_generator.MINIMAP_WIDTH + image_frame_margin * 2,
+                               minimap_generator.MINIMAP_HEIGHT + image_frame_margin * 2)
+    palette = image_frame.palette()
+    palette.setBrush(image_frame.backgroundRole(), palette.dark())
+    image_frame.setPalette(palette)
+    image_frame_layout = QtWidgets.QVBoxLayout(image_frame)
+    image_frame_layout.setAlignment(QtCore.Qt.AlignCenter)
+    image_frame_layout.addWidget(image_widget)
+
+    reset_button = QtWidgets.QPushButton('Reset')
+    reset_button.setAutoDefault(False)
+    save_button = QtWidgets.QPushButton('Save')
+    save_button.setAutoDefault(False)
+    save_button.setMenu(menu)
+    bottom_layout = QtWidgets.QHBoxLayout()
+    bottom_layout.addWidget(reset_button)
+    bottom_layout.addStretch()
+    bottom_layout.addWidget(save_button)
+
+    layout = QtWidgets.QVBoxLayout(dialog)
+    layout.addWidget(description_label)
+    layout.addSpacing(dialog.fontMetrics().height())
+    layout.addLayout(form_layout)
+    layout.addSpacing(dialog.fontMetrics().height() // 2)
+    layout.addWidget(image_frame, 1)
+    layout.addSpacing(dialog.fontMetrics().height() // 2)
+    layout.addLayout(bottom_layout)
+
+    def update():
+        # Retrieve arguments.
+        orientation = orientation_combobox.currentIndex()
+        margin = margin_slider.get_value()
+        outline = outline_slider.get_value()
+        if outline_rasterization_mode_combined_pass_radiobutton.isChecked():
+            outline_vertical_offset = outline_vertical_offset_slider.get_value()
+        else:
+            outline_vertical_offset = None
+        multisampling = multisampling_combobox.currentIndex() + 1
+
+        # Generate the minimap image.
+        image_placeholder.clear()
+        image, coordinates = minimap_generator.collision_to_minimap(editor.bco_coll, orientation,
+                                                                    margin, outline,
+                                                                    outline_vertical_offset,
+                                                                    multisampling)
+        image_placeholder.append(image)
+
+        # Update image widget with the final image.
+        background = (128, 128, 128)
+        image_with_background = Image.new('RGBA', (image.width, image.height), background)
+        image_with_background.alpha_composite(image)
+        data = image_with_background.tobytes("raw", "RGBA")
+        pixmap = QtGui.QPixmap.fromImage(
+            QtGui.QImage(data, image.width, image.height, QtGui.QImage.Format_RGBA8888))
+        image_widget.setPixmap(pixmap)
+        image_widget.setMinimumSize(image.width, image.height)
+
+        # Update minimap in viewport.
+        editor.level_view.minimap.set_texture(
+            QtGui.QImage(image.tobytes("raw", "RGBA"), image.width, image.height,
+                         QtGui.QImage.Format_RGBA8888))
+        editor.level_view.minimap.corner1.x = coordinates[0]
+        editor.level_view.minimap.corner1.z = coordinates[1]
+        editor.level_view.minimap.corner2.x = coordinates[2]
+        editor.level_view.minimap.corner2.z = coordinates[3]
+        editor.level_view.minimap.orientation = orientation
+        editor.level_view.do_redraw()
+
+        # Sync widget states.
+        outline_rasterization_mode_combined_pass_radiobutton.setEnabled(bool(outline))
+        outline_rasterization_mode_separate_passes_radiobutton.setEnabled(bool(outline))
+        outline_vertical_offset_slider.setEnabled(
+            bool(outline) and outline_rasterization_mode_combined_pass_radiobutton.isChecked())
+
+    def reset():
+        with blocked_signals(orientation_combobox):
+            orientation_combobox.setCurrentIndex(minimap_generator.DEFAULT_ORIENTATION)
+        with blocked_signals(margin_slider):
+            margin_slider.set_value(minimap_generator.DEFAULT_MARGIN)
+        with blocked_signals(outline_slider):
+            outline_slider.set_value(minimap_generator.DEFAULT_OUTLINE)
+        with blocked_signals(outline_rasterization_mode_separate_passes_radiobutton):
+            with blocked_signals(outline_rasterization_mode_combined_pass_radiobutton):
+                outline_rasterization_mode_separate_passes_radiobutton.setChecked(False)
+                outline_rasterization_mode_combined_pass_radiobutton.setChecked(True)
+        with blocked_signals(outline_vertical_offset_slider):
+            outline_vertical_offset_slider.set_value(
+                minimap_generator.DEFAULT_OUTLINE_VERTICAL_OFFSET)
+        with blocked_signals(multisampling_combobox):
+            multisampling_combobox.setCurrentIndex(minimap_generator.DEFAULT_MULTISAMPLING - 1)
+
+        update()
+
+    # Restore state from settings.
+    if "minimap_generator" not in editor.configuration:
+        editor.configuration["minimap_generator"] = {}
+    config = editor.configuration["minimap_generator"]
+    if 'orientation' in config:
+        orientation_combobox.setCurrentIndex(int(config['orientation']))
+    if 'margin' in config:
+        margin_slider.set_value(int(config['margin']))
+    if 'outline' in config:
+        outline_slider.set_value(int(config['outline']))
+    if 'outline_rasterization_mode' in config:
+        outline_rasterization_mode_separate_passes_radiobutton.setChecked(
+            config['outline_rasterization_mode'] != 'combined_pass')
+        outline_rasterization_mode_combined_pass_radiobutton.setChecked(
+            config['outline_rasterization_mode'] == 'combined_pass')
+    if 'outline_vertical_offset' in config:
+        outline_vertical_offset_slider.set_value(int(config['outline_vertical_offset']))
+    if 'multisampling' in config:
+        multisampling_combobox.setCurrentIndex(int(config['multisampling']) - 1)
+    if "dialog_geometry" in config:
+        dialog.restoreGeometry(
+            QtCore.QByteArray.fromBase64(config["dialog_geometry"].encode(encoding='ascii')))
+
+    # Connect slots.
+    orientation_combobox.currentIndexChanged.connect(lambda _index: update())
+    margin_slider.value_changed.connect(lambda _value: update())
+    outline_slider.value_changed.connect(lambda _value: update())
+    outline_rasterization_mode_combined_pass_radiobutton.toggled.connect(lambda checked: update()
+                                                                         if checked else None)
+    outline_rasterization_mode_separate_passes_radiobutton.toggled.connect(lambda checked: update()
+                                                                           if checked else None)
+    outline_vertical_offset_slider.value_changed.connect(lambda _value: update())
+    multisampling_combobox.currentIndexChanged.connect(lambda _value: update())
+    reset_button.clicked.connect(reset)
+
+    update()
+
+    dialog.exec_()
+
+    # Save values in settings before returning.
+    config['orientation'] = str(orientation_combobox.currentIndex())
+    config['margin'] = str(margin_slider.get_value())
+    config['outline'] = str(outline_slider.get_value())
+    config['outline_rasterization_mode'] = (
+        'combined_pass'
+        if outline_rasterization_mode_combined_pass_radiobutton.isChecked() else 'separate_passes')
+    config['outline_vertical_offset'] = str(outline_vertical_offset_slider.get_value())
+    config['multisampling'] = str(multisampling_combobox.currentIndex() + 1)
+    config["dialog_geometry"] = bytes(dialog.saveGeometry().toBase64()).decode(encoding='ascii')
+    configuration.save_cfg(editor.configuration)
+
+    dialog.deleteLater()
