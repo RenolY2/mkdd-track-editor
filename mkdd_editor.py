@@ -1,3 +1,4 @@
+import contextlib
 import pickle
 import traceback
 import os
@@ -110,6 +111,7 @@ class GenEditor(QMainWindow):
 
         self.undo_history: list[UndoEntry] = []
         self.redo_history: list[UndoEntry] = []
+        self.undo_history_disabled_count: int  = 0
 
         try:
             self.configuration = read_config()
@@ -317,6 +319,10 @@ class GenEditor(QMainWindow):
             self.load_top_undo_entry()
 
     def on_document_potentially_changed(self, update_unsaved_changes=True):
+        # Early out if undo history is temporarily disabled.
+        if self.undo_history_disabled_count:
+            return
+
         undo_entry = self.generate_undo_entry()
 
         if self.undo_history[-1] != undo_entry:
@@ -335,6 +341,16 @@ class GenEditor(QMainWindow):
     def update_undo_redo_actions(self):
         self.undo_action.setEnabled(len(self.undo_history) > 1)
         self.redo_action.setEnabled(bool(self.redo_history))
+
+    @contextlib.contextmanager
+    def undo_history_disabled(self):
+        self.undo_history_disabled_count += 1
+        try:
+            yield
+        finally:
+            self.undo_history_disabled_count -= 1
+
+        self.on_document_potentially_changed()
 
     @catch_exception_with_dialog
     def do_goto_action(self, item, index):
