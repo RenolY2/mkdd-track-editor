@@ -1451,9 +1451,11 @@ class GenEditor(QMainWindow):
                             else:
                                 self.clear_collision()
                         elif bmdfile is not None and self.editorconfig["addi_file_on_load"] == "BMD":
-                            self.load_optional_bmd(bmdfile)
+                            if os.path.isfile(bmdfile):
+                                self.load_optional_bmd(bmdfile)
                         elif collisionfile is not None and self.editorconfig["addi_file_on_load"] == "BCO":
-                            self.load_optional_bco(collisionfile)
+                            if os.path.isfile(collisionfile):
+                                self.load_optional_bco(collisionfile)
                         elif self.editorconfig["addi_file_on_load"] == "None":
                             self.clear_collision()
 
