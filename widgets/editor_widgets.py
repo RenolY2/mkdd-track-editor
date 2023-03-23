@@ -658,7 +658,9 @@ def show_minimap_generator(editor: 'GenEditor'):
     form_layout.labelForField(multisampling_combobox).setToolTip(multisampling_tool_tip)
 
     menu = QtWidgets.QMenu()
-    save_image_action = menu.addAction('Save Image as PNG')
+    save_image_png_action = menu.addAction('Save Image as PNG')
+    save_image_bti_action = menu.addAction('Save Image as BTI')
+    menu.addSeparator()
     save_data_action = menu.addAction('Save Data to JSON')
     menu.addSeparator()
     copy_action = menu.addAction('Copy to Clipboard')
@@ -675,7 +677,10 @@ def show_minimap_generator(editor: 'GenEditor'):
             QtGui.QPixmap.fromImage(
                 QtGui.QImage(data, image.width, image.height, QtGui.QImage.Format_RGBA8888)))
 
-    save_image_action.triggered.connect(editor.action_save_minimap_image)
+    save_image_png_action.triggered.connect(
+        lambda checked: editor.action_save_minimap_image(checked, 'png'))
+    save_image_bti_action.triggered.connect(
+        lambda checked: editor.action_save_minimap_image(checked, 'bti'))
     save_data_action.triggered.connect(editor.action_save_coordinates_json)
     copy_action.triggered.connect(on_copy_action_triggered)
 

@@ -7,6 +7,7 @@ from copy import deepcopy
 from io import TextIOWrapper, BytesIO, StringIO
 from math import sin, cos, atan2
 import json
+from PIL import Image
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from PyQt5.QtCore import Qt
@@ -20,6 +21,7 @@ import PyQt5.QtGui as QtGui
 import opengltext
 import py_obj
 
+from lib import bti
 from widgets.editor_widgets import catch_exception
 from widgets.editor_widgets import AddPikObjectWindow
 from widgets.tree_view import LevelDataTreeView
@@ -674,7 +676,8 @@ class GenEditor(QMainWindow):
         self.minimap_menu = QMenu(self.menubar)
         self.minimap_menu.setTitle("Minimap")
         load_minimap = QAction("Load Minimap Image", self)
-        save_minimap = QAction("Save Minimap Image", self)
+        save_minimap_png = QAction("Save Minimap Image as PNG", self)
+        save_minimap_bti = QAction("Save Minimap Image as BTI", self)
         load_coordinates_dol = QAction("Load Data from DOL", self)
         save_coordinates_dol = QAction("Save Data to DOL", self)
         load_coordinates_json = QAction("Load Data from JSON", self)
@@ -684,14 +687,19 @@ class GenEditor(QMainWindow):
 
 
         load_minimap.triggered.connect(self.action_load_minimap_image)
-        save_minimap.triggered.connect(self.action_save_minimap_image)
+        save_minimap_png.triggered.connect(
+            lambda checked: self.action_save_minimap_image(checked, 'png'))
+        save_minimap_bti.triggered.connect(
+            lambda checked: self.action_save_minimap_image(checked, 'bti'))
         load_coordinates_dol.triggered.connect(self.action_load_dol)
         save_coordinates_dol.triggered.connect(self.action_save_to_dol)
         load_coordinates_json.triggered.connect(self.action_load_coordinates_json)
         save_coordinates_json.triggered.connect(self.action_save_coordinates_json)
         minimap_generator_action.triggered.connect(self.minimap_generator_action)
         self.minimap_menu.addAction(load_minimap)
-        self.minimap_menu.addAction(save_minimap)
+        self.minimap_menu.addAction(save_minimap_png)
+        self.minimap_menu.addAction(save_minimap_bti)
+        self.minimap_menu.addSeparator()
         self.minimap_menu.addAction(load_coordinates_dol)
         self.minimap_menu.addAction(save_coordinates_dol)
         self.minimap_menu.addAction(load_coordinates_json)
@@ -782,32 +790,55 @@ class GenEditor(QMainWindow):
             open_error_dialog(error, self)
 
     def action_load_minimap_image(self):
+        supported_extensions = [f'*{ext}' for ext in Image.registered_extensions()]
+        supported_extensions.insert(0, '*.bti')
+        supported_extensions = ' '.join(supported_extensions)
+
         filepath, choosentype = QFileDialog.getOpenFileName(
-            self, "Open File",
-            self.pathsconfig["minimap_png"],
-            "Image (*.png);;All files (*)")
+            self, "Open Image", self.pathsconfig["minimap_image"],
+            f"Images ({supported_extensions});;All files (*)")
 
         if filepath:
-            self.level_view.minimap.set_texture(filepath)
+            if filepath.endswith('.bti'):
+                with open(filepath, 'rb') as f:
+                    bti_image = bti.BTI(f)
+                    self.level_view.minimap.set_texture(bti_image.render())
+            else:
+                self.level_view.minimap.set_texture(filepath)
             self.level_view.do_redraw()
 
-            self.pathsconfig["minimap_png"] = filepath
+            self.pathsconfig["minimap_image"] = filepath
             save_cfg(self.configuration)
 
-    def action_save_minimap_image(self):
+    def action_save_minimap_image(self, checked: bool = False, extension: str = 'png'):
         if not self.level_view.minimap.has_texture():
             open_info_dialog('No minimap image has been loaded yet.', self)
             return
 
+        initial_filepath = self.pathsconfig["minimap_image"]
+        stem, _ext = os.path.splitext(initial_filepath)
+        initial_filepath = f'{stem}.{extension}'
+
         filepath, _choosentype = QFileDialog.getSaveFileName(
-            self, "Save File",
-            self.pathsconfig["minimap_png"],
-            "Image (*.png)")
+            self, f"Save {extension.upper()} Image", initial_filepath,
+            f"{extension.upper()} (*.{extension})")
 
         if filepath:
-            self.level_view.minimap.save_texture(filepath)
+            image = self.level_view.minimap.get_texture().convert('RGBA')
+            if extension == 'bti':
+                for pixel in image.getdata():
+                    if pixel[0] != pixel[1] or pixel[0] != pixel[2]:
+                        colorful = True
+                        break
+                else:
+                    colorful = False
+                image_format = bti.ImageFormat.RGB5A3 if colorful else bti.ImageFormat.IA4
+                bti_image = bti.BTI.create_from_image(image, image_format)
+                bti_image.save(filepath)
+            else:
+                image.save(filepath)
 
-            self.pathsconfig["minimap_png"] = filepath
+            self.pathsconfig["minimap_image"] = filepath
             save_cfg(self.configuration)
 
     @catch_exception_with_dialog
