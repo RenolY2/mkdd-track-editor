@@ -1,15 +1,14 @@
 import json
 import math
+import os
 import re
 import sys
-from time import time
-from OpenGL.GL import *
-from .vectors import Vector3
-from struct import unpack
-import os
-from OpenGL.GL import *
 
+from OpenGL.GL import *
 from PyQt5 import QtGui
+
+from .vectors import Vector3
+
 
 with open("lib/color_coding.json") as f:
     colors = json.load(f)
