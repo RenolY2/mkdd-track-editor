@@ -1778,3 +1778,49 @@ class BTI:
       return False
     
     return True
+
+  def save_changes(self):
+    # Cut off the image and palette data first since we're replacing this data entirely.
+    self.data.truncate(0x20)
+    self.data.seek(0x20)
+
+    self.image_data_offset = 0x20
+    self.image_data.seek(0)
+    self.data.write(self.image_data.read())
+
+    if self.needs_palettes():
+      self.palette_data_offset = 0x20 + data_len(self.image_data)
+      self.palette_data.seek(0)
+      self.data.write(self.palette_data.read())
+    else:
+      self.palette_data_offset = 0
+
+    self.save_header_changes()
+
+  @classmethod
+  def create_from_image(cls, image: Image.Image, image_format: ImageFormat = ImageFormat.RGB5A3,
+                        palette_format: PaletteFormat = PaletteFormat.RGB5A3):
+    # No BTI is already loaded. Create a dummy one from scratch to allow importing this image.
+    data = BytesIO()
+    image_data = b"\0"*0x20
+    write_bytes(data, 0x20, image_data)
+    palette_data = b"\0"*2
+    write_bytes(data, 0x20+len(image_data), palette_data)
+    write_u8(data,  0x00, image_format.value) # Image format
+    write_u16(data, 0x02, 8) # Width
+    write_u16(data, 0x04, 4) # Height
+    write_u8(data,  0x08, 1) # Palettes enabled
+    write_u8(data,  0x09, palette_format.value) # Palette format
+    write_u16(data, 0x0A, 1) # Num colors
+    write_u32(data, 0x0C, 0x20+len(image_data)) # Palette data offset
+    write_u32(data, 0x1C, 0x20) # Image data offset
+
+    btifile = cls(data)
+    btifile.replace_image(image)
+    return btifile
+
+  def save(self, filepath):
+    with open(filepath, 'wb') as f:
+      self.save_changes()
+      self.data.seek(0)
+      f.write(self.data.read())
