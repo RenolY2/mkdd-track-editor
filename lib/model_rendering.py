@@ -5,7 +5,7 @@ import re
 import sys
 
 from OpenGL.GL import *
-from PyQt5 import QtGui
+from PIL import Image
 
 from .vectors import Vector3
 
@@ -171,32 +171,23 @@ class TexturedMesh(object):
 class Material(object):
     def __init__(self, diffuse=None, texturepath=None):
         if texturepath is not None:
-            ID = glGenTextures(1)
-            glBindTexture(GL_TEXTURE_2D, ID)
-            glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0)
-
-            if texturepath.endswith(".png"):
-                fmt = "png"
-            elif texturepath.endswith(".jpg"):
-                fmt = "jpg"
-            else:
-                raise RuntimeError("unknown tex format: {0}".format(texturepath))
-
             # When SuperBMD is used through Wine, it generates some odd filepaths that need to be
             # corrected.
             if sys.platform != "win32":
                 texturepath = re.sub("lib/temp/[A-Z]:", "", texturepath).replace("\\", "/")
 
-            qimage = QtGui.QImage(texturepath, fmt)
-            qimage = qimage.convertToFormat(QtGui.QImage.Format_ARGB32)
+            image = Image.open(texturepath)
+            image = image.convert('RGBA')
 
-            imgdata = bytes(qimage.bits().asarray(qimage.width() * qimage.height() * 4))
+            ID = glGenTextures(1)
+            glBindTexture(GL_TEXTURE_2D, ID)
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0)
+            glTexImage2D(GL_TEXTURE_2D, 0, 4, image.width, image.height, 0, GL_RGBA,
+                         GL_UNSIGNED_BYTE, image.tobytes())
 
-            glTexImage2D(GL_TEXTURE_2D, 0, 4, qimage.width(), qimage.height(), 0, GL_BGRA, GL_UNSIGNED_BYTE, imgdata)
-
-            del qimage
+            del image
 
             self.tex = ID
         else:
@@ -832,15 +823,15 @@ class GenericSwimmer(GenericComplexObject):
 
 
 class TexturedPlane(object):
-    def __init__(self, planewidth, planeheight, qimage):
+    def __init__(self, planewidth, planeheight, image):
         ID = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, ID)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0)
 
-        imgdata = bytes(qimage.bits().asarray(qimage.width()*qimage.height()*4))
-        glTexImage2D(GL_TEXTURE_2D, 0, 4, qimage.width(), qimage.height(), 0, GL_BGRA, GL_UNSIGNED_BYTE, imgdata)
+        glTexImage2D(GL_TEXTURE_2D, 0, 4, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                     image.tobytes())
 
         self.ID = ID
         self.planewidth = planewidth
@@ -905,7 +896,7 @@ ORIENTATION_ANGLE = (0.0, 90.0, 180.0, 270.0)
 class Minimap(object):
     def __init__(self, corner1, corner2, orientation, texpath=None):
         self.ID = None
-        self.qimage = None
+        self.image = None
         if texpath is not None:
             self.set_texture(texpath)
 
@@ -917,33 +908,38 @@ class Minimap(object):
     def is_available(self):
         return True
 
-    def set_texture(self, filepath_or_qimage):
+    def set_texture(self, filepath_or_image):
         if self.ID is not None:
             glDeleteTextures(1, int(self.ID))
 
-        if isinstance(filepath_or_qimage, QtGui.QImage):
-            qimage = filepath_or_qimage
+        if isinstance(filepath_or_image, Image.Image):
+            image = filepath_or_image
         else:
-            filepath = filepath_or_qimage
-            qimage = QtGui.QImage(filepath, "png")
-            qimage = qimage.convertToFormat(QtGui.QImage.Format_ARGB32)
+            filepath = filepath_or_image
+            image = Image.open(filepath)
+            image = image.convert('RGBA')
+
         ID = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, ID)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0)
 
-        imgdata = bytes(qimage.bits().asarray(qimage.width() * qimage.height() * 4))
-        glTexImage2D(GL_TEXTURE_2D, 0, 4, qimage.width(), qimage.height(), 0, GL_BGRA, GL_UNSIGNED_BYTE, imgdata)
+        glTexImage2D(GL_TEXTURE_2D, 0, 4, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                     image.tobytes())
+
         self.ID = ID
-        self.qimage = qimage
+        self.image = image
 
     def has_texture(self):
-        return bool(self.qimage)
+        return bool(self.image)
 
     def save_texture(self, filepath):
-        if self.qimage is not None:
-            self.qimage.save(filepath)
+        if self.image is not None:
+            self.image.save(filepath)
+
+    def get_texture(self):
+        return self.image
 
     def render(self):
         corner1, corner2 = self.corner1, self.corner2

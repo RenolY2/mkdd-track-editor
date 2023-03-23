@@ -750,9 +750,7 @@ def show_minimap_generator(editor: 'GenEditor'):
         image_widget.setMinimumSize(image.width, image.height)
 
         # Update minimap in viewport.
-        editor.level_view.minimap.set_texture(
-            QtGui.QImage(image.tobytes("raw", "RGBA"), image.width, image.height,
-                         QtGui.QImage.Format_RGBA8888))
+        editor.level_view.minimap.set_texture(image)
         editor.level_view.minimap.corner1.x = coordinates[0]
         editor.level_view.minimap.corner1.z = coordinates[1]
         editor.level_view.minimap.corner2.x = coordinates[2]
