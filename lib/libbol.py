@@ -352,6 +352,8 @@ class EnemyPointGroup(object):
         pos = self.points.index(point)
         self.points = self.points[:pos+1]
 
+    def get_index_of_point(self, point: EnemyPoint):
+        return self.points.index(point)
 
 class EnemyPointGroups(object):
     def __init__(self):
@@ -410,7 +412,10 @@ class EnemyPointGroups(object):
 
         return max_link+1
 
-
+    def add_group(self):
+        new_enemy_group = EnemyPointGroup()
+        new_enemy_group.id = self.new_group_id()
+        self.groups.append(new_enemy_group)
 # Enemy/Item Route Code End
 
 

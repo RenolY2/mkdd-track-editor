@@ -6,6 +6,7 @@ import PyQt5.QtCore as QtCore
 from PyQt5.QtCore import QSize, pyqtSignal, QPoint, QRect
 from PyQt5.QtCore import Qt
 from widgets.data_editor import choose_data_editor
+from widgets.more_buttons import MoreButtons
 
 class PikminSideWidget(QWidget):
     def __init__(self, *args, **kwargs):
@@ -58,6 +59,11 @@ class PikminSideWidget(QWidget):
         self.verticalLayout.addWidget(self.button_remove_object)
         self.verticalLayout.addWidget(self.button_ground_object)
         #self.verticalLayout.addWidget(self.button_move_object)
+
+        self.more_buttons = MoreButtons(parent)
+        self.more_buttons.add_buttons(None)
+        self.verticalLayout.addWidget(self.more_buttons)
+
         self.verticalLayout.addStretch(20)
 
         self.name_label = QLabel(parent)
@@ -174,4 +180,5 @@ class PikminSideWidget(QWidget):
 
         self.comment_label.setText(text)
 
-
+    def set_buttons(self, obj):
+        self.more_buttons.add_buttons(obj)

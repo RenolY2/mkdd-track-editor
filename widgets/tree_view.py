@@ -4,13 +4,19 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QAction, QMenu
 
 
-class BolHeader(QTreeWidgetItem):
+class BaseTreeWidgetItem(QTreeWidgetItem):
+
+    def get_index_in_parent(self):
+        return self.parent().indexOfChild(self)
+
+
+class BolHeader(BaseTreeWidgetItem):
     def __init__(self):
         super().__init__()
         self.setText(0, "Track Settings")
 
 
-class ObjectGroup(QTreeWidgetItem):
+class ObjectGroup(BaseTreeWidgetItem):
     def __init__(self, name, parent=None, bound_to=None):
         if parent is None:
             super().__init__()
@@ -78,7 +84,7 @@ class ObjectPointGroup(ObjectGroup):
 
 
 # Entries in groups or entries without groups
-class NamedItem(QTreeWidgetItem):
+class NamedItem(BaseTreeWidgetItem):
     def __init__(self, parent, name, bound_to, index=None):
         super().__init__(parent)
         self.setText(0, name)
@@ -417,6 +423,8 @@ class LevelDataTreeView(QTreeWidget):
                     break
             item.setSelected(True)
 
+        self.bound_to_group(boldata)
+
     def sort_objects(self):
         self.objects.sort()
         """items = []
@@ -445,3 +453,14 @@ class LevelDataTreeView(QTreeWidget):
         for i in range(item_count):
             item = parent_item.child(i)
             item.setExpanded(expansion_states[i])
+
+    def bound_to_group(self, levelfile):
+        self.enemyroutes.bound_to = levelfile.enemypointgroups
+        self.checkpointgroups.bound_to = levelfile.checkpoints
+        self.routes.bound_to = levelfile.routes
+        self.objects.bound_to = levelfile.objects
+        self.kartpoints.bound_to = levelfile.kartpoints
+        self.areas.bound_to = levelfile.areas
+        self.cameras.bound_to = levelfile.cameras
+        self.respawnpoints.bound_to = levelfile.respawnpoints
+        self.lightparams.bound_to = levelfile.lightparams
