@@ -11,16 +11,33 @@ DEFAULT_OUTLINE = 6
 DEFAULT_OUTLINE_VERTICAL_OFFSET = -2000
 DEFAULT_MULTISAMPLING = 4
 
-DEFAULT_TRANSITABLE_TERRAIN_TYPES = (
-    0x0100,
-    0x0400,
-    0x0700,
-    0x0800,
-    0x0900,
-    0x0D00,
-    0x3700,
-    0x4700,
+DEFAULT_TERRAIN_COLORS = (
+    (0x0000, False, (200, 200, 200)), # Medium Off-road
+    (0x0100, True, (255, 255, 255)), # Road
+    (0x0200, False, (0, 0, 0)), # Wall
+    (0x0300, False, (200, 200, 200)), # Medium Off-road
+    (0x0400, True, (255, 255, 255)), # Slippery Ice
+    (0x0500, False, (0, 0, 0)), # Dead zone
+    (0x0600, False, (0, 0, 0)), # Grassy Wall
+    (0x0700, True, (255, 255, 255)), # Boost
+    (0x0800, True, (255, 255, 255)), # Boost
+    (0x0900, True, (255, 255, 255)), # Cannon Boost
+    (0x0A00, False, (0, 0, 0)), # Dead zone
+    (0x0C00, False, (200, 200, 200)), # Weak Off-road
+    (0x0D00, True, (255, 255, 255)), # Teleport
+    (0x0E00, False, (0, 0, 0)), # Sand Dead zone
+    (0x0F00, False, (0, 0, 0)), # Wavy Dead zone
+    (0x1000, False, (0, 0, 0)), # Quicksand Dead zone
+    (0x1100, False, (0, 0, 0)), # Dead zone
+    (0x1200, False, (0, 0, 0)), # Kart-Only Wall
+    (0x1300, False, (0, 0, 0)), # Heavy Off-road
+    (0x3700, True, (255, 255, 255)), # Boost
+    (0x4700, True, (255, 255, 255)), # Boost
 )
+"""
+List of 3-tuples containing the terrain type, whether it should be part of the minimap, and its
+color.
+"""
 
 try:
     RESAMPLING_FILTER = Image.Resampling.LANCZOS
@@ -37,7 +54,7 @@ def bco_to_minimap(
     outline: int = DEFAULT_OUTLINE,
     outline_vertical_offset: int = DEFAULT_OUTLINE_VERTICAL_OFFSET,
     multisampling: int = DEFAULT_MULTISAMPLING,
-    transitable_terrain_types: 'tuple[int]' = DEFAULT_TRANSITABLE_TERRAIN_TYPES,
+    terrain_colors: 'tuple[tuple[int, bool, tuple[int, int, int]]]' = DEFAULT_TERRAIN_COLORS,
 ) -> 'tuple[Image, tuple]':
     collision = BCOllider.RacetrackCollision()
     with open(filepath, 'rb') as f:
@@ -52,7 +69,7 @@ def bco_to_minimap(
             del print_bk
 
     return collision_to_minimap(collision, orientation, margin, outline, outline_vertical_offset,
-                                multisampling, transitable_terrain_types)
+                                multisampling, terrain_colors)
 
 
 def collision_to_minimap(
@@ -62,7 +79,7 @@ def collision_to_minimap(
     outline: int = DEFAULT_OUTLINE,
     outline_vertical_offset: int = DEFAULT_OUTLINE_VERTICAL_OFFSET,
     multisampling: int = DEFAULT_MULTISAMPLING,
-    transitable_terrain_types: 'tuple[int]' = DEFAULT_TRANSITABLE_TERRAIN_TYPES,
+    terrain_colors: 'tuple[tuple[int, bool, tuple[int, int, int]]]' = DEFAULT_TERRAIN_COLORS,
 ) -> 'tuple[Image, tuple]':
     # Transpose dimensions depending on the orientation.
     if orientation in (0, 2):
@@ -78,15 +95,22 @@ def collision_to_minimap(
     canvas_margin = margin * multisampling
     canvas_outline = outline * multisampling
 
+    # Map terrain type to color, discarding the ones not visible.
+    terrain_colors = {
+        terrain_type: color
+        for terrain_type, visible, color in terrain_colors if visible
+    }
+
     # Filter triangles by terrain type and convert vertex indexes to vertex points.
     triangles = []
     for vi1, vi2, vi3, terrain_type, _rest in collision.triangles:
-        if (terrain_type & 0xFF00) not in transitable_terrain_types:
+        terrain_color = terrain_colors.get(terrain_type & 0xFF00)
+        if terrain_color is None:
             continue
         v1 = collision.vertices[vi1]
         v2 = collision.vertices[vi2]
         v3 = collision.vertices[vi3]
-        triangles.append((terrain_type, v1, v2, v3))
+        triangles.append((terrain_color, v1, v2, v3))
 
     min_x = min(min(v1[0], v2[0], v3[0]) for _terrain_type, v1, v2, v3 in triangles)
     max_x = max(max(v1[0], v2[0], v3[0]) for _terrain_type, v1, v2, v3 in triangles)
@@ -105,11 +129,11 @@ def collision_to_minimap(
     scale_z = (canvas_height / 2 - canvas_margin) / (max_z - center_z)
     scale = min(scale_x, scale_z)
     fit_triangles = []
-    for terrain_type, v1, v2, v3 in triangles:
+    for terrain_color, v1, v2, v3 in triangles:
         centered_v1 = ((v1[0] - center_x) * scale, v1[1] - center_y, (v1[2] - center_z) * scale)
         centered_v2 = ((v2[0] - center_x) * scale, v2[1] - center_y, (v2[2] - center_z) * scale)
         centered_v3 = ((v3[0] - center_x) * scale, v3[1] - center_y, (v3[2] - center_z) * scale)
-        fit_triangles.append((terrain_type, centered_v1, centered_v2, centered_v3))
+        fit_triangles.append((terrain_color, centered_v1, centered_v2, centered_v3))
     triangles = fit_triangles
 
     image = Image.new('RGBA', (canvas_width, canvas_height))
@@ -120,39 +144,41 @@ def collision_to_minimap(
         # Outline and fill of the triangles are rendered in a single pass, using the triangles'
         # height to determine what is rasterized first. This allows the outline to overlap triangles
         # that are at a lower height.
-        outline_points = [((v1[0] + canvas_width / 2, v1[2] + canvas_height / 2),
+        outline_points = [(terrain_color, (v1[0] + canvas_width / 2, v1[2] + canvas_height / 2),
                            (v2[0] + canvas_width / 2, v2[2] + canvas_height / 2),
                            (v3[0] + canvas_width / 2, v3[2] + canvas_height / 2),
                            min(v1[1], v2[1], v3[1]) + outline_vertical_offset, True)
-                          for _terrain_type, v1, v2, v3 in triangles]
-        fill_points = [((v1[0] + canvas_width / 2, v1[2] + canvas_height / 2),
+                          for terrain_color, v1, v2, v3 in triangles]
+        fill_points = [(terrain_color, (v1[0] + canvas_width / 2, v1[2] + canvas_height / 2),
                         (v2[0] + canvas_width / 2, v2[2] + canvas_height / 2),
                         (v3[0] + canvas_width / 2, v3[2] + canvas_height / 2),
-                        max(v1[1], v2[1], v3[1]), False) for _terrain_type, v1, v2, v3 in triangles]
-        triangle_points = sorted(outline_points + fill_points, key=lambda entry: entry[3])
-        for p0, p1, p2, _height, as_line in triangle_points:
+                        max(v1[1], v2[1], v3[1]), False) for terrain_color, v1, v2, v3 in triangles]
+        triangle_points = sorted(outline_points + fill_points, key=lambda entry: entry[4])
+        for terrain_color, p0, p1, p2, _height, as_line in triangle_points:
             if as_line:
                 draw.line((p0, p1, p1, p2, p2, p0, p0, p1),
                           fill=(0, 0, 0),
                           width=canvas_outline,
                           joint='curve')
             else:
-                draw.polygon((p0, p1, p2), fill=(255, 255, 255))
+                draw.polygon((p0, p1, p2), fill=terrain_color)
     else:
         # Outline and fill of the triangles are rendered in separate passes: in the first, pass all
         # the outline is rasterized; in the second pass, the fill of the triangles is rasterized.
-        triangle_points = tuple(((v1[0] + canvas_width / 2, v1[2] + canvas_height / 2),
-                                 (v2[0] + canvas_width / 2, v2[2] + canvas_height / 2),
-                                 (v3[0] + canvas_width / 2, v3[2] + canvas_height / 2))
-                                for _terrain_type, v1, v2, v3 in triangles)
+        triangle_points = tuple(
+            (terrain_color, (v1[0] + canvas_width / 2, v1[2] + canvas_height / 2),
+             (v2[0] + canvas_width / 2, v2[2] + canvas_height / 2),
+             (v3[0] + canvas_width / 2, v3[2] + canvas_height / 2), min(v1[1], v2[1], v3[1]))
+            for terrain_color, v1, v2, v3 in triangles)
+        triangle_points = sorted(triangle_points, key=lambda entry: entry[4])
         if outline:
-            for p0, p1, p2 in triangle_points:
+            for _terrain_color, p0, p1, p2, _height in triangle_points:
                 draw.line((p0, p1, p1, p2, p2, p0, p0, p1),
                           fill=(0, 0, 0),
                           width=canvas_outline,
                           joint='curve')
-        for points in triangle_points:
-            draw.polygon(points, fill=(255, 255, 255))
+        for terrain_color, p0, p1, p2, _height in triangle_points:
+            draw.polygon((p0, p1, p2), fill=terrain_color)
 
     # Downscale to the final dimensions.
     image = image.resize((minimap_width, minimap_height),

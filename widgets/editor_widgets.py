@@ -1,4 +1,5 @@
 import contextlib
+import json
 import traceback
 from io import StringIO
 from itertools import chain
@@ -19,7 +20,7 @@ import PyQt5.QtGui as QtGui
 
 import configuration
 import lib.libbol as libbol
-from widgets.data_editor import choose_data_editor
+from widgets.data_editor import choose_data_editor, ClickableLabel, ColorPicker
 from lib.libbol import get_full_name
 from lib import minimap_generator
 
@@ -578,7 +579,7 @@ class SpinnableSlider(QtWidgets.QWidget):
 
 def show_minimap_generator(editor: 'GenEditor'):
     dialog = QtWidgets.QDialog(editor)
-    dialog.setMinimumWidth(dialog.fontMetrics().averageCharWidth() * 60)
+    dialog.setMinimumWidth(dialog.fontMetrics().averageCharWidth() * 80)
     dialog.setWindowTitle('Minimap Generator')
 
     description = (
@@ -656,6 +657,106 @@ def show_minimap_generator(editor: 'GenEditor'):
     multisampling_combobox.setCurrentIndex(minimap_generator.DEFAULT_MULTISAMPLING - 1)
     form_layout.addRow('Multisampling', multisampling_combobox)
     form_layout.labelForField(multisampling_combobox).setToolTip(multisampling_tool_tip)
+    color_mode_tool_tip = (
+        'Choose <b>Custom Colors</b> only in Battle Courses, or in courses that need colors in '
+        '<em>very</em> specific areas such as off-road types, boost pads, or dead zones.'
+        '<br/><br/>'
+        'Colored minimaps are often difficult to see, defeating their purpose. Avoid custom colors '
+        'whenever possible.')
+    color_mode_widget = QtWidgets.QWidget()
+    color_mode_widget.setToolTip(color_mode_tool_tip)
+    color_mode_layout = QtWidgets.QHBoxLayout(color_mode_widget)
+    color_mode_layout.setContentsMargins(0, 0, 0, 0)
+    color_mode_blackwhite_radiobutton = QtWidgets.QRadioButton('Black And White')
+    color_mode_customcolors_radiobutton = QtWidgets.QRadioButton('Custom Colors')
+    color_mode_blackwhite_radiobutton.setChecked(True)
+    color_mode_layout.addWidget(color_mode_blackwhite_radiobutton)
+    color_mode_layout.addWidget(color_mode_customcolors_radiobutton)
+    color_mode_layout.addStretch()
+    form_layout.addRow('Color Mode', color_mode_widget)
+    form_layout.labelForField(color_mode_widget).setToolTip(color_mode_tool_tip)
+
+    COLUMN_LABELS = ('Type', 'Description', 'Visible', 'Color')
+    TERRAIN_DESCRIPTIONS = {
+        0x0000: 'Medium Off-road',
+        0x0100: 'Road',
+        0x0200: 'Wall',
+        0x0300: 'Medium Off-road',
+        0x0400: 'Slippery Ice',
+        0x0500: 'Dead zone',
+        0x0600: 'Grassy Wall',
+        0x0700: 'Boost',
+        0x0800: 'Boost',
+        0x0900: 'Cannon Boost',
+        0x0A00: 'Deadzone',
+        0x0C00: 'Weak Off-road',
+        0x0D00: 'Teleport',
+        0x0E00: 'Sand Dead zone',
+        0x0F00: 'Wavy Dead zone',
+        0x1000: 'Quicksand Dead zone',
+        0x1100: 'Dead zone',
+        0x1200: 'Kart-Only Wall',
+        0x1300: 'Heavy Off-road',
+        0x3700: 'Boost',
+        0x4700: 'Boost',
+    }
+
+    terrain_colors_table_font = dialog.font()
+    terrain_colors_table_font.setPointSize(round(terrain_colors_table_font.pointSize() * 0.8))
+    terrain_colors_table_fontmetrics = QtGui.QFontMetrics(terrain_colors_table_font)
+
+    terrain_colors_table = QtWidgets.QTableWidget(len(minimap_generator.DEFAULT_TERRAIN_COLORS),
+                                                  len(COLUMN_LABELS))
+    terrain_colors_table.setFont(terrain_colors_table_font)
+    terrain_colors_table.setHorizontalHeaderLabels(COLUMN_LABELS)
+    terrain_colors_table.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
+    terrain_colors_table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+    terrain_colors_table.horizontalHeader().setFont(terrain_colors_table_font)
+    terrain_colors_table.horizontalHeader().setSectionResizeMode(
+        0, QtWidgets.QHeaderView.ResizeToContents)
+    terrain_colors_table.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+    terrain_colors_table.horizontalHeader().setSectionResizeMode(
+        2, QtWidgets.QHeaderView.ResizeToContents)
+    terrain_colors_table.horizontalHeader().setSectionResizeMode(3, QtWidgets.QHeaderView.Stretch)
+    terrain_colors_table.horizontalHeader().setSectionsClickable(False)
+    terrain_colors_table.horizontalHeader().setSectionsMovable(False)
+    terrain_colors_table.verticalHeader().hide()
+    terrain_colors_table.verticalHeader().setDefaultSectionSize(
+        round(terrain_colors_table_fontmetrics.height() * 1.5))
+    terrain_colors_widgets_map = dict()
+    for i, (terrain_type, visible, color) in enumerate(minimap_generator.DEFAULT_TERRAIN_COLORS):
+        type_label = f'0x{terrain_type >> 8:02X}__'
+        type_label_item = QtWidgets.QTableWidgetItem(type_label)
+        type_label_item.setTextAlignment(QtCore.Qt.AlignCenter)
+        desc_label_item = QtWidgets.QTableWidgetItem(TERRAIN_DESCRIPTIONS[terrain_type])
+        desc_label_item.setTextAlignment(QtCore.Qt.AlignCenter)
+        visible_checkbox = QtWidgets.QCheckBox()
+        visible_checkbox.setChecked(visible)
+        visible_checkbox_widget = QtWidgets.QWidget()
+        visible_checkbox_widget_layout = QtWidgets.QHBoxLayout(visible_checkbox_widget)
+        visible_checkbox_widget_layout.setContentsMargins(0, 0, 0, 0)
+        visible_checkbox_widget_layout.setAlignment(QtCore.Qt.AlignCenter)
+        visible_checkbox_widget_layout.addWidget(visible_checkbox)
+        color_picker = ColorPicker()
+        color_picker.color = QtGui.QColor(*color)
+        color_picker.update_color(QtGui.QColor(*color))
+        color_picker_label = ClickableLabel('({}, {}, {})'.format(*color))
+        color_picker_label.clicked.connect(color_picker.clicked)
+        color_picker_widget = QtWidgets.QWidget()
+        color_picker_widget_layout = QtWidgets.QHBoxLayout(color_picker_widget)
+        color_picker_widget_layout.setContentsMargins(0, 0, 0, 0)
+        color_picker_widget_layout.setAlignment(QtCore.Qt.AlignHCenter)
+        color_picker_widget_layout.addWidget(color_picker)
+        color_picker_widget_layout.addWidget(color_picker_label)
+        terrain_colors_table.setItem(i, 0, type_label_item)
+        terrain_colors_table.setItem(i, 1, desc_label_item)
+        terrain_colors_table.setCellWidget(i, 2, visible_checkbox_widget)
+        terrain_colors_table.setCellWidget(i, 3, color_picker_widget)
+        terrain_colors_widgets_map[terrain_type] = (visible_checkbox, color_picker,
+                                                    color_picker_label)
+        # TODO(CA): Fit first and third column; expand the others.
+        # TODO(CA): Reduce font size.
+    form_layout.addRow(terrain_colors_table)
 
     menu = QtWidgets.QMenu()
     save_image_png_action = menu.addAction('Save Image as PNG')
@@ -696,7 +797,7 @@ def show_minimap_generator(editor: 'GenEditor'):
     image_frame = QtWidgets.QFrame()
     image_frame.setAutoFillBackground(True)
     image_frame.setFrameStyle(QtWidgets.QFrame.StyledPanel)
-    image_frame_margin = dialog.fontMetrics().height() / 2
+    image_frame_margin = dialog.fontMetrics().height()
     image_frame.setMinimumSize(minimap_generator.MINIMAP_WIDTH + image_frame_margin * 2,
                                minimap_generator.MINIMAP_HEIGHT + image_frame_margin * 2)
     palette = image_frame.palette()
@@ -705,6 +806,11 @@ def show_minimap_generator(editor: 'GenEditor'):
     image_frame_layout = QtWidgets.QVBoxLayout(image_frame)
     image_frame_layout.setAlignment(QtCore.Qt.AlignCenter)
     image_frame_layout.addWidget(image_widget)
+
+    main_layout = QtWidgets.QHBoxLayout()
+    main_layout.setContentsMargins(0, 0, 0, 0)
+    main_layout.addLayout(form_layout, 2)
+    main_layout.addWidget(image_frame, 1)
 
     reset_button = QtWidgets.QPushButton('Reset')
     reset_button.setAutoDefault(False)
@@ -719,9 +825,7 @@ def show_minimap_generator(editor: 'GenEditor'):
     layout = QtWidgets.QVBoxLayout(dialog)
     layout.addWidget(description_label)
     layout.addSpacing(dialog.fontMetrics().height())
-    layout.addLayout(form_layout)
-    layout.addSpacing(dialog.fontMetrics().height() // 2)
-    layout.addWidget(image_frame, 1)
+    layout.addLayout(main_layout, 1)
     layout.addSpacing(dialog.fontMetrics().height() // 2)
     layout.addLayout(bottom_layout)
 
@@ -735,13 +839,22 @@ def show_minimap_generator(editor: 'GenEditor'):
         else:
             outline_vertical_offset = None
         multisampling = multisampling_combobox.currentIndex() + 1
+        if color_mode_blackwhite_radiobutton.isChecked():
+            terrain_colors = minimap_generator.DEFAULT_TERRAIN_COLORS
+        else:
+            terrain_colors = tuple(
+                (terrain_type, visible_checkbox.isChecked(), (color_picker.tmp_color.red(),
+                                                              color_picker.tmp_color.green(),
+                                                              color_picker.tmp_color.blue()))
+                for terrain_type, (visible_checkbox, color_picker,
+                                   _color_picker_label) in terrain_colors_widgets_map.items())
 
         # Generate the minimap image.
         image_placeholder.clear()
         image, coordinates = minimap_generator.collision_to_minimap(editor.bco_coll, orientation,
                                                                     margin, outline,
                                                                     outline_vertical_offset,
-                                                                    multisampling)
+                                                                    multisampling, terrain_colors)
         image_placeholder.append(image)
 
         # Update image widget with the final image.
@@ -768,6 +881,7 @@ def show_minimap_generator(editor: 'GenEditor'):
         outline_rasterization_mode_separate_passes_radiobutton.setEnabled(bool(outline))
         outline_vertical_offset_slider.setEnabled(
             bool(outline) and outline_rasterization_mode_combined_pass_radiobutton.isChecked())
+        terrain_colors_table.setVisible(color_mode_customcolors_radiobutton.isChecked())
 
     def reset():
         with blocked_signals(orientation_combobox):
@@ -785,6 +899,19 @@ def show_minimap_generator(editor: 'GenEditor'):
                 minimap_generator.DEFAULT_OUTLINE_VERTICAL_OFFSET)
         with blocked_signals(multisampling_combobox):
             multisampling_combobox.setCurrentIndex(minimap_generator.DEFAULT_MULTISAMPLING - 1)
+        with blocked_signals(color_mode_blackwhite_radiobutton):
+            with blocked_signals(color_mode_customcolors_radiobutton):
+                color_mode_blackwhite_radiobutton.setChecked(True)
+                color_mode_customcolors_radiobutton.setChecked(False)
+        for terrain_type, visible, color in minimap_generator.DEFAULT_TERRAIN_COLORS:
+            visible_checkbox, color_picker, color_picker_label = terrain_colors_widgets_map[
+                terrain_type]
+            with blocked_signals(visible_checkbox):
+                visible_checkbox.setChecked(visible)
+            with blocked_signals(color_picker):
+                color_picker.color = QtGui.QColor(*color)
+                color_picker.update_color(QtGui.QColor(*color))
+                color_picker_label.setText('({}, {}, {})'.format(*color))
 
         update()
 
@@ -807,6 +934,20 @@ def show_minimap_generator(editor: 'GenEditor'):
         outline_vertical_offset_slider.set_value(int(config['outline_vertical_offset']))
     if 'multisampling' in config:
         multisampling_combobox.setCurrentIndex(int(config['multisampling']) - 1)
+    if 'color_mode' in config:
+        color_mode_blackwhite_radiobutton.setChecked(config['color_mode'] == 'black_and_white')
+        color_mode_customcolors_radiobutton.setChecked(config['color_mode'] == 'custom_colors')
+    if 'terrain_colors' in config:
+        terrain_colors = json.loads(config['terrain_colors'])
+        for terrain_type, (visible, color) in terrain_colors.items():
+            terrain_type = int(terrain_type)
+            if terrain_type in terrain_colors_widgets_map:
+                visible_checkbox, color_picker, color_picker_label = terrain_colors_widgets_map[
+                    terrain_type]
+                visible_checkbox.setChecked(visible)
+                color_picker.color = QtGui.QColor(*color)
+                color_picker.update_color(QtGui.QColor(*color))
+                color_picker_label.setText('({}, {}, {})'.format(*color))
     if "dialog_geometry" in config:
         dialog.restoreGeometry(
             QtCore.QByteArray.fromBase64(config["dialog_geometry"].encode(encoding='ascii')))
@@ -821,6 +962,13 @@ def show_minimap_generator(editor: 'GenEditor'):
                                                                            if checked else None)
     outline_vertical_offset_slider.value_changed.connect(lambda _value: update())
     multisampling_combobox.currentIndexChanged.connect(lambda _value: update())
+    color_mode_blackwhite_radiobutton.toggled.connect(lambda checked: update() if checked else None)
+    color_mode_customcolors_radiobutton.toggled.connect(lambda checked: update()
+                                                        if checked else None)
+    for visible_checkbox, color_picker, _color_picker_label in terrain_colors_widgets_map.values():
+        visible_checkbox.stateChanged.connect(lambda _state: update())
+        color_picker.color_changed.connect(update)
+        color_picker.color_picked.connect(update)
     reset_button.clicked.connect(reset)
 
     update()
@@ -836,6 +984,16 @@ def show_minimap_generator(editor: 'GenEditor'):
         if outline_rasterization_mode_combined_pass_radiobutton.isChecked() else 'separate_passes')
     config['outline_vertical_offset'] = str(outline_vertical_offset_slider.get_value())
     config['multisampling'] = str(multisampling_combobox.currentIndex() + 1)
+    config['color_mode'] = ('black_and_white'
+                            if color_mode_blackwhite_radiobutton.isChecked() else 'custom_colors')
+    terrain_colors = {
+        terrain_type:
+        (visible_checkbox.isChecked(), (color_picker.color.red(), color_picker.color.green(),
+                                        color_picker.color.blue()))
+        for terrain_type, (visible_checkbox, color_picker,
+                           _color_picker_label) in terrain_colors_widgets_map.items()
+    }
+    config['terrain_colors'] = json.dumps(terrain_colors)
     config["dialog_geometry"] = bytes(dialog.saveGeometry().toBase64()).decode(encoding='ascii')
     configuration.save_cfg(editor.configuration)
 
