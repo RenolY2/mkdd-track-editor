@@ -158,6 +158,9 @@ class GenEditor(QMainWindow):
 
         self.undo_history.append(self.generate_undo_entry())
 
+        self.leveldatatreeview.set_objects(self.level_file)
+        self.leveldatatreeview.bound_to_group(self.level_file)
+
     def save_geometry(self):
         if "geometry" not in self.configuration:
             self.configuration["geometry"] = {}
@@ -485,6 +488,8 @@ class GenEditor(QMainWindow):
             self.level_view.selected = [self.level_file]
         elif isinstance(item, (tree_view.LightParamEntry, tree_view.MGEntry)):
             self.level_view.selected = [item.bound_to]
+
+        self.pik_control.set_buttons(item)
 
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
         self.level_view.do_redraw()
@@ -2000,7 +2005,19 @@ class GenEditor(QMainWindow):
                 if group == 0 and not self.level_file.enemypointgroups.groups:
                     self.level_file.enemypointgroups.groups.append(libbol.EnemyPointGroup.new())
                 placeobject.group = group
-                self.level_file.enemypointgroups.groups[group].points.insert(position, placeobject)
+                insertion_index = position
+                # If a selection exists, use it as reference for the insertion point.
+                selected_items = self.leveldatatreeview.selectedItems()
+                if selected_items:
+                    selected_item = selected_items[-1]
+                    if isinstance(selected_item.bound_to, libbol.EnemyPoint):
+                        placeobject.group = selected_item.parent().get_index_in_parent()
+                        insertion_index = selected_item.get_index_in_parent() + 1
+                    elif isinstance(selected_item.bound_to, libbol.EnemyPointGroup):
+                        placeobject.group = selected_item.get_index_in_parent()
+                        insertion_index = 0
+                self.level_file.enemypointgroups.groups[placeobject.group].points.insert(
+                    insertion_index, placeobject)
             elif isinstance(object, libbol.RoutePoint):
                 # For convenience, create a group if none exists yet.
                 if group == 0 and not self.level_file.routes:
@@ -2025,6 +2042,30 @@ class GenEditor(QMainWindow):
 
             self.select_tree_item_bound_to(placeobject)
 
+    def button_side_button_action(self, option, obj=None):
+        #stop adding new stuff
+        self.pik_control.button_add_object.setChecked(False)
+        self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
+        self.object_to_be_added = None
+
+        if option == "add_enemypath":
+            self.level_file.enemypointgroups.add_group()
+            self.level_view.selected = [self.level_file.enemypointgroups.groups[-1]]
+            self.level_view.selected_positions = []
+            self.level_view.selected_rotations = []
+        elif option == "add_enemypoints":
+            if isinstance(obj, libbol.EnemyPointGroup):
+                group_id = obj.id
+                pos = 0
+            else:
+                group_id = obj.group
+                group: libbol.EnemyPointGroup = self.level_file.enemypointgroups.groups[obj.group]
+                pos = group.get_index_of_point(obj)
+            self.object_to_be_added = [libbol.EnemyPoint.new(), group_id, pos + 1]
+            self.pik_control.button_add_object.setChecked(True)
+            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
+
+        self.leveldatatreeview.set_objects(self.level_file)
 
     @catch_exception
     def action_move_objects(self, deltax, deltay, deltaz):
@@ -2457,6 +2498,13 @@ class GenEditor(QMainWindow):
                     #self._dontselectfromtree = True
                     self.leveldatatreeview.setCurrentItem(item)
 
+            #if nothing is selected and the currentitem is something that can be selected
+            #clear out the buttons
+            curr_item = self.leveldatatreeview.currentItem()
+            if (not selected) and (curr_item is not None) and hasattr(curr_item, "bound_to"):
+                bound_to_obj = curr_item.bound_to
+                if bound_to_obj and hasattr(bound_to_obj, "position"):
+                    self.pik_control.set_buttons(None)
     @catch_exception
     def action_update_info(self):
         if self.level_file is not None:
