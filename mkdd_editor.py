@@ -468,6 +468,25 @@ class GenEditor(QMainWindow):
             extend(self.level_view.minimap.corner1)
             extend(self.level_view.minimap.corner2)
 
+        if self.level_view.collision is not None and self.level_view.collision.verts:
+            vertices = self.level_view.collision.verts
+            min_x = min(x for x, _y, _z in vertices)
+            min_y = min(y for _x, y, _z in vertices)
+            min_z = min(z for _x, _y, z in vertices)
+            max_y = max(y for _x, y, _z in vertices)
+            max_x = max(x for x, _y, _z in vertices)
+            max_z = max(z for _x, _y, z in vertices)
+
+            if extent:
+                extent[0] = min(extent[0], min_x)
+                extent[1] = min(extent[1], min_y)
+                extent[2] = min(extent[2], min_z)
+                extent[3] = max(extent[3], max_y)
+                extent[4] = max(extent[4], max_x)
+                extent[5] = max(extent[5], max_z)
+            else:
+                extend.extend([min_x, min_y, min_z, max_y, max_x, max_z])
+
         return tuple(extent) or (0, 0, 0, 0, 0, 0)
 
     def tree_select_arrowkey(self):
