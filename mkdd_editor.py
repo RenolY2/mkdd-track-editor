@@ -1567,7 +1567,7 @@ class GenEditor(QMainWindow):
             return
 
         if choice.endswith("(3D Model)"):
-            self.load_bco_from_arc(bmdfile, arcfilepath)
+            self.load_bmd_from_arc(bmdfile, arcfilepath)
 
         elif choice.endswith("(3D Collision)"):
             self.load_bco_from_arc(collisionfile, arcfilepath)
