@@ -1,3 +1,4 @@
+import contextlib
 import pickle
 import traceback
 import os
@@ -27,14 +28,14 @@ from configuration import read_config, make_default_config, save_cfg
 
 import mkdd_widgets # as mkddwidgets
 from widgets.side_widget import PikminSideWidget
-from widgets.editor_widgets import open_error_dialog, catch_exception_with_dialog
+from widgets.editor_widgets import open_error_dialog, open_info_dialog, catch_exception_with_dialog
 from mkdd_widgets import BolMapViewer, MODE_TOPDOWN
 from lib.libbol import BOL, MGEntry, Route, get_full_name
 import lib.libbol as libbol
 from lib.rarc import Archive
 from lib.BCOllider import RacetrackCollision
 from lib.model_rendering import TexturedModel, CollisionModel, Minimap
-from widgets.editor_widgets import ErrorAnalyzer, ErrorAnalyzerButton
+from widgets.editor_widgets import ErrorAnalyzer, ErrorAnalyzerButton, show_minimap_generator
 from lib.dolreader import DolFile, read_float, write_float, read_load_immediate_r0, write_load_immediate_r0, UnmappedAddress
 from widgets.file_select import FileSelect
 from PyQt5.QtWidgets import QTreeWidgetItem
@@ -110,6 +111,7 @@ class GenEditor(QMainWindow):
 
         self.undo_history: list[UndoEntry] = []
         self.redo_history: list[UndoEntry] = []
+        self.undo_history_disabled_count: int  = 0
 
         try:
             self.configuration = read_config()
@@ -142,6 +144,7 @@ class GenEditor(QMainWindow):
         self._user_made_change = False
         self._justupdatingselectedobject = False
 
+        self.bco_coll = None
         self.loaded_archive = None
         self.loaded_archive_file = None
         self.last_position_clicked = []
@@ -320,6 +323,10 @@ class GenEditor(QMainWindow):
             self.load_top_undo_entry()
 
     def on_document_potentially_changed(self, update_unsaved_changes=True):
+        # Early out if undo history is temporarily disabled.
+        if self.undo_history_disabled_count:
+            return
+
         undo_entry = self.generate_undo_entry()
 
         if self.undo_history[-1] != undo_entry:
@@ -338,6 +345,16 @@ class GenEditor(QMainWindow):
     def update_undo_redo_actions(self):
         self.undo_action.setEnabled(len(self.undo_history) > 1)
         self.redo_action.setEnabled(bool(self.redo_history))
+
+    @contextlib.contextmanager
+    def undo_history_disabled(self):
+        self.undo_history_disabled_count += 1
+        try:
+            yield
+        finally:
+            self.undo_history_disabled_count -= 1
+
+        self.on_document_potentially_changed()
 
     @catch_exception_with_dialog
     def do_goto_action(self, item, index):
@@ -657,22 +674,30 @@ class GenEditor(QMainWindow):
         self.minimap_menu = QMenu(self.menubar)
         self.minimap_menu.setTitle("Minimap")
         load_minimap = QAction("Load Minimap Image", self)
+        save_minimap = QAction("Save Minimap Image", self)
         load_coordinates_dol = QAction("Load Data from DOL", self)
         save_coordinates_dol = QAction("Save Data to DOL", self)
         load_coordinates_json = QAction("Load Data from JSON", self)
         save_coordinates_json = QAction("Save Data to JSON", self)
+        minimap_generator_action = QAction("Minimap Generator", self)
+        minimap_generator_action.setShortcut("Ctrl+M")
 
 
         load_minimap.triggered.connect(self.action_load_minimap_image)
+        save_minimap.triggered.connect(self.action_save_minimap_image)
         load_coordinates_dol.triggered.connect(self.action_load_dol)
         save_coordinates_dol.triggered.connect(self.action_save_to_dol)
         load_coordinates_json.triggered.connect(self.action_load_coordinates_json)
         save_coordinates_json.triggered.connect(self.action_save_coordinates_json)
+        minimap_generator_action.triggered.connect(self.minimap_generator_action)
         self.minimap_menu.addAction(load_minimap)
+        self.minimap_menu.addAction(save_minimap)
         self.minimap_menu.addAction(load_coordinates_dol)
         self.minimap_menu.addAction(save_coordinates_dol)
         self.minimap_menu.addAction(load_coordinates_json)
         self.minimap_menu.addAction(save_coordinates_json)
+        self.minimap_menu.addSeparator()
+        self.minimap_menu.addAction(minimap_generator_action)
 
         # Misc
         self.misc_menu = QMenu(self.menubar)
@@ -765,6 +790,22 @@ class GenEditor(QMainWindow):
         if filepath:
             self.level_view.minimap.set_texture(filepath)
             self.level_view.do_redraw()
+
+            self.pathsconfig["minimap_png"] = filepath
+            save_cfg(self.configuration)
+
+    def action_save_minimap_image(self):
+        if not self.level_view.minimap.has_texture():
+            open_info_dialog('No minimap image has been loaded yet.', self)
+            return
+
+        filepath, _choosentype = QFileDialog.getSaveFileName(
+            self, "Save File",
+            self.pathsconfig["minimap_png"],
+            "Image (*.png)")
+
+        if filepath:
+            self.level_view.minimap.save_texture(filepath)
 
             self.pathsconfig["minimap_png"] = filepath
             save_cfg(self.configuration)
@@ -912,6 +953,17 @@ class GenEditor(QMainWindow):
 
             self.pathsconfig["minimap_json"] = filepath
             save_cfg(self.configuration)
+
+    @catch_exception_with_dialog
+    def minimap_generator_action(self, checked):
+        _ = checked
+
+        if self.bco_coll is None:
+            open_info_dialog('No BCO file has been loaded yet.', self)
+            return
+
+        with self.undo_history_disabled():
+            show_minimap_generator(self)
 
     def action_choose_bco_area(self):
         if not isinstance(self.level_view.alternative_mesh, CollisionModel):
@@ -1493,6 +1545,7 @@ class GenEditor(QMainWindow):
 
         with open(collisionfile, "rb") as f:
             bco_coll.load_file(f)
+        self.bco_coll = bco_coll
 
         for vert in bco_coll.vertices:
             verts.append(vert)
@@ -1534,6 +1587,7 @@ class GenEditor(QMainWindow):
         faces = []
 
         bco_coll.load_file(collisionfile)
+        self.bco_coll = bco_coll
 
         for vert in bco_coll.vertices:
             verts.append(vert)
@@ -1581,6 +1635,7 @@ class GenEditor(QMainWindow):
             bco_coll = RacetrackCollision()
             with open(collisionfile, "rb") as f:
                 bco_coll.load_file(f)
+            self.bco_coll = bco_coll
 
             verts = []
             for vert in bco_coll.vertices:
@@ -1636,6 +1691,7 @@ class GenEditor(QMainWindow):
 
             bco_coll = RacetrackCollision()
             bco_coll.load_file(collisionfile)
+            self.bco_coll = bco_coll
 
             verts = []
             for vert in bco_coll.vertices:
@@ -1824,9 +1880,11 @@ class GenEditor(QMainWindow):
                     collision_file = find_file(rarc.root, "_course.bco")
                     bco = rarc[root_name][collision_file]
                     bco_coll.load_file(bco)
+                    self.bco_coll = bco_coll
                 else:
                     with open(filepath, "rb") as f:
                         bco_coll.load_file(f)
+                    self.bco_coll = bco_coll
 
                 for vert in bco_coll.vertices:
                     verts.append(vert)
@@ -1844,6 +1902,7 @@ class GenEditor(QMainWindow):
             self.update_3d()
 
     def clear_collision(self):
+        self.bco_coll = None
         self.level_view.clear_collision()
 
         # Synchronously force a draw operation to provide immediate feedback.

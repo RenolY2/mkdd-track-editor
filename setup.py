@@ -17,7 +17,7 @@ include_files = ["resources/",
                 ("lib/superbmd/", "lib/superbmd/")]
 
 build_exe_options = {
-"packages": ["OpenGL", "numpy.core._methods", "numpy.lib.format"],
+"packages": ["OpenGL", "numpy.core._methods", "numpy.lib.format", "Pillow"],
 "includes": ["widgets"], 
 "excludes": ["tkinter", "scipy", "PyQt5.QtWebEngine", "PyQt5.QtWebEngineCore"],
 "optimize": 0,

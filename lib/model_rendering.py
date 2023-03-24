@@ -906,6 +906,7 @@ ORIENTATION_ANGLE = (0.0, 90.0, 180.0, 270.0)
 class Minimap(object):
     def __init__(self, corner1, corner2, orientation, texpath=None):
         self.ID = None
+        self.qimage = None
         if texpath is not None:
             self.set_texture(texpath)
 
@@ -917,12 +918,16 @@ class Minimap(object):
     def is_available(self):
         return True
 
-    def set_texture(self, path):
+    def set_texture(self, filepath_or_qimage):
         if self.ID is not None:
             glDeleteTextures(1, int(self.ID))
 
-        qimage = QtGui.QImage(path, "png")
-        qimage = qimage.convertToFormat(QtGui.QImage.Format_ARGB32)
+        if isinstance(filepath_or_qimage, QtGui.QImage):
+            qimage = filepath_or_qimage
+        else:
+            filepath = filepath_or_qimage
+            qimage = QtGui.QImage(filepath, "png")
+            qimage = qimage.convertToFormat(QtGui.QImage.Format_ARGB32)
         ID = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, ID)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
@@ -932,6 +937,14 @@ class Minimap(object):
         imgdata = bytes(qimage.bits().asarray(qimage.width() * qimage.height() * 4))
         glTexImage2D(GL_TEXTURE_2D, 0, 4, qimage.width(), qimage.height(), 0, GL_BGRA, GL_UNSIGNED_BYTE, imgdata)
         self.ID = ID
+        self.qimage = qimage
+
+    def has_texture(self):
+        return bool(self.qimage)
+
+    def save_texture(self, filepath):
+        if self.qimage is not None:
+            self.qimage.save(filepath)
 
     def render(self):
         corner1, corner2 = self.corner1, self.corner2
