@@ -3,18 +3,20 @@ from .vectors import Vector3, Triangle
 
 
 def collides(face_v1, face_v2, face_v3, box_mid_x, box_mid_z, box_size_x, box_size_z):
-    min_x = min(face_v1[0], face_v2[0], face_v3[0]) - box_mid_x
-    max_x = max(face_v1[0], face_v2[0], face_v3[0]) - box_mid_x
-
-    min_z = min(face_v1[2], face_v2[2], face_v3[2]) - box_mid_z
-    max_z = max(face_v1[2], face_v2[2], face_v3[2]) - box_mid_z
-
     half_x = box_size_x / 2.0
-    half_z = box_size_z / 2.0
-
-    if max_x < -half_x or min_x > +half_x:
+    min_x = min(face_v1[0], face_v2[0], face_v3[0]) - box_mid_x
+    if min_x > +half_x:
         return False
-    if max_z < -half_z or min_z > +half_z:
+    max_x = max(face_v1[0], face_v2[0], face_v3[0]) - box_mid_x
+    if max_x < -half_x:
+        return False
+
+    half_z = box_size_z / 2.0
+    min_z = min(face_v1[2], face_v2[2], face_v3[2]) - box_mid_z
+    if min_z > +half_z:
+        return False
+    max_z = max(face_v1[2], face_v2[2], face_v3[2]) - box_mid_z
+    if max_z < -half_z:
         return False
 
     return True
@@ -31,14 +33,11 @@ def subdivide_grid(minx, minz,
 
         return True
 
-    assert gridx_end > gridx_start or gridz_end > gridz_start
+    # assert gridx_end > gridx_start or gridz_end > gridz_start
 
     halfx = (gridx_start+gridx_end) // 2
     halfz = (gridz_start+gridz_end) // 2
 
-    quadrants = (
-        [], [], [], []
-    )
     # x->
     # 2 3 ^
     # 0 1 z
@@ -62,34 +61,30 @@ def subdivide_grid(minx, minz,
         skip.append(2)
         skip.append(3)
 
-
-    for i, face in triangles:
-        v1_index, v2_index, v3_index = face
-
-        v1 = vertices[v1_index[0]-1]
-        v2 = vertices[v2_index[0]-1]
-        v3 = vertices[v3_index[0]-1]
-
-        for quadrant, startx, endx, startz, endz in coordinates:
-            if quadrant not in skip:
-                area_size_x = (endx - startx)*cell_size
-                area_size_z = (endz - startz)*cell_size
-
-                if collides(v1, v2, v3,
-                            minx+startx*cell_size + area_size_x//2,
-                            minz+startz*cell_size + area_size_z//2,
-                            area_size_x,
-                            area_size_z):
-                    #print(i, "collided")
-                    quadrants[quadrant].append((i, face))
+    coordinates = [([], startx, endx, startz, endz)
+                   for quadrant_index, startx, endx, startz, endz in coordinates
+                   if quadrant_index not in skip]
 
     for quadrant, startx, endx, startz, endz in coordinates:
-        #print("Doing subdivision, skipping:", skip)
-        if quadrant not in skip:
-            #print("doing subdivision with", coordinates[quadrant])
-            subdivide_grid(minx, minz,
-                           startx, endx, startz, endz,
-                           cell_size, quadrants[quadrant], vertices, result)
+        area_size_x = (endx - startx) * cell_size
+        area_size_z = (endz - startz) * cell_size
+
+        box_mid_x = minx + startx * cell_size + area_size_x // 2
+        box_mid_z = minz + startz * cell_size + area_size_z // 2
+
+        for triangle in triangles:
+            _i, (v1_index, v2_index, v3_index) = triangle
+
+            v1 = vertices[v1_index[0] - 1]
+            v2 = vertices[v2_index[0] - 1]
+            v3 = vertices[v3_index[0] - 1]
+
+            if collides(v1, v2, v3, box_mid_x, box_mid_z, area_size_x, area_size_z):
+                quadrant.append(triangle)
+
+    for quadrant, startx, endx, startz, endz in coordinates:
+        subdivide_grid(minx, minz, startx, endx, startz, endz, cell_size, quadrant, vertices,
+                       result)
 
 
 def normalize_vector(v1):
