@@ -3,9 +3,6 @@
 import subprocess
 from struct import unpack_from, pack
 
-from .BCOnvert import (normalize_vector, create_vector, cross_product,
-                        write_float, write_uint32, write_short)
-
 
 def read_array(buffer, offset, length):
     return buffer[offset:offset+length]
