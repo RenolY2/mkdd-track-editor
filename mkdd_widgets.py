@@ -23,11 +23,8 @@ from helper_functions import calc_zoom_in_factor, calc_zoom_out_factor
 from lib.libgen import GeneratorObject
 from lib.collision import Collision
 from widgets.editor_widgets import catch_exception, catch_exception_with_dialog
-#from pikmingen import PikminObject
-from libpiktxt import PikminTxt
 from opengltext import draw_collision
 from lib.vectors import Matrix4x4, Vector3, Line, Plane, Triangle
-import pikmingen
 from lib.model_rendering import TexturedPlane, Model, Grid, GenericObject, Material, Minimap
 from gizmo import Gizmo
 from lib.object_models import ObjectModels
