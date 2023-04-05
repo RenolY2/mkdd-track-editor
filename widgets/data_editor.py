@@ -81,6 +81,7 @@ class ColorPicker(ClickableLabel):
 
         self.color = QtGui.QColor(0, 0, 0, 0)
         self.with_alpha = with_alpha
+        self.tmp_color = QtGui.QColor(0, 0, 0, 0)
 
         self.clicked.connect(self.show_color_dialog)
 
@@ -90,8 +91,8 @@ class ColorPicker(ClickableLabel):
         if self.with_alpha:
             dialog.setOption(QtWidgets.QColorDialog.ShowAlphaChannel, True)
         dialog.setCurrentColor(self.color)
-        dialog.currentColorChanged.connect(self.color_changed)
         dialog.currentColorChanged.connect(self.update_color)
+        dialog.currentColorChanged.connect(self.color_changed)
 
         color = self.color
 
@@ -105,6 +106,7 @@ class ColorPicker(ClickableLabel):
             self.color_changed.emit(self.color)
 
     def update_color(self, color):
+        self.tmp_color = color
         color = QtGui.QColor(color)
         color.setAlpha(255)
         pixmap = self.pixmap()
