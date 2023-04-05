@@ -17,7 +17,7 @@ def make_default_config():
         "collision": "",
         "bol": "",
         "dol": "",
-        "minimap_png": "",
+        "minimap_image": "",
         "minimap_json": ""
     }
 
