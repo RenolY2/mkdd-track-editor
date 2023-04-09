@@ -342,7 +342,16 @@ class EnemyPointGroup(object):
         # Check if the element is the last element
         if not len(self.points)-1 == pos:
             for point in self.points[pos+1:]:
+                # temporarily store widget because it isn't pickable
+                if hasattr(point, "widget"):
+                    tmp = point.widget
+                    point.widget = None
+
                 new_point = deepcopy(point)
+
+                if hasattr(point, "widget"):
+                    point.widget = tmp
+
                 new_point.group = new_id
                 group.points.append(new_point)
 
