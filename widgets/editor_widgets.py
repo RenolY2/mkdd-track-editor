@@ -461,8 +461,7 @@ class AddPikObjectWindow(QDialog):
                 del self.created_object
 
             self.created_object = objecttype.new()
-            if isinstance(self.created_object, (libbol.EnemyPoint, )):
-                self.update_label()
+
 
             if isinstance(self.created_object, (libbol.Checkpoint, libbol.EnemyPoint, libbol.RoutePoint)):
                 self.group_edit.setVisible(True)
@@ -475,6 +474,9 @@ class AddPikObjectWindow(QDialog):
                 self.group_edit.clear()
                 self.position_edit.clear()
 
+            if isinstance(self.created_object, (libbol.EnemyPoint, )):
+                self.update_label()
+                
             data_editor = choose_data_editor(self.created_object)
             if data_editor is not None:
                 self.editor_widget = data_editor(self, self.created_object)
