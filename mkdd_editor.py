@@ -1988,6 +1988,7 @@ class GenEditor(QMainWindow):
         self.set_has_unsaved_changes(True)
 
     def button_open_add_item_window(self):
+        self.add_object_window.update_label()
         accepted = self.add_object_window.exec_()
         if accepted:
             self.add_item_window_save()

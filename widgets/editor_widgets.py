@@ -3,6 +3,8 @@ import json
 import traceback
 from io import StringIO
 from itertools import chain
+from typing import TYPE_CHECKING
+
 from math import acos, pi
 import os
 import sys
@@ -23,6 +25,10 @@ import lib.libbol as libbol
 from widgets.data_editor import choose_data_editor, ClickableLabel, ColorPicker
 from lib.libbol import get_full_name
 from lib import minimap_generator
+
+
+if TYPE_CHECKING:
+    from mkdd_editor import GenEditor
 
 
 def catch_exception(func):
@@ -295,7 +301,6 @@ class AddPikObjectWindow(QDialog):
         self.hbox1 = QHBoxLayout()
         self.hbox2 = QHBoxLayout()
 
-
         self.label1 = QLabel(self)
         self.label2 = QLabel(self)
         self.label3 = QLabel(self)
@@ -310,7 +315,6 @@ class AddPikObjectWindow(QDialog):
 
         self.hbox1.setAlignment(Qt.AlignRight)
         self.hbox2.setAlignment(Qt.AlignRight)
-
 
         self.verticalLayout.addLayout(self.hbox1)
         self.verticalLayout.addLayout(self.hbox2)
@@ -421,6 +425,29 @@ class AddPikObjectWindow(QDialog):
 
         self.category_menu.currentIndexChanged.connect(self.change_category)
 
+    def update_label(self):
+        editor = self.parent()
+        selected_items = editor.leveldatatreeview.selectedItems()
+        group = insertion_index = None
+
+        if selected_items:
+            selected_item = selected_items[-1]
+            if isinstance(selected_item.bound_to, libbol.EnemyPoint):
+                group = selected_item.parent().get_index_in_parent()
+                insertion_index = selected_item.get_index_in_parent() + 1
+            elif isinstance(selected_item.bound_to, libbol.EnemyPointGroup):
+                group = selected_item.get_index_in_parent()
+                insertion_index = 0
+
+        if group is not None:
+            self.group_edit.setText(str(group))
+            self.position_edit.setText(str(insertion_index))
+            self.group_edit.setDisabled(True)
+            self.position_edit.setDisabled(True)
+        else:
+            self.group_edit.setDisabled(False)
+            self.position_edit.setDisabled(False)
+
     def change_category(self, index):
         if index > 0:
             item = self.category_menu.currentText()
@@ -434,6 +461,8 @@ class AddPikObjectWindow(QDialog):
                 del self.created_object
 
             self.created_object = objecttype.new()
+            if isinstance(self.created_object, (libbol.EnemyPoint, )):
+                self.update_label()
 
             if isinstance(self.created_object, (libbol.Checkpoint, libbol.EnemyPoint, libbol.RoutePoint)):
                 self.group_edit.setVisible(True)
