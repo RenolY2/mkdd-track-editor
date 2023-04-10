@@ -22,9 +22,16 @@ def load_parameter_names(objectname):
             data = json.load(f)
             parameter_names = data["Object Parameters"]
             assets = data["Assets"]
+            if "Tooltips" in data:
+                tooltips = data["Tooltips"]
+            else:
+                tooltips = ""
             if len(parameter_names) != 8:
                 raise RuntimeError("Not enough or too many parameters: {0} (should be 8)".format(len(parameter_names)))
-            return parameter_names, assets
+            if tooltips != "":
+                return parameter_names, assets, tooltips
+            else:
+                return parameter_names, assets
     except Exception as err:
         print(err)
         return None, None
@@ -853,12 +860,17 @@ class ObjectEdit(DataEditor):
         self.assets.setSizePolicy(hint)
 
     def rename_object_parameters(self, current):
-        parameter_names, assets = load_parameter_names(current)
+
+        if len(load_parameter_names(current)) == 2:
+            parameter_names, assets = load_parameter_names(current)
+        else:
+            parameter_names, assets, tooltips = load_parameter_names(current)
         if parameter_names is None:
             for i in range(8):
                 self.userdata[i][0].setText("Obj Data {0}".format(i+1))
                 self.userdata[i][0].setVisible(True)
                 self.userdata[i][1].setVisible(True)
+                self.userdata[i][1].setToolTip('')
             self.assets.setText("Required Assets: Unknown")
         else:
             for i in range(8):
@@ -873,6 +885,9 @@ class ObjectEdit(DataEditor):
                     self.userdata[i][0].setVisible(True)
                     self.userdata[i][1].setVisible(True)
                     self.userdata[i][0].setText(parameter_names[i])
+                    self.userdata[i][1].setToolTip('')
+                    if len(load_parameter_names(current)) == 3:
+                        self.userdata[i][1].setToolTip(tooltips[i])
             if len(assets) == 0:
                 self.assets.setText("Required Assets: None")
             else:
