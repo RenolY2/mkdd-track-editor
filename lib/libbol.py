@@ -291,7 +291,7 @@ class EnemyPoint(object):
             assert padding == b"\x00" * 5
         else:
             args.extend(unpack(">HhfHBB", f.read(12)))
-            args.extend((0, 0))
+            args.extend((0, 0, 0, 0))
 
         obj = cls(*args)
         obj._size = f.tell() - start
