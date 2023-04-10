@@ -1187,7 +1187,10 @@ class BOL(object):
 
         f.seek(sectionoffsets[KARTPOINT])
         bol.kartpoints = KartStartPoints.from_file(f, (sectionoffsets[AREA] - sectionoffsets[KARTPOINT])//0x28)
-        assert len(bol.kartpoints.positions) == bol.starting_point_count
+
+        # on the dekoboko dev track from a MKDD demo this assertion doesn't hold for some reason
+        if not old_bol:
+            assert len(bol.kartpoints.positions) == bol.starting_point_count
 
         f.seek(sectionoffsets[AREA])
         bol.areas = Areas.from_file(f, sectioncounts[AREA])
