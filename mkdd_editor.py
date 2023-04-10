@@ -813,6 +813,9 @@ class GenEditor(QMainWindow):
         supported_extensions.insert(0, '*.bti')
         supported_extensions = ' '.join(supported_extensions)
 
+        if "minimap_image" not in self.pathsconfig:
+            self.pathsconfig["minimap_image"] = ""
+
         filepath, choosentype = QFileDialog.getOpenFileName(
             self, "Open Image", self.pathsconfig["minimap_image"],
             f"Images ({supported_extensions});;All files (*)")
