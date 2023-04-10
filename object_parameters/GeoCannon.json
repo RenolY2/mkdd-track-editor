@@ -8,5 +8,15 @@
             "Unused",
             "Unused",
             "Unused"],
-  "Assets": ["cannon1.bca", "cannon1.bmd", "cannon1.brk"]
+  "Assets": ["cannon1.bca", "cannon1.bmd", "cannon1.brk"],
+  "Tooltips": [
+    "The Respawn ID that the cannon will shoot towards",
+    "",
+    "Sets model visibility. 0 = visible, 1 = invisible",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ]
 }
