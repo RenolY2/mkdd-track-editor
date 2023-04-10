@@ -4,13 +4,6 @@ from cx_Freeze import setup, Executable
 version = "1.2"
 # Dependencies are automatically detected, but it might need fine tuning.
 
-
-def files_from_folder(folder):
-    return [(folder, x) for x in os.listdir(folder)]
-
-
-#include_files = files_from_folder("resources/")
-#include_files.extend(files_from_folder("object_templates"))
 include_files = [
     "object_parameters",
     "resources/",
