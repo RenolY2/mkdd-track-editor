@@ -611,7 +611,7 @@ class EnemyPointEdit(DataEditor):
         self.driftdirection = self.add_dropdown_input("Drift Direction", "driftdirection",
                                                       DRIFT_DIRECTION_OPTIONS)
         self.driftacuteness = self.add_integer_input("Drift Acuteness", "driftacuteness",
-                                                     MIN_UNSIGNED_BYTE, 180)
+                                                     MIN_UNSIGNED_BYTE, 250)
         self.driftduration = self.add_integer_input("Drift Duration", "driftduration",
                                                     MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.driftsupplement = self.add_integer_input("Drift Supplement", "driftsupplement",

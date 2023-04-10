@@ -271,7 +271,7 @@ class EnemyPoint(object):
         assert self.swerve in (-3, -2, -1, 0, 1, 2, 3)
         assert self.itemsonly in (0, 1)
         assert self.driftdirection in (0, 1, 2)
-        assert 0 <= self.driftacuteness <= 180
+        assert 0 <= self.driftacuteness <= 250
         assert self.nomushroomzone in (0, 1)
 
     @classmethod
