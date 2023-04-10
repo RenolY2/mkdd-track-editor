@@ -1,5 +1,6 @@
 import os
 import json
+import widgets.tooltip_list as ttl
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -607,9 +608,13 @@ class EnemyPointEdit(DataEditor):
                                                         -inf, +inf)
         self.link = self.add_integer_input("Link", "link",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.link.setToolTip(ttl.enemypoints['Link'])
         self.scale = self.add_decimal_input("Scale", "scale", -inf, inf)
+        self.scale.setToolTip(ttl.enemypoints['Scale'])
         self.itemsonly = self.add_checkbox("Items Only", "itemsonly", off_value=0, on_value=1)
+        self.itemsonly.setToolTip(ttl.enemypoints['Items Only'])
         self.swerve = self.add_dropdown_input("Swerve", "swerve", REVERSE_SWERVE_IDS)
+        self.swerve.setToolTip(ttl.enemypoints['Swerve'])
         self.group = self.add_integer_input("Group", "group",
                                             MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         if not group_editable:
@@ -617,14 +622,19 @@ class EnemyPointEdit(DataEditor):
 
         self.driftdirection = self.add_dropdown_input("Drift Direction", "driftdirection",
                                                       DRIFT_DIRECTION_OPTIONS)
+        self.driftdirection.setToolTip(ttl.enemypoints['Drift Direction'])
         self.driftacuteness = self.add_integer_input("Drift Acuteness", "driftacuteness",
                                                      MIN_UNSIGNED_BYTE, 250)
+        self.driftacuteness.setToolTip(ttl.enemypoints['Drift Acuteness'])
         self.driftduration = self.add_integer_input("Drift Duration", "driftduration",
                                                     MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.driftduration.setToolTip(ttl.enemypoints['Drift Duration'])
         self.driftsupplement = self.add_integer_input("Drift Supplement", "driftsupplement",
                                                       MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.driftsupplement.setToolTip(ttl.enemypoints['Drift Direction'])
         self.nomushroomzone = self.add_checkbox("No Mushroom Zone", "nomushroomzone",
                                                 off_value=0, on_value=1)
+        self.nomushroomzone.setToolTip(ttl.enemypoints['No Mushroom Zone'])
 
         for widget in self.position:
             widget.editingFinished.connect(self.catch_text_update)
@@ -824,18 +834,27 @@ class ObjectEdit(DataEditor):
 
         self.pathid = self.add_integer_input("Route ID", "pathid",
                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.pathid.setToolTip(ttl.objectdata['Route ID'])
 
         self.unk_28 = self.add_integer_input("Unknown 0x28", "unk_28",
                                              MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
 
         self.unk_2a = self.add_integer_input("Route Point ID", "unk_2a",
                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.unk_2a.setToolTip(ttl.objectdata['Route Point ID'])
+
         self.presence_filter = self.add_integer_input("Presence Mask", "presence_filter",
                                                       MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.presence_filter.setToolTip(ttl.objectdata['Presence Mask'])
+
         self.presence = self.add_integer_input("Presence", "presence",
                                                MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.presence.setToolTip(ttl.objectdata['Presence'])
+
         self.flag = self.add_checkbox("Collision", "unk_flag",
                                       off_value=0, on_value=1)
+        self.flag.setToolTip(ttl.objectdata['Collision'])
+
         self.unk_2f = self.add_integer_input("Unknown 0x2F", "unk_2f",
                                              MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
 
