@@ -271,7 +271,7 @@ class EnemyPoint(object):
         assert self.swerve in (-3, -2, -1, 0, 1, 2, 3)
         assert self.itemsonly in (0, 1)
         assert self.driftdirection in (0, 1, 2)
-        assert 0 <= self.driftacuteness <= 180
+        assert 0 <= self.driftacuteness <= 250
         assert self.nomushroomzone in (0, 1)
 
     @classmethod
@@ -291,7 +291,7 @@ class EnemyPoint(object):
             assert padding == b"\x00" * 5
         else:
             args.extend(unpack(">HhfHBB", f.read(12)))
-            args.extend((0, 0))
+            args.extend((0, 0, 0, 0))
 
         obj = cls(*args)
         obj._size = f.tell() - start
@@ -342,7 +342,16 @@ class EnemyPointGroup(object):
         # Check if the element is the last element
         if not len(self.points)-1 == pos:
             for point in self.points[pos+1:]:
+                # temporarily store widget because it isn't pickable
+                if hasattr(point, "widget"):
+                    tmp = point.widget
+                    point.widget = None
+
                 new_point = deepcopy(point)
+
+                if hasattr(point, "widget"):
+                    point.widget = tmp
+
                 new_point.group = new_id
                 group.points.append(new_point)
 
@@ -1178,7 +1187,10 @@ class BOL(object):
 
         f.seek(sectionoffsets[KARTPOINT])
         bol.kartpoints = KartStartPoints.from_file(f, (sectionoffsets[AREA] - sectionoffsets[KARTPOINT])//0x28)
-        assert len(bol.kartpoints.positions) == bol.starting_point_count
+
+        # on the dekoboko dev track from a MKDD demo this assertion doesn't hold for some reason
+        if not old_bol:
+            assert len(bol.kartpoints.positions) == bol.starting_point_count
 
         f.seek(sectionoffsets[AREA])
         bol.areas = Areas.from_file(f, sectioncounts[AREA])
