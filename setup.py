@@ -24,7 +24,7 @@ include_files = [
 build_exe_options = {
     "packages": ["OpenGL", "numpy.core._methods", "numpy.lib.format", "PIL"],
     "includes": ["widgets"],
-    "excludes": ["tkinter", "scipy", "PyQt5.QtWebEngine", "PyQt5.QtWebEngineCore", "PySide2"],
+    "excludes": ["PyQt5.QtWebEngine", "PyQt5.QtWebEngineCore"],
     "optimize": 0,
     "build_exe": "build/mkdd-track-editor-{}".format(version),
     "include_files": include_files
