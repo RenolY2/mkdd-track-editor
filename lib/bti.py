@@ -1807,12 +1807,15 @@ class BTI:
     palette_data = b"\0"*2
     write_bytes(data, 0x20+len(image_data), palette_data)
     write_u8(data,  0x00, image_format.value) # Image format
+    write_u8(data, 0x01, 0x02)
     write_u16(data, 0x02, 8) # Width
     write_u16(data, 0x04, 4) # Height
     write_u8(data,  0x08, 1) # Palettes enabled
     write_u8(data,  0x09, palette_format.value) # Palette format
     write_u16(data, 0x0A, 1) # Num colors
     write_u32(data, 0x0C, 0x20+len(image_data)) # Palette data offset
+    write_u8(data, 0x14, FilterMode.Linear.value)
+    write_u8(data, 0x15, FilterMode.Linear.value)
     write_u32(data, 0x1C, 0x20) # Image data offset
 
     btifile = cls(data)
