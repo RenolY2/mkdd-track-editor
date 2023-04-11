@@ -8,5 +8,15 @@
             "Unknown 6",
             "Unknown 7",
             "Unknown 8"],
-  "Assets": ["car_bus1.bmd", "car_bus1.btk", "car_bus1.btp"]
+  "Assets": ["car_bus1.bmd", "car_bus1.btk", "car_bus1.btp"],
+  "Tooltips": [
+    "Vehicle speed",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ]
 }

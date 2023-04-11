@@ -8,5 +8,15 @@
             "Unused",
             "Unused",
             "Unused"],
-  "Assets": ["Unknown"]
+  "Assets": ["Unknown"],
+  "Tooltips": [
+    "Must match the last value of the second hex number in your collision name, e.g. Roadtype_0x0100_0x50000107, where 7 is the Index",
+    "1 = clear water, 3 = purple water, 5 = lava",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ]
 }

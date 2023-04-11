@@ -8,6 +8,15 @@
             "Unused",
             "Unused",
             "Unused"],
-  "Assets": [""]
-}
+  "Assets": [""],
+  "Tooltips": [
+    "The strength it'll pull with on 50cc",
+    "The strength it'll pull with on 100cc",
+    "The strength it'll pull with on 150cc",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ]
 }
