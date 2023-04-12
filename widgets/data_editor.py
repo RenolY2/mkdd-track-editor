@@ -283,6 +283,12 @@ class DataEditor(QWidget):
             print("selected", item)
             setattr(self.bound_to, attribute, val)
 
+            tt_dict = getattr(ttl, attribute, None)
+            if tt_dict is not None and item in tt_dict:
+                combobox.setToolTip(tt_dict[item])
+            else:
+                combobox.setToolTip('')
+
         combobox.currentTextChanged.connect(item_selected)
         self.vbox.addLayout(layout)
 

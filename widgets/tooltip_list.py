@@ -17,3 +17,32 @@ enemypoints = {
     "Drift Supplement": "Value added to the calculation of all previous settings. Leave as 0 if unsure",
     "No Mushroom Zone": "Whether CPUs are allowed to use mushrooms at this point or not"
 }
+
+objectid = {
+    "GeoSplash": "Creates the water/lava splash effect when falling into it. Must be grounded to the visual model",
+    "GeoNormCar": "Regular car",
+    "GeoItemCar": "Car that shoots mushrooms when bumping into it",
+    "GeoBus": "Regular bus",
+    "GeoTruck": "Regular truck",
+    "GeoBombCar": "Car that explodes when bumping into it",
+    "TMapObjYoshiHeli": "Helicopter from Yoshi Circuit",
+    "TMapSunObject": "Sun object",
+    "TMapObjFerrisWheel": "The ferris wheel in Baby Park",
+    "TMapObjPoihana": "Cataquack from Peach Beach",
+    "TMapObjWanwan": "Chain Chomps",
+    "GeoPull": "Creates a force that pulls you towards it. It's the sand pit in Dry Dry Desert",
+    "GeoItemBox": "Regular Item Box",
+    "GeoF_ItemBox": "Item Box on a path",
+    "GeoCannon": "Shoots you towards the desired Respawn ID"
+
+}
+
+camtype = {
+    "000 - Fix | StartFix": "Basic unrouted replay camera",
+    "001 - FixPath | StartOnlyPath": "Basic routed camera. View direction remains parallel to the camera object's direction",
+    "002 - FixChase": "Unknown",
+    "004 - StartFixPath": "Travels along a route, but only focus on the Start Point",
+    "005 - DemoPath | StartPath": "Travels along a route, changing its view from the Start Point to the End Point",
+    "006 - StartLookPath": "From its position, changes its view from the Start Point to the End Point",
+    "007 - FixPala": "Unknown"
+}
