@@ -46,3 +46,11 @@ camtype = {
     "006 - StartLookPath": "From its position, changes its view from the Start Point to the End Point",
     "007 - FixPala": "Unknown"
 }
+
+camdata = {
+    "Camera Duration": "In frames, how long the camera should display for. Set to 0 if not a Grand Prix camera",
+    "Start Camera": "Only check for the first Grand Prix camera",
+    "Next Cam": "What the next camera should be. Set to -1 if not a a Grand Prix camera (or last Grand Prix camera)",
+    "Route ID": "The ID of the Route Group this camera will travel along (if supported)",
+    "Route Speed": "How fast the camera should move along the route (if supported)",
+}

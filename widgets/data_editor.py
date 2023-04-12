@@ -1077,14 +1077,19 @@ class CameraEdit(DataEditor):
                                                    MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.camduration = self.add_integer_input("Camera Duration", "camduration",
                                                   MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.camduration.setToolTip(ttl.camdata['Camera Duration'])
         self.startcamera = self.add_checkbox("Start Camera", "startcamera", off_value=0, on_value=1)
+        self.startcamera.setToolTip(ttl.camdata['Start Camera'])
         self.nextcam = self.add_integer_input("Next Cam", "nextcam",
                                               MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.nextcam.setToolTip(ttl.camdata['Next Cam'])
         self.shimmer = self.add_multiple_integer_input("Shimmer", "shimmer", ["z0", "z1"], 0, 4095)
         self.route = self.add_integer_input("Route ID", "route",
                                             MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.route.setToolTip(ttl.camdata['Route ID'])
         self.routespeed = self.add_integer_input("Route Speed", "routespeed",
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.routespeed.setToolTip(ttl.camdata['Route Speed'])
         self.name = self.add_text_input("Camera Name", "name", 4)
 
         self.camtype.currentIndexChanged.connect(lambda _index: self.catch_text_update())
