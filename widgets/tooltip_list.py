@@ -54,3 +54,9 @@ camdata = {
     "Route ID": "The ID of the Route Group this camera will travel along (if supported)",
     "Route Speed": "How fast the camera should move along the route (if supported)",
 }
+
+respawn = {
+    "Respawn ID": "Determines which water/OoB collision will make the player use this respawn point, e.g. Roadtype_0x0A03, where 3 is the Respawn ID",
+    "Next Enemy Point": "The enemy point that a CPU will drive towards after respawning",
+    "Previous Checkpoint": "The ID of the checkpoint right behind the respawn point. Can be left as -1",
+}

@@ -1136,12 +1136,17 @@ class RespawnPointEdit(DataEditor):
         self.rotation = self.add_rotation_input()
         self.respawn_id = self.add_integer_input("Respawn ID", "respawn_id",
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.respawn_id.setToolTip(ttl.respawn['Respawn ID'])
         self.unk1 = self.add_integer_input("Next Enemy Point", "unk1",
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.unk1.setToolTip(ttl.respawn['Next Enemy Point'])
+
         self.unk2 = self.add_integer_input("Unknown 2", "unk2",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.unk3 = self.add_integer_input("Previous Checkpoint", "unk3",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.unk3.setToolTip(ttl.respawn['Previous Checkpoint'])
+
 
         self.respawn_id.editingFinished.connect(self.update_name)
 
