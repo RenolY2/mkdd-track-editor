@@ -283,6 +283,12 @@ class DataEditor(QWidget):
             print("selected", item)
             setattr(self.bound_to, attribute, val)
 
+            tt_dict = getattr(ttl, attribute, None)
+            if tt_dict is not None and item in tt_dict:
+                combobox.setToolTip(tt_dict[item])
+            else:
+                combobox.setToolTip('')
+
         combobox.currentTextChanged.connect(item_selected)
         self.vbox.addLayout(layout)
 
@@ -1071,14 +1077,19 @@ class CameraEdit(DataEditor):
                                                    MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.camduration = self.add_integer_input("Camera Duration", "camduration",
                                                   MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.camduration.setToolTip(ttl.camdata['Camera Duration'])
         self.startcamera = self.add_checkbox("Start Camera", "startcamera", off_value=0, on_value=1)
+        self.startcamera.setToolTip(ttl.camdata['Start Camera'])
         self.nextcam = self.add_integer_input("Next Cam", "nextcam",
                                               MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.nextcam.setToolTip(ttl.camdata['Next Cam'])
         self.shimmer = self.add_multiple_integer_input("Shimmer", "shimmer", ["z0", "z1"], 0, 4095)
         self.route = self.add_integer_input("Route ID", "route",
                                             MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.route.setToolTip(ttl.camdata['Route ID'])
         self.routespeed = self.add_integer_input("Route Speed", "routespeed",
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.routespeed.setToolTip(ttl.camdata['Route Speed'])
         self.name = self.add_text_input("Camera Name", "name", 4)
 
         self.camtype.currentIndexChanged.connect(lambda _index: self.catch_text_update())
@@ -1125,12 +1136,17 @@ class RespawnPointEdit(DataEditor):
         self.rotation = self.add_rotation_input()
         self.respawn_id = self.add_integer_input("Respawn ID", "respawn_id",
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.respawn_id.setToolTip(ttl.respawn['Respawn ID'])
         self.unk1 = self.add_integer_input("Next Enemy Point", "unk1",
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.unk1.setToolTip(ttl.respawn['Next Enemy Point'])
+
         self.unk2 = self.add_integer_input("Unknown 2", "unk2",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.unk3 = self.add_integer_input("Previous Checkpoint", "unk3",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.unk3.setToolTip(ttl.respawn['Previous Checkpoint'])
+
 
         self.respawn_id.editingFinished.connect(self.update_name)
 
