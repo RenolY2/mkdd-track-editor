@@ -1191,7 +1191,12 @@ class BOL(object):
         # on the dekoboko dev track from a MKDD demo this assertion doesn't hold for some reason
         if not old_bol:
             assert len(bol.kartpoints.positions) == bol.starting_point_count
-
+        else:
+            print("Old bol detected, fixing starting point count and player id of first kart position...")
+            bol.starting_point_count = bol.kartpoints.positions
+            if len(bol.kartpoints.positions) > 0:
+                bol.kartpoints.positions[0].playerid = 0xFF
+            
         f.seek(sectionoffsets[AREA])
         bol.areas = Areas.from_file(f, sectioncounts[AREA])
 
