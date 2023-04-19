@@ -620,7 +620,6 @@ class EnemyPointEdit(DataEditor):
         self.itemsonly = self.add_checkbox("Items Only", "itemsonly", off_value=0, on_value=1)
         self.itemsonly.setToolTip(ttl.enemypoints['Items Only'])
         self.swerve = self.add_dropdown_input("Swerve", "swerve", REVERSE_SWERVE_IDS)
-        self.swerve.setToolTip(ttl.enemypoints['Swerve'])
         self.group = self.add_integer_input("Group", "group",
                                             MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         if not group_editable:
@@ -628,7 +627,6 @@ class EnemyPointEdit(DataEditor):
 
         self.driftdirection = self.add_dropdown_input("Drift Direction", "driftdirection",
                                                       DRIFT_DIRECTION_OPTIONS)
-        self.driftdirection.setToolTip(ttl.enemypoints['Drift Direction'])
         self.driftacuteness = self.add_integer_input("Drift Acuteness", "driftacuteness",
                                                      MIN_UNSIGNED_BYTE, 250)
         self.driftacuteness.setToolTip(ttl.enemypoints['Drift Acuteness'])
@@ -637,7 +635,7 @@ class EnemyPointEdit(DataEditor):
         self.driftduration.setToolTip(ttl.enemypoints['Drift Duration'])
         self.driftsupplement = self.add_integer_input("Drift Supplement", "driftsupplement",
                                                       MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.driftsupplement.setToolTip(ttl.enemypoints['Drift Direction'])
+        self.driftsupplement.setToolTip(ttl.enemypoints['Drift Supplement'])
         self.nomushroomzone = self.add_checkbox("No Mushroom Zone", "nomushroomzone",
                                                 off_value=0, on_value=1)
         self.nomushroomzone.setToolTip(ttl.enemypoints['No Mushroom Zone'])
@@ -659,6 +657,7 @@ class EnemyPointEdit(DataEditor):
         self.position[1].setText(str(round(obj.position.y, 3)))
         self.position[2].setText(str(round(obj.position.z, 3)))
         self.driftdirection.setCurrentIndex(obj.driftdirection)
+        self.driftdirection.setToolTip(ttl.enemypoints['Drift Direction'])
         self.link.setText(str(obj.link))
         self.scale.setText(str(obj.scale))
         self.itemsonly.setChecked(bool(obj.itemsonly))
@@ -674,6 +673,7 @@ class EnemyPointEdit(DataEditor):
             name = SWERVE_IDS[0]
         index = self.swerve.findText(name)
         self.swerve.setCurrentIndex(index)
+        self.swerve.setToolTip(ttl.enemypoints['Swerve'])
 
     def update_name(self):
         if self.bound_to.widget is None:

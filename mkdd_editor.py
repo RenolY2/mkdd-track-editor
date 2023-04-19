@@ -2764,7 +2764,7 @@ if __name__ == "__main__":
     role_colors.append((QtGui.QPalette.WindowText, QtGui.QColor(200, 200, 200)))
     role_colors.append((QtGui.QPalette.Base, QtGui.QColor(25, 25, 25)))
     role_colors.append((QtGui.QPalette.AlternateBase, QtGui.QColor(60, 60, 60)))
-    role_colors.append((QtGui.QPalette.ToolTipBase, Qt.black))
+    role_colors.append((QtGui.QPalette.ToolTipBase, QtGui.QColor(40, 40, 40)))
     role_colors.append((QtGui.QPalette.ToolTipText, QtGui.QColor(200, 200, 200)))
     try:
         role_colors.append((QtGui.QPalette.PlaceholderText, QtGui.QColor(160, 160, 160)))
@@ -2789,6 +2789,10 @@ if __name__ == "__main__":
         palette.setColor(QtGui.QPalette.Active, role, color)
         palette.setColor(QtGui.QPalette.Inactive, role, color)
     app.setPalette(palette)
+
+    QtWidgets.QToolTip.setPalette(palette)
+    padding = app.fontMetrics().height() // 2
+    app.setStyleSheet(f'QToolTip {{ padding: {padding}px; }}')
 
     if platform.system() == "Windows":
         import ctypes
