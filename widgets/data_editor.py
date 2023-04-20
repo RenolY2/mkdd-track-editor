@@ -1006,6 +1006,7 @@ class AreaEdit(DataEditor):
         self.area_type = self.add_dropdown_input("Area Type", "area_type", REVERSE_AREA_TYPES)
         self.camera_index = self.add_integer_input("Camera Index", "camera_index",
                                                    MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.camera_index.setToolTip(ttl.areadata["Camera Index"])
         self.feather = self.add_multiple_integer_input("Feather", "feather", ["i0", "i1"],
                                                        MIN_UNSIGNED_INT, MAX_SIGNED_INT)
         self.unkfixedpoint = self.add_integer_input("Unknown 3 Fixed Point", "unkfixedpoint",
@@ -1016,6 +1017,7 @@ class AreaEdit(DataEditor):
                                                 MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.lightparam_index = self.add_integer_input("LightParam Index", "lightparam_index",
                                                        MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.lightparam_index.setToolTip(ttl.areadata['LightParam Index'])
 
         self.area_type.currentTextChanged.connect(self.update_name)
 
@@ -1169,9 +1171,15 @@ class RespawnPointEdit(DataEditor):
 class LightParamEdit(DataEditor):
     def setup_widgets(self):
         self.color1 = self.add_color_input("RGBA 1", "color1", with_alpha=True)
+        for i in self.color1:
+            i.setToolTip(ttl.lightparam["Light"])
         self.unkvec = self.add_multiple_decimal_input("Vector", "unkvec", ["x", "y", "z"],
                                                       -inf, +inf)
+        for i in self.unkvec:
+            i.setToolTip(ttl.lightparam["Position"])
         self.color2 = self.add_color_input("RGBA 2", "color2", with_alpha=True)
+        for i in self.color2:
+            i.setToolTip(ttl.lightparam["Ambient"])
 
     def update_data(self):
         obj: LightParam = self.bound_to
