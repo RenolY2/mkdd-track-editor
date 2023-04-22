@@ -1467,7 +1467,7 @@ class ObjectViewSelectionToggle(object):
         self.name = name
         self.menuparent = menuparent
 
-        self.action_view_toggle = QAction("{0} visible".format(name), menuparent)
+        self.action_view_toggle = QAction("{0}".format(name), menuparent)
         self.action_select_toggle = QAction("{0} selectable".format(name), menuparent)
         self.action_view_toggle.setCheckable(True)
         self.action_view_toggle.setChecked(True)
