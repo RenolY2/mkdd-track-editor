@@ -2698,12 +2698,12 @@ class GenEditor(QMainWindow):
         if len(selected) == 1 and hasattr(selected[0], "position"):
 
             obj_pos = selected[0].position
-            display_string += f" | 📦 ({obj_pos.x:.2f}, {obj_pos.y:.2f}, {obj_pos.z:.2f})"
+            display_string += f"   📦 ({obj_pos.x:.2f}, {obj_pos.y:.2f}, {obj_pos.z:.2f})"
 
             if self.level_view.collision is not None:
                 height = self.level_view.collision.collide_ray_closest(obj_pos.x, obj_pos.z, obj_pos.y)
                 if height is not None:
-                    display_string += f" | 📏 {obj_pos.y - height:.2f}"
+                    display_string += f"   📏 {obj_pos.y - height:.2f}"
 
         self.statusbar.showMessage(display_string)
 
