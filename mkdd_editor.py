@@ -837,6 +837,9 @@ class GenEditor(QMainWindow):
             open_info_dialog('No minimap image has been loaded yet.', self)
             return
 
+        if "minimap_image" not in self.pathsconfig:
+            self.pathsconfig["minimap_image"] = ""
+
         initial_filepath = self.pathsconfig["minimap_image"]
         stem, _ext = os.path.splitext(initial_filepath)
         initial_filepath = f'{stem}.{extension}'
