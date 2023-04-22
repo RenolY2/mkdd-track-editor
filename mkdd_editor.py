@@ -2587,6 +2587,7 @@ class GenEditor(QMainWindow):
                     for i in range(self.leveldatatreeview.checkpointgroups.childCount()):
                         child = self.leveldatatreeview.checkpointgroups.child(i)
                         item = get_treeitem(child, currentobj)
+
                         if item is not None:
                             break
 
@@ -2608,10 +2609,22 @@ class GenEditor(QMainWindow):
                 elif isinstance(currentobj, libbol.KartStartPoint):
                     item = get_treeitem(self.leveldatatreeview.kartpoints, currentobj)
 
-                #assert item is not None
+                # Temporarily suppress signals to prevent both checkpoints from
+                # being selected when just one checkpoint is selected in 3D view.
+                suppress_signal = False
+                if (isinstance(currentobj, libbol.Checkpoint)
+                    and (currentobj.start in self.level_view.selected_positions
+                         or currentobj.end in self.level_view.selected_positions)):
+                    suppress_signal = True
+
+                if suppress_signal:
+                    self.leveldatatreeview.blockSignals(True)
+
                 if item is not None:
-                    #self._dontselectfromtree = True
                     self.leveldatatreeview.setCurrentItem(item)
+
+                if suppress_signal:
+                    self.leveldatatreeview.blockSignals(False)
 
             #if nothing is selected and the currentitem is something that can be selected
             #clear out the buttons
