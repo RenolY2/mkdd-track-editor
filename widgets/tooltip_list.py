@@ -58,6 +58,7 @@ objectid = {
     "TMapObjSun": "Sun object",
     "TMapObjWanwan": "Chain Chomps",
     "TMapObjYoshiHeli": "Helicopter from Yoshi Circuit",
+    "GeoKuribo": "Goombas",
     "GeoPull": "Creates a force that pulls you towards it. It's the sand pit in Dry Dry Desert",
     "GeoItemBox": "Regular Item Box",
     "GeoF_ItemBox": "Item Box on a path",
@@ -91,6 +92,13 @@ respawn = {
 areadata = {
     "Camera Index": "Index into cameras if Area Type is set to 'Camera'. Otherwise, set to -1",
     "LightParam Index": "Index into a LightParam entry. Only used if Camera Type is set to 'Shadow' or 'Lighting'",
+    "Feather": "Feather at the front and back of the object. Sides can't have feather"
+}
+
+area_type = {
+    "Shadow": "For adding shadows while under the area, similar to Lighting",
+    "No Dead Zone": "Disables deadzones",
+    "Lighting": "For changing ligthing while under the area, similar to Shadow",
 }
 
 lightparam = {

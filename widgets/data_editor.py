@@ -1009,6 +1009,8 @@ class AreaEdit(DataEditor):
         self.camera_index.setToolTip(ttl.areadata["Camera Index"])
         self.feather = self.add_multiple_integer_input("Feather", "feather", ["i0", "i1"],
                                                        MIN_UNSIGNED_INT, MAX_SIGNED_INT)
+        for i in self.feather:
+            i.setToolTip(ttl.areadata['Feather'])
         self.unkfixedpoint = self.add_integer_input("Unknown 3 Fixed Point", "unkfixedpoint",
                                                     MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.unkshort = self.add_integer_input("Unknown 4", "unkshort",
