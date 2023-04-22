@@ -25,7 +25,7 @@ class ObjectModels(object):
         self.cameraroute = Cube(colors["CameraRoutes"])
         self.unassignedroute = Cube(colors["UnassignedRoutes"])
         self.sharedroute = Cube(colors["SharedRoutes"])
-        self.enemypoint = Cube(colors["EnemyRoutes"])
+        self.enemypoint = Cube(colors["EnemyPaths"])
         self.camera = GenericObject(colors["Camera"])
         self.areas = GenericObject(colors["Areas"])
         self.objects = GenericObject(colors["Objects"])
