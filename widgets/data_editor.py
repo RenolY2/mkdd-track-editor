@@ -841,6 +841,7 @@ class ObjectEdit(DataEditor):
         self.pathid = self.add_integer_input("Route ID", "pathid",
                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.pathid.setToolTip(ttl.objectdata['Route ID'])
+        self.pathid.editingFinished.connect(self.catch_text_update)
 
         self.unk_28 = self.add_integer_input("Unknown 0x28", "unk_28",
                                              MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
@@ -1087,6 +1088,7 @@ class CameraEdit(DataEditor):
         self.route = self.add_integer_input("Route ID", "route",
                                             MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.route.setToolTip(ttl.camdata['Route ID'])
+        self.route.editingFinished.connect(self.catch_text_update)
         self.routespeed = self.add_integer_input("Route Speed", "routespeed",
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.routespeed.setToolTip(ttl.camdata['Route Speed'])
