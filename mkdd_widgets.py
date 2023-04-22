@@ -1512,6 +1512,8 @@ class FilterViewMenu(QMenu):
         self.hide_all.triggered.connect(self.handle_hide_all)
         self.addAction(self.hide_all)
 
+        self.addSeparator()
+
         self.enemyroute = ObjectViewSelectionToggle("Enemy Paths", self)
         self.objectroutes = ObjectViewSelectionToggle("Object Routes", self)
         self.cameraroutes = ObjectViewSelectionToggle("Camera Routes", self)
