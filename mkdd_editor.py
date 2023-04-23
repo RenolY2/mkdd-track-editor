@@ -202,6 +202,19 @@ class GenEditor(QMainWindow):
     def closeEvent(self, event: QtGui.QCloseEvent):
         self.save_geometry()
 
+        if self._user_made_change:
+            msgbox = QtWidgets.QMessageBox(self)
+            size = self.fontMetrics().height() * 3
+            msgbox.setIconPixmap(QtGui.QIcon('resources/warning.svg').pixmap(size, size))
+            msgbox.setWindowTitle("Unsaved Changes")
+            msgbox.setText('Are you sure you want to exit the application?')
+            msgbox.addButton('Cancel', QtWidgets.QMessageBox.RejectRole)
+            exit_button = msgbox.addButton('Exit', QtWidgets.QMessageBox.DestructiveRole)
+            msgbox.exec_()
+            if msgbox.clickedButton() != exit_button:
+                event.ignore()
+                return
+
         super().closeEvent(event)
 
     @catch_exception
