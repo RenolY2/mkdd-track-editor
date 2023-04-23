@@ -675,6 +675,19 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             #
             click_x, click_y, clickwidth, clickheight, shiftpressed, do_gizmo = self.selectionqueue.queue_pop()
             click_y = height - click_y
+
+            # Clamp to viewport dimensions.
+            if click_x < 0:
+                clickwidth += click_x
+                click_x = 0
+            if click_y < 0:
+                clickheight += click_y
+                click_y = 0
+            clickwidth = max(0, min(clickwidth, width - click_x))
+            clickheight = max(0, min(clickheight, height - click_y))
+            if not clickwidth or not clickheight:
+                continue
+
             hit = 0xFF
 
             #print("received request", do_gizmo)
