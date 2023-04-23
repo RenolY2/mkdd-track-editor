@@ -1142,12 +1142,14 @@ class RespawnPointEdit(DataEditor):
         self.unk1 = self.add_integer_input("Next Enemy Point", "unk1",
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.unk1.setToolTip(ttl.respawn['Next Enemy Point'])
+        self.unk1.editingFinished.connect(self.catch_text_update)
 
         self.unk2 = self.add_integer_input("Unknown 2", "unk2",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.unk3 = self.add_integer_input("Previous Checkpoint", "unk3",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.unk3.setToolTip(ttl.respawn['Previous Checkpoint'])
+        self.unk3.editingFinished.connect(self.catch_text_update)
 
 
         self.respawn_id.editingFinished.connect(self.update_name)
