@@ -1085,8 +1085,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                 point_index = 0
                 for group in self.level_file.enemypointgroups.groups:
                     if len(group.points) == 0:
-                        continue 
-                        
+                        continue
+
                     group_selected = False
                     for point in group.points:
                         if point in select_optimize:
@@ -1668,4 +1668,3 @@ class FilterViewMenu(QMenu):
                 QMenu.mouseReleaseEvent(self, e)
         except:
             traceback.print_exc()
-

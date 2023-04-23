@@ -486,7 +486,7 @@ class AddPikObjectWindow(QDialog):
 
             if isinstance(self.created_object, (libbol.EnemyPoint, )):
                 self.update_label()
-                
+
             data_editor = choose_data_editor(self.created_object)
             if data_editor is not None:
                 self.editor_widget = data_editor(self, self.created_object)

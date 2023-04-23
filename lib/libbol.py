@@ -1196,7 +1196,7 @@ class BOL(object):
             bol.starting_point_count = bol.kartpoints.positions
             if len(bol.kartpoints.positions) > 0:
                 bol.kartpoints.positions[0].playerid = 0xFF
-            
+
         f.seek(sectionoffsets[AREA])
         bol.areas = Areas.from_file(f, sectioncounts[AREA])
 
