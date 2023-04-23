@@ -204,6 +204,16 @@ class ErrorAnalyzer(QDialog):
                 write_line("Camera {0} uses invalid path id {1}".format(i,
                                                                         camera.route))
 
+        # Check respawn points have unique IDs.
+        respawn_point_ids = {}
+        for i, respawn_point in enumerate(bol.respawnpoints):
+            if respawn_point.respawn_id in respawn_point_ids:
+                previous_i = respawn_point_ids[respawn_point.respawn_id]
+                write_line(f'Respawn points #{previous_i} and #{i} have the same ID: '
+                           f'{respawn_point.respawn_id}')
+            else:
+                respawn_point_ids[respawn_point.respawn_id] = i
+
         if len(bol.checkpoints.groups) == 0:
             write_line("You need at least one checkpoint group!")
 
