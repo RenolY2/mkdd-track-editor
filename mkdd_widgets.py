@@ -1296,8 +1296,12 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                                                                 object.position, object.rotation,
                                                                  object in select_optimize)
             if self.minimap is not None and self.minimap.is_available() and vismenu.minimap.is_visible():
-                self.models.render_generic_position(self.minimap.corner1, self.minimap.corner1 in positions)
-                self.models.render_generic_position(self.minimap.corner2, self.minimap.corner2 in positions)
+                self.models.render_generic_position_colored(self.minimap.corner1,
+                                                            self.minimap.corner1 in positions,
+                                                            'minimap')
+                self.models.render_generic_position_colored(self.minimap.corner2,
+                                                            self.minimap.corner2 in positions,
+                                                            'minimap')
             #glDisable(GL_TEXTURE_2D)
 
         glColor3f(0.0, 0.0, 0.0)
