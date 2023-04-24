@@ -97,8 +97,8 @@ areadata = {
 
 area_type = {
     "Shadow": "For adding shadows while under the area, similar to Lighting",
-    "No Dead Zone": "Disables deadzones",
-    "Lighting": "For changing ligthing while under the area, similar to Shadow",
+    "No Dead Zone": "Disables dead zones",
+    "Lighting": "For changing lighting while under the area, similar to Shadow",
 }
 
 lightparam = {
