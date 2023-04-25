@@ -27,6 +27,18 @@ class MoreButtons(QWidget):
             new_enemy_point.clicked.connect(
                 lambda: self.parent().parent.button_side_button_action("add_enemypoints", obj) )
             self.vbox.addWidget(new_enemy_point)
+        elif isinstance(obj, CheckpointGroups):
+            new_enemy_point = QPushButton(self)
+            new_enemy_point.setText("Add Checkpoint Group")
+            new_enemy_point.clicked.connect(
+                lambda: self.parent().parent.button_side_button_action("add_checkpointgroup", obj))
+            self.vbox.addWidget(new_enemy_point)
+        elif isinstance(obj, (CheckpointGroup, Checkpoint)):
+            new_enemy_point = QPushButton(self)
+            new_enemy_point.setText("Add Checkpoints")
+            new_enemy_point.clicked.connect(
+                lambda: self.parent().parent.button_side_button_action("add_checkpoints", obj))
+            self.vbox.addWidget(new_enemy_point)
 
     def clear_buttons(self):
         for i in reversed(range(self.vbox.count())):
