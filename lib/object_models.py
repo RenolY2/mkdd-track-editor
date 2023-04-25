@@ -25,12 +25,13 @@ class ObjectModels(object):
         self.cameraroute = Cube(colors["CameraRoutes"])
         self.unassignedroute = Cube(colors["UnassignedRoutes"])
         self.sharedroute = Cube(colors["SharedRoutes"])
-        self.enemypoint = Cube(colors["EnemyRoutes"])
+        self.enemypoint = Cube(colors["EnemyPaths"])
         self.camera = GenericObject(colors["Camera"])
         self.areas = GenericObject(colors["Areas"])
         self.objects = GenericObject(colors["Objects"])
         self.respawn = GenericObject(colors["Respawn"])
         self.startpoints = GenericObject(colors["StartPoints"])
+        self.minimap = Cube(colors["Minimap"])
         #self.purplecube = Cube((0.7, 0.7, 1.0, 1.0))
 
         self.playercolors = [Cube(color) for color in ((1.0, 0.0, 0.0, 1.0),
@@ -79,7 +80,7 @@ class ObjectModels(object):
                     self.models[objectname] = TexturedModel.from_obj_path(os.path.join(dirpath, file), rotate=True)
         for cube in (self.cube, self.checkpointleft, self.checkpointright, self.objectroute, self.cameraroute,
                      self.unassignedroute, self.sharedroute, self.enemypoint, self.objects, self.areas, self.respawn,
-                     self.startpoints, self.camera):
+                     self.startpoints, self.camera, self.minimap):
             cube.generate_displists()
 
         for cube in self.playercolors:

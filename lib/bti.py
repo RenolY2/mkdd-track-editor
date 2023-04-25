@@ -1799,7 +1799,7 @@ class BTI:
 
   @classmethod
   def create_from_image(cls, image: Image.Image, image_format: ImageFormat = ImageFormat.RGB5A3,
-                        palette_format: PaletteFormat = PaletteFormat.RGB5A3):
+                        palette_format: PaletteFormat = PaletteFormat.IA8):
     # No BTI is already loaded. Create a dummy one from scratch to allow importing this image.
     data = BytesIO()
     image_data = b"\0"*0x20
@@ -1816,6 +1816,7 @@ class BTI:
     write_u32(data, 0x0C, 0x20+len(image_data)) # Palette data offset
     write_u8(data, 0x14, FilterMode.Linear.value)
     write_u8(data, 0x15, FilterMode.Linear.value)
+    write_u8(data, 0x18, 1) # Number of images
     write_u32(data, 0x1C, 0x20) # Image data offset
 
     btifile = cls(data)
