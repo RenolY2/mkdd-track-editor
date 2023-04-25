@@ -58,6 +58,7 @@ objectid = {
     "TMapObjSun": "Sun object",
     "TMapObjWanwan": "Chain Chomps",
     "TMapObjYoshiHeli": "Helicopter from Yoshi Circuit",
+    "GeoKuribo": "Goombas",
     "GeoPull": "Creates a force that pulls you towards it. It's the sand pit in Dry Dry Desert",
     "GeoItemBox": "Regular Item Box",
     "GeoF_ItemBox": "Item Box on a path",
@@ -75,7 +76,7 @@ camtype = {
 }
 
 camdata = {
-    "Camera Duration": "In frames, how long the camera should display for. Set to 0 if not a Grand Prix camera",
+    "Camera Duration": "In frames, how long the Grand Prix camera should display for. Total between all cams should be ~600. Set to 0 if not a Grand Prix camera",
     "Start Camera": "Only check for the first Grand Prix camera",
     "Next Cam": "What the next camera should be. Set to -1 if not a a Grand Prix camera (or last Grand Prix camera)",
     "Route ID": "The ID of the Route Group this camera will travel along (if supported)",
@@ -86,4 +87,22 @@ respawn = {
     "Respawn ID": "Determines which water/OoB collision will make the player use this respawn point, e.g. Roadtype_0x0A03, where 3 is the Respawn ID",
     "Next Enemy Point": "The enemy point that a CPU will drive towards after respawning",
     "Previous Checkpoint": "The ID of the checkpoint right behind the respawn point. Can be left as -1",
+}
+
+areadata = {
+    "Camera Index": "Index into cameras if Area Type is set to 'Camera'. Otherwise, set to -1",
+    "LightParam Index": "Index into a LightParam entry. Only used if Camera Type is set to 'Shadow' or 'Lighting'",
+    "Feather": "Feather at the front and back of the object. Sides can't have feather"
+}
+
+area_type = {
+    "Shadow": "For adding shadows while under the area, similar to Lighting",
+    "No Dead Zone": "Disables dead zones",
+    "Lighting": "For changing lighting while under the area, similar to Shadow",
+}
+
+lightparam = {
+    "Light": "RGBA Light Color",
+    "Position": "3D Light Source Position",
+    "Ambient": "RGBA Ambient Color",
 }

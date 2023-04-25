@@ -620,7 +620,6 @@ class EnemyPointEdit(DataEditor):
         self.itemsonly = self.add_checkbox("Items Only", "itemsonly", off_value=0, on_value=1)
         self.itemsonly.setToolTip(ttl.enemypoints['Items Only'])
         self.swerve = self.add_dropdown_input("Swerve", "swerve", REVERSE_SWERVE_IDS)
-        self.swerve.setToolTip(ttl.enemypoints['Swerve'])
         self.group = self.add_integer_input("Group", "group",
                                             MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         if not group_editable:
@@ -628,7 +627,6 @@ class EnemyPointEdit(DataEditor):
 
         self.driftdirection = self.add_dropdown_input("Drift Direction", "driftdirection",
                                                       DRIFT_DIRECTION_OPTIONS)
-        self.driftdirection.setToolTip(ttl.enemypoints['Drift Direction'])
         self.driftacuteness = self.add_integer_input("Drift Acuteness", "driftacuteness",
                                                      MIN_UNSIGNED_BYTE, 250)
         self.driftacuteness.setToolTip(ttl.enemypoints['Drift Acuteness'])
@@ -637,7 +635,7 @@ class EnemyPointEdit(DataEditor):
         self.driftduration.setToolTip(ttl.enemypoints['Drift Duration'])
         self.driftsupplement = self.add_integer_input("Drift Supplement", "driftsupplement",
                                                       MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.driftsupplement.setToolTip(ttl.enemypoints['Drift Direction'])
+        self.driftsupplement.setToolTip(ttl.enemypoints['Drift Supplement'])
         self.nomushroomzone = self.add_checkbox("No Mushroom Zone", "nomushroomzone",
                                                 off_value=0, on_value=1)
         self.nomushroomzone.setToolTip(ttl.enemypoints['No Mushroom Zone'])
@@ -659,6 +657,7 @@ class EnemyPointEdit(DataEditor):
         self.position[1].setText(str(round(obj.position.y, 3)))
         self.position[2].setText(str(round(obj.position.z, 3)))
         self.driftdirection.setCurrentIndex(obj.driftdirection)
+        self.driftdirection.setToolTip(ttl.enemypoints['Drift Direction'])
         self.link.setText(str(obj.link))
         self.scale.setText(str(obj.scale))
         self.itemsonly.setChecked(bool(obj.itemsonly))
@@ -674,6 +673,7 @@ class EnemyPointEdit(DataEditor):
             name = SWERVE_IDS[0]
         index = self.swerve.findText(name)
         self.swerve.setCurrentIndex(index)
+        self.swerve.setToolTip(ttl.enemypoints['Swerve'])
 
     def update_name(self):
         if self.bound_to.widget is None:
@@ -1006,8 +1006,11 @@ class AreaEdit(DataEditor):
         self.area_type = self.add_dropdown_input("Area Type", "area_type", REVERSE_AREA_TYPES)
         self.camera_index = self.add_integer_input("Camera Index", "camera_index",
                                                    MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.camera_index.setToolTip(ttl.areadata["Camera Index"])
         self.feather = self.add_multiple_integer_input("Feather", "feather", ["i0", "i1"],
                                                        MIN_UNSIGNED_INT, MAX_SIGNED_INT)
+        for i in self.feather:
+            i.setToolTip(ttl.areadata['Feather'])
         self.unkfixedpoint = self.add_integer_input("Unknown 3 Fixed Point", "unkfixedpoint",
                                                     MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.unkshort = self.add_integer_input("Unknown 4", "unkshort",
@@ -1016,6 +1019,7 @@ class AreaEdit(DataEditor):
                                                 MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.lightparam_index = self.add_integer_input("LightParam Index", "lightparam_index",
                                                        MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        self.lightparam_index.setToolTip(ttl.areadata['LightParam Index'])
 
         self.area_type.currentTextChanged.connect(self.update_name)
 
@@ -1169,9 +1173,15 @@ class RespawnPointEdit(DataEditor):
 class LightParamEdit(DataEditor):
     def setup_widgets(self):
         self.color1 = self.add_color_input("RGBA 1", "color1", with_alpha=True)
+        for i in self.color1:
+            i.setToolTip(ttl.lightparam["Light"])
         self.unkvec = self.add_multiple_decimal_input("Vector", "unkvec", ["x", "y", "z"],
                                                       -inf, +inf)
+        for i in self.unkvec:
+            i.setToolTip(ttl.lightparam["Position"])
         self.color2 = self.add_color_input("RGBA 2", "color2", with_alpha=True)
+        for i in self.color2:
+            i.setToolTip(ttl.lightparam["Ambient"])
 
     def update_data(self):
         obj: LightParam = self.bound_to
