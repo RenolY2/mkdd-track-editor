@@ -10,8 +10,8 @@
             "Unused"],
   "Assets": [],
   "Tooltips": [
-    "How high off the ground the itembox will be. Itembox must be grounded and this set to 135",
-    "Whether itembox is single or double. 0 = both, 1 = single only, 3 = double only",
+    "How high off the ground the itembox will be. Itembox must be grounded and this\nset to 135.",
+    "Whether itembox is single or double:\n0 = both\n1 = single only\n3 = double only",
     "",
     "",
     "",
