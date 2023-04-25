@@ -2116,7 +2116,20 @@ class GenEditor(QMainWindow):
                 # For convenience, create a group if none exists yet.
                 if group == 0 and not self.level_file.checkpoints.groups:
                     self.level_file.checkpoints.groups.append(libbol.CheckpointGroup.new())
-                self.level_file.checkpoints.groups[group].points.insert(position, placeobject)
+                insertion_index = position
+                # If a selection exists, use it as reference for the insertion point.
+                selected_items = self.leveldatatreeview.selectedItems()
+                if selected_items:
+                    selected_item = selected_items[-1]
+                    if isinstance(selected_item.bound_to, libbol.Checkpoint):
+                        group = selected_item.parent().get_index_in_parent()
+                        insertion_index = selected_item.get_index_in_parent() + 1
+                    elif isinstance(selected_item.bound_to, libbol.CheckpointGroup):
+                        group = selected_item.get_index_in_parent()
+                        insertion_index = 0
+
+                self.level_file.checkpoints.groups[group].points.insert(
+                    insertion_index, placeobject)
                 self.level_view.do_redraw()
                 self.set_has_unsaved_changes(True)
                 self.leveldatatreeview.set_objects(self.level_file)
@@ -2196,6 +2209,20 @@ class GenEditor(QMainWindow):
             self.pik_control.button_add_object.setChecked(True)
             self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
 
+        elif option == "add_checkpointgroup":
+            self.level_file.checkpoints.add_group()
+            self.level_view.selected = [self.level_file.checkpoints.groups[-1]]
+            self.level_view.selected_positions = []
+            self.level_view.selected_rotations = []
+        elif option == "add_checkpoints":
+            if isinstance(obj, libbol.CheckpointGroup):
+                group_id = obj.grouplink
+                pos = 0
+            else:
+                group_id, pos = self.level_file.checkpoints.find_group_of_point(obj)
+            self.object_to_be_added = [libbol.Checkpoint.new(), group_id, pos + 1]
+            self.pik_control.button_add_object.setChecked(True)
+            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
         self.leveldatatreeview.set_objects(self.level_file)
 
     @catch_exception
