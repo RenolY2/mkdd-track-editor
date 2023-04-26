@@ -8,6 +8,13 @@ class MoreButtons(QWidget):
         self.vbox = QVBoxLayout(self)
         self.vbox.setContentsMargins(0, 0, 0, 0)
 
+    def add_button(self, obj, text, optionstring):
+        new_button = QPushButton(self)
+        new_button.setText(text)
+        new_button.clicked.connect(
+            lambda: self.parent().parent.button_side_button_action(optionstring, obj))
+        self.vbox.addWidget(new_button)
+
     def add_buttons(self, option = None):
         self.clear_buttons()
 
@@ -16,29 +23,18 @@ class MoreButtons(QWidget):
 
         obj = option.bound_to
         if isinstance(obj, EnemyPointGroups):
-            new_enemy_group = QPushButton(self)
-            new_enemy_group.setText("Add Enemy Path")
-            new_enemy_group.clicked.connect(
-                lambda: self.parent().parent.button_side_button_action("add_enemypath", obj) )
-            self.vbox.addWidget(new_enemy_group)
+            self.add_button(obj, "Add Enemy Path", "add_enemypath")
         elif isinstance(obj, (EnemyPointGroup, EnemyPoint)):
-            new_enemy_point = QPushButton(self)
-            new_enemy_point.setText("Add Enemy Points")
-            new_enemy_point.clicked.connect(
-                lambda: self.parent().parent.button_side_button_action("add_enemypoints", obj) )
-            self.vbox.addWidget(new_enemy_point)
-        elif isinstance(obj, CheckpointGroups):
-            new_enemy_point = QPushButton(self)
-            new_enemy_point.setText("Add Checkpoint Group")
-            new_enemy_point.clicked.connect(
-                lambda: self.parent().parent.button_side_button_action("add_checkpointgroup", obj))
-            self.vbox.addWidget(new_enemy_point)
+            self.add_button(obj, "Add Enemy Points", "add_enemypoints")
+        elif isinstance(obj, (CheckpointGroups)):
+            self.add_button(obj, "Add Checkpoint Group", "add_checkpointgroup")
         elif isinstance(obj, (CheckpointGroup, Checkpoint)):
-            new_enemy_point = QPushButton(self)
-            new_enemy_point.setText("Add Checkpoints")
-            new_enemy_point.clicked.connect(
-                lambda: self.parent().parent.button_side_button_action("add_checkpoints", obj))
-            self.vbox.addWidget(new_enemy_point)
+            self.add_button(obj, "Add Checkpoints", "add_checkpoints")
+        elif isinstance(obj, ObjectContainer):
+            if obj.object_type is Route:
+                self.add_button(obj, "Add Route", "add_route")
+        elif isinstance(obj, (Route, RoutePoint)):
+            self.add_button(obj, "Add Route Points", "add_routepoints")
 
     def clear_buttons(self):
         for i in reversed(range(self.vbox.count())):
