@@ -1,13 +1,13 @@
 objectdata = {
     "Route ID": "The ID of the Route Group this object will follow (if supported by the object)",
     "Route Point ID": "The ID of the Route Point this object will start from (if supported by the object)",
-    "Presence Mask": "255 = will show up in time trial and other modes. 15 = won't show up in time trial.",
-    "Presence": "1 = only single screen modes. 2 = only split screen modes. 3 = both modes.",
-    "Collision": "Whether the object can be physically interacted with or not (check vanilla\ncourses for your desired object's effect)",
+    "Presence Mask": "255 = will show up in time trial and other modes.\n15 = won't show up in time trial.",
+    "Presence": "1 = only single screen modes.\n2 = only split screen modes.\n3 = both modes.",
+    "Collision": "Whether the object can be physically interacted with or not (check vanilla courses for your desired object's effect)",
 }
 
 enemypoints = {
-    "Link": "Will link the point to another point with the same Link value.\nSet to -1 for no link.",
+    "Link": "Will link the point to another point with the same Link value. Set to -1 for no link.",
     "Scale": "How wide of an area CPUs can drive on",
     "Items Only": "Whether this Point is usable by CPUs or only items (red/blue shells, eggs)",
     "Swerve": "Tells the CPUs to swerve left or right and how strongly",
@@ -22,7 +22,7 @@ objectid = {
     "GeoAirJet": "The blowing wind from Sherbet Land",
     "GeoMarioFlower1": "The flowers with eyes from several tracks",
     "GeoMarioTree1": "The standard trees with eyes from several tracks",
-    "GeoSplash": "Creates the water/lava splash effect when falling into it. Must be grounded to\nthe visual model.",
+    "GeoSplash": "Creates the water/lava splash effect when falling into it. Must be grounded to the visual model.",
     "GeoNormCar": "Regular car",
     "GeoItemCar": "Car that shoots mushrooms when bumping into it",
     "GeoBus": "Regular bus",
@@ -31,7 +31,7 @@ objectid = {
     "GeoShimmer": "Adds a blur effect to the camera",
     "TLensFlare": "Lens flare effect. Always in the same spot as TMapObjSun.",
     "TMapObjWlArrow": "The bouncing arrows with eyes from Waluigi Stadium",
-    "TMapObjDinoTree": "Dancing trees in Dino Dino Jungle. Their animation (.bck) is only used in\nsingle-screen modes.",
+    "TMapObjDinoTree": "Dancing trees in Dino Dino Jungle. Their animation (.bck) is only used in single-screen modes.",
     "TMapObjDonkyRockGen": "The giant boulders from DK Mountain",
     "TMapObjFireCircle": "The fire circle obstacles from Wario Colosseum & Waluigi Stadium",
     "TMapObjFireBar": "The rotating fire bars from Bowser's Castle",
@@ -69,7 +69,7 @@ objectid = {
 
 camtype = {
     "000 - Fix | StartFix": "Basic unrouted replay camera",
-    "001 - FixPath | StartOnlyPath": "Basic routed camera. View direction remains parallel to the camera\nobject's direction.",
+    "001 - FixPath | StartOnlyPath": "Basic routed camera. View direction remains parallel to the camera object's direction.",
     "002 - FixChase": "Unknown",
     "004 - StartFixPath": "Travels along a route, but only focus on the Start Point",
     "005 - DemoPath | StartPath": "Travels along a route, changing its view from the Start Point to the End Point",
@@ -78,22 +78,22 @@ camtype = {
 }
 
 camdata = {
-    "Camera Duration": "In frames, how long the Grand Prix camera should display for. Total between all\ncams should be ~600. Set to 0 if not a Grand Prix camera.",
+    "Camera Duration": "In frames, how long the Grand Prix camera should display for. Total between all cams should be ~600. Set to 0 if not a Grand Prix camera.",
     "Start Camera": "Only check for the first Grand Prix camera",
-    "Next Cam": "What the next camera should be. Set to -1 if not a a Grand Prix camera (or\nlast Grand Prix camera).",
+    "Next Cam": "What the next camera should be. Set to -1 if not a a Grand Prix camera (or last Grand Prix camera).",
     "Route ID": "The ID of the Route Group this camera will travel along (if supported)",
     "Route Speed": "How fast the camera should move along the route (if supported)",
 }
 
 respawn = {
-    "Respawn ID": "Determines which water/OoB collision will make the player use this respawn point,\ne.g. Roadtype_0x0A03, where 3 is the Respawn ID.",
+    "Respawn ID": "Determines which water/OoB collision will make the player use this respawn point, e.g. Roadtype_0x0A03, where 3 is the Respawn ID.",
     "Next Enemy Point": "The enemy point that a CPU will drive towards after respawning",
     "Previous Checkpoint": "The ID of the checkpoint right behind the respawn point. Can be left as -1.",
 }
 
 areadata = {
     "Camera Index": "Index into cameras if Area Type is set to 'Camera'. Otherwise, set to -1.",
-    "LightParam Index": "Index into a LightParam entry. Only used if Camera Type is set to 'Shadow'\nor 'Lighting'.",
+    "LightParam Index": "Index into a LightParam entry. Only used if Camera Type is set to 'Shadow' or 'Lighting'.",
     "Feather": "Feather at the front and back of the object. Sides can't have feather."
 }
 
