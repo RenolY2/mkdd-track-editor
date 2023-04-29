@@ -1170,8 +1170,12 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                     for checkpoint in group.points:
                         start_point_selected = checkpoint.start in positions
                         end_point_selected = checkpoint.end in positions
-                        self.models.render_generic_position_colored(checkpoint.start, checkpoint.start in positions, "checkpointleft")
-                        self.models.render_generic_position_colored(checkpoint.end, checkpoint.end in positions, "checkpointright")
+                        self.models.render_generic_position_colored(checkpoint.start,
+                                                                    start_point_selected,
+                                                                    "checkpointleft")
+                        self.models.render_generic_position_colored(checkpoint.end,
+                                                                    end_point_selected,
+                                                                    "checkpointright")
 
                         if start_point_selected or end_point_selected:
                             checkpoints_to_highlight.add(count)
