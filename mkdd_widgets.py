@@ -1233,33 +1233,22 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                             point_index += 1
                     glLineWidth(1.0)
 
-            #glColor3f(1.0, 1.0, 1.0)
-            #glEnable(GL_TEXTURE_2D)
-            #glBindTexture(GL_TEXTURE_2D, self.arrow.tex)
-            glPushMatrix()
-            #lines = []
-            if vismenu.checkpoints.is_visible():
-                for group in self.level_file.checkpoints.groups:
+                for i, group in enumerate(self.level_file.checkpoints.groups):
+                    glColor3f(*colors[i % 4])
                     prev = None
                     for checkpoint in group.points:
                         if prev is None:
                             prev = checkpoint
                         else:
-                            #mid1 = prev.mid
-                            #mid2 = checkpoint.mid
                             mid1 = (prev.start + prev.end) / 2.0
                             mid2 = (checkpoint.start + checkpoint.end) / 2.0
 
                             self.models.draw_arrow_head(mid1, mid2)
-                            #lines.append((mid1, mid2))
                             prev = checkpoint
-            glPopMatrix()
-            glBegin(GL_LINES)
-            """for linestart, lineend in lines:
-                glVertex3f(linestart.x, -linestart.z, linestart.y)
-                glVertex3f(lineend.x, -lineend.z, lineend.y)"""
-            if vismenu.checkpoints.is_visible():
-                for group in self.level_file.checkpoints.groups:
+
+                glBegin(GL_LINES)
+                for i, group in enumerate(self.level_file.checkpoints.groups):
+                    glColor3f(*colors[i % 4])
                     prev = None
                     for checkpoint in group.points:
                         if prev is None:
@@ -1267,12 +1256,10 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                         else:
                             mid1 = (prev.start+prev.end)/2.0
                             mid2 = (checkpoint.start+checkpoint.end)/2.0
-                            #mid1 = prev.mid
-                            #mid2 = checkpoint.mid
                             glVertex3f(mid1.x, -mid1.z, mid1.y)
                             glVertex3f(mid2.x, -mid2.z, mid2.y)
                             prev = checkpoint
-            glEnd()
+                glEnd()
 
             if vismenu.objects.is_visible():
                 for object in self.level_file.objects.objects:
