@@ -566,6 +566,7 @@ class GenEditor(QMainWindow):
 
         self.level_view = BolMapViewer(int(self.editorconfig.get("multisampling", 8)),
                                        self.centralwidget)
+        self.level_view.editor = self
 
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.horizontalLayout.addWidget(self.leveldatatreeview)
@@ -2017,6 +2018,8 @@ class GenEditor(QMainWindow):
             self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
             self.pik_control.button_add_object.setChecked(False)
 
+        self.update_3d()
+
     def shortcut_open_add_item_window(self):
         self.button_open_add_item_window()
 
@@ -2290,6 +2293,7 @@ class GenEditor(QMainWindow):
             self.next_checkpoint_start_position = None
             self.pik_control.button_add_object.setChecked(False)
             #self.pik_control.button_move_object.setChecked(False)
+            self.update_3d()
 
         if event.key() == Qt.Key_Shift:
             self.level_view.shift_is_pressed = True

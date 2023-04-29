@@ -97,6 +97,8 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
     def __init__(self, samples, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.editor = None
+
         # Enable multisampling by setting the number of configured samples in the surface format.
         self.samples = samples
         if self.samples > 1:
@@ -1260,6 +1262,11 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
                             glVertex3f(mid2.x, -mid2.z, mid2.y)
                             prev = checkpoint
                 glEnd()
+
+                if self.editor.next_checkpoint_start_position is not None:
+                    self.models.render_generic_position_colored(
+                        Vector3(*self.editor.next_checkpoint_start_position), True,
+                        "checkpointleft")
 
             if vismenu.objects.is_visible():
                 for object in self.level_file.objects.objects:
