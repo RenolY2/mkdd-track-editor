@@ -12,8 +12,8 @@
   "Tooltips": [
     "The Respawn ID that the cannon will shoot towards",
     "",
-    "Sets model visibility. 0 = visible, 1 = invisible",
-    "0 = lots of screaming with a longer duration\n1 = a single 'yeeha', no landing sound\n2 = a single 'yeeha', with landing sound",
+    "0 = visible\n1 = invisible",
+    "0 = Lots of screaming with a longer duration.\n1 = A single scream, no landing sound.\n2 = A single scream, with landing sound.",
     "",
     "",
     "",

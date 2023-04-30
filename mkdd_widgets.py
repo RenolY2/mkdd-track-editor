@@ -1606,7 +1606,7 @@ class FilterViewMenu(QMenu):
 
         with open("lib/color_coding.json", "r") as f:
             colors = json.load(f)
-            colors = {k: (r * 255, g * 255, b * 255) for k, (r, g, b, _a) in colors.items()}
+            colors = {k: (round(r * 255), round(g * 255), round(b * 255)) for k, (r, g, b, _a) in colors.items()}
 
         self.enemyroute = ObjectViewSelectionToggle("Enemy Paths", self, False,
                                                     [colors["EnemyPaths"]])
