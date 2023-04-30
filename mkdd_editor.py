@@ -149,7 +149,7 @@ class GenEditor(QMainWindow):
         self.bco_coll = None
         self.loaded_archive = None
         self.loaded_archive_file = None
-        self.last_position_clicked = []
+        self.next_checkpoint_start_position = None
 
         self._dontselectfromtree = False
 
@@ -219,7 +219,7 @@ class GenEditor(QMainWindow):
 
     @catch_exception
     def reset(self):
-        self.last_position_clicked = []
+        self.next_checkpoint_start_position = None
         self.loaded_archive = None
         self.loaded_archive_file = None
         self.object_to_be_added = None
@@ -566,6 +566,7 @@ class GenEditor(QMainWindow):
 
         self.level_view = BolMapViewer(int(self.editorconfig.get("multisampling", 8)),
                                        self.centralwidget)
+        self.level_view.editor = self
 
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.horizontalLayout.addWidget(self.leveldatatreeview)
@@ -2008,12 +2009,16 @@ class GenEditor(QMainWindow):
 
     def button_open_add_item_window(self):
         self.add_object_window.update_label()
+        self.next_checkpoint_start_position = None
+
         accepted = self.add_object_window.exec_()
         if accepted:
             self.add_item_window_save()
         else:
             self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
             self.pik_control.button_add_object.setChecked(False)
+
+        self.update_3d()
 
     def shortcut_open_add_item_window(self):
         self.button_open_add_item_window()
@@ -2101,10 +2106,12 @@ class GenEditor(QMainWindow):
             position = 99999999 # this forces insertion at the end of the list
 
         if isinstance(object, libbol.Checkpoint):
-            if len(self.last_position_clicked) == 1:
+            if self.next_checkpoint_start_position is not None:
                 placeobject = deepcopy(object)
 
-                x1, y1, z1 = self.last_position_clicked[0]
+                x1, y1, z1 = self.next_checkpoint_start_position
+                self.next_checkpoint_start_position = None
+
                 placeobject.start.x = x1
                 placeobject.start.y = y1
                 placeobject.start.z = z1
@@ -2112,7 +2119,7 @@ class GenEditor(QMainWindow):
                 placeobject.end.x = x
                 placeobject.end.y = y
                 placeobject.end.z = z
-                self.last_position_clicked = []
+
                 # For convenience, create a group if none exists yet.
                 if group == 0 and not self.level_file.checkpoints.groups:
                     self.level_file.checkpoints.groups.append(libbol.CheckpointGroup.new())
@@ -2136,7 +2143,7 @@ class GenEditor(QMainWindow):
 
                 self.select_tree_item_bound_to(placeobject)
             else:
-                self.last_position_clicked = [(x, y, z)]
+                self.next_checkpoint_start_position = (x, y, z)
 
         else:
             placeobject = deepcopy(object)
@@ -2311,8 +2318,10 @@ class GenEditor(QMainWindow):
 
         if event.key() == Qt.Key_Escape:
             self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
+            self.next_checkpoint_start_position = None
             self.pik_control.button_add_object.setChecked(False)
             #self.pik_control.button_move_object.setChecked(False)
+            self.update_3d()
 
         if event.key() == Qt.Key_Shift:
             self.level_view.shift_is_pressed = True
