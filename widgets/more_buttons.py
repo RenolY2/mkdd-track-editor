@@ -11,8 +11,9 @@ class MoreButtons(QWidget):
     def add_button(self, obj, text, optionstring):
         new_button = QPushButton(self)
         new_button.setText(text)
+        gen_editor = self.parent().parent().parent()
         new_button.clicked.connect(
-            lambda: self.parent().parent.button_side_button_action(optionstring, obj))
+            lambda: gen_editor.button_side_button_action(optionstring, obj))
         self.vbox.addWidget(new_button)
 
     def add_buttons(self, option = None):
@@ -35,6 +36,12 @@ class MoreButtons(QWidget):
                 self.add_button(obj, "Add Route", "add_route")
         elif isinstance(obj, (Route, RoutePoint)):
             self.add_button(obj, "Add Route Points", "add_routepoints")
+        elif isinstance(obj, KartStartPoints):
+            #if len(obj.positions) == 0:
+            #^ this check should be performed when/if separate battle mode support is added
+            #or, someone needs to look into multiple starting points for regular courses
+            #i suspect that it's useless to add more than 1 point
+            self.add_button(obj, "Add Starting Point", "add_startpoint")
 
     def clear_buttons(self):
         for i in reversed(range(self.vbox.count())):
