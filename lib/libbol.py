@@ -185,12 +185,14 @@ class Rotation(object):
 
 
 class ObjectContainer(list):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, object_type=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.object_type = object_type
 
     @classmethod
     def from_file(cls, f, count, objcls):
         container = cls()
+        container.object_type = objcls
 
         for i in range(count):
             obj = objcls.from_file(f)
@@ -592,6 +594,12 @@ class Route(object):
         assert pad == b"\x00"*7
 
         return route
+
+    def get_index_of_point(self, point):
+        for i, mypoint in enumerate(self.points):
+            if mypoint == point:
+                return i
+        return -1
 
     def add_routepoints(self, points):
         for i in range(self._pointcount):
@@ -1049,7 +1057,7 @@ class BOL(object):
 
         self.enemypointgroups = EnemyPointGroups()
         self.checkpoints = CheckpointGroups()
-        self.routes = ObjectContainer()
+        self.routes = ObjectContainer(object_type=Route)
         self.objects = MapObjects()
         self.kartpoints = KartStartPoints()
         self.areas = Areas()
