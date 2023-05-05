@@ -166,6 +166,8 @@ class GenEditor(QMainWindow):
         self.leveldatatreeview.set_objects(self.level_file)
         self.leveldatatreeview.bound_to_group(self.level_file)
 
+        self.setAcceptDrops(True)
+
     def save_geometry(self):
         if "geometry" not in self.configuration:
             self.configuration["geometry"] = {}
@@ -1479,7 +1481,7 @@ class GenEditor(QMainWindow):
         return recent_files
 
     #@catch_exception
-    def button_load_level(self, checked=False, filepath=None):
+    def button_load_level(self, checked=False, filepath=None, update_config=True):
         _ = checked
 
         if filepath is None:
@@ -1506,7 +1508,7 @@ class GenEditor(QMainWindow):
                         coursename = find_file(self.loaded_archive.root, "_course.bol")
                         bol_file = self.loaded_archive[root_name + "/" + coursename]
                         bol_data = BOL.from_file(bol_file)
-                        self.setup_bol_file(bol_data, filepath)
+                        self.setup_bol_file(bol_data, filepath, update_config)
                         self.leveldatatreeview.set_objects(bol_data)
                         self.current_gen_path = filepath
                         self.loaded_archive_file = coursename
@@ -1550,7 +1552,7 @@ class GenEditor(QMainWindow):
                 with open(filepath, "rb") as f:
                     try:
                         bol_file = BOL.from_file(f)
-                        self.setup_bol_file(bol_file, filepath)
+                        self.setup_bol_file(bol_file, filepath, update_config)
                         self.leveldatatreeview.set_objects(bol_file)
                         self.current_gen_path = filepath
                     except Exception as error:
@@ -1778,7 +1780,7 @@ class GenEditor(QMainWindow):
 
         QtCore.QTimer.singleShot(0, self.update_3d)
 
-    def setup_bol_file(self, bol_file, filepath):
+    def setup_bol_file(self, bol_file, filepath, update_config=True):
         self.level_file = bol_file
         self.level_view.level_file = self.level_file
         # self.pikmin_gen_view.update()
@@ -1790,9 +1792,10 @@ class GenEditor(QMainWindow):
         # self.bw_map_screen.update()
         # path_parts = path.split(filepath)
         self.set_base_window_title(filepath)
-        self.pathsconfig["bol"] = filepath
-        self.update_recent_files_list(filepath)
-        save_cfg(self.configuration)
+        if update_config:
+            self.pathsconfig["bol"] = filepath
+            self.update_recent_files_list(filepath)
+            save_cfg(self.configuration)
         self.current_gen_path = filepath
 
     @catch_exception_with_dialog
@@ -2790,6 +2793,28 @@ class GenEditor(QMainWindow):
                     display_string += f"   📏 {obj_pos.y - height:.2f}"
 
         self.statusbar.showMessage(display_string)
+
+    def dragEnterEvent(self, event):
+        mime_data = event.mimeData()
+        if mime_data.hasUrls():
+            url = mime_data.urls()[0]
+            filepath = url.toLocalFile()
+            ext = os.path.splitext(filepath)[1].lower()
+            if ext in (".bol", ".arc", ".bmd", ".bco"):
+                event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        mime_data = event.mimeData()
+        if mime_data.hasUrls():
+            url = mime_data.urls()[0]
+            filepath = url.toLocalFile()
+            ext = os.path.splitext(filepath)[1].lower()
+            if ext in (".bol", ".arc"):
+                self.button_load_level(False, filepath, update_config=False)
+            elif ext == ".bco":
+                self.load_optional_bco(filepath)
+            elif ext == ".bmd":
+                self.load_optional_bmd(filepath)
 
 
 def find_file(rarc_folder, ending):
