@@ -2257,6 +2257,10 @@ class GenEditor(QMainWindow):
             self.object_to_be_added = [libbol.RoutePoint.new(), group_id, pos + 1]
             self.pik_control.button_add_object.setChecked(True)
             self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
+        elif option == "add_startpoint":
+            self.object_to_be_added = [libbol.KartStartPoint.new(), -1, -1]
+            self.pik_control.button_add_object.setChecked(True)
+            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
 
         self.leveldatatreeview.set_objects(self.level_file)
 
