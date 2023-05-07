@@ -1,10 +1,9 @@
-from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
+from PySide6 import QtCore, QtGui, QtWidgets
+
 from lib.libbol import BOL, get_full_name, AREA_TYPES
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QAction, QMenu
 
 
-class BaseTreeWidgetItem(QTreeWidgetItem):
+class BaseTreeWidgetItem(QtWidgets.QTreeWidgetItem):
 
     def get_index_in_parent(self):
         return self.parent().indexOfChild(self)
@@ -39,7 +38,7 @@ class ObjectGroupObjects(ObjectGroup):
 
         for item in items:
             self.addChild(item)"""
-        self.sortChildren(0, 0)
+        self.sortChildren(0, QtCore.Qt.SortOrder.AscendingOrder)
 
 
 # Groups
@@ -223,12 +222,12 @@ class MGEntry(NamedItem):
         self.setText(0, "MG")
 
 
-class LevelDataTreeView(QTreeWidget):
-    select_all = pyqtSignal(ObjectGroup)
-    reverse = pyqtSignal(ObjectGroup)
-    duplicate = pyqtSignal(ObjectGroup)
-    split = pyqtSignal(EnemyPointGroup, EnemyRoutePoint)
-    split_checkpoint = pyqtSignal(CheckpointGroup, Checkpoint)
+class LevelDataTreeView(QtWidgets.QTreeWidget):
+    select_all = QtCore.Signal(ObjectGroup)
+    reverse = QtCore.Signal(ObjectGroup)
+    duplicate = QtCore.Signal(ObjectGroup)
+    split = QtCore.Signal(EnemyPointGroup, EnemyRoutePoint)
+    split_checkpoint = QtCore.Signal(CheckpointGroup, Checkpoint)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
@@ -252,15 +251,15 @@ class LevelDataTreeView(QTreeWidget):
         self.lightparams = self._add_group("Light Params")
         self.mgentries = self._add_group("Minigame Params")
 
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.run_context_menu)
 
     def run_context_menu(self, pos):
         item = self.itemAt(pos)
 
         if isinstance(item, (EnemyRoutePoint, )):
-            context_menu = QMenu(self)
-            split_action = QAction("Split Group At", self)
+            context_menu = QtWidgets.QMenu(self)
+            split_action = QtGui.QAction("Split Group At", self)
 
             def emit_current_split():
                 item = self.itemAt(pos)
@@ -274,8 +273,8 @@ class LevelDataTreeView(QTreeWidget):
             context_menu.destroy()
             del context_menu
         elif isinstance(item, (Checkpoint, )):
-            context_menu = QMenu(self)
-            split_action = QAction("Split Group At", self)
+            context_menu = QtWidgets.QMenu(self)
+            split_action = QtGui.QAction("Split Group At", self)
 
             def emit_current_split():
                 item = self.itemAt(pos)
@@ -289,9 +288,9 @@ class LevelDataTreeView(QTreeWidget):
             context_menu.destroy()
             del context_menu
         elif isinstance(item, (EnemyPointGroup, ObjectPointGroup, CheckpointGroup)):
-            context_menu = QMenu(self)
-            select_all_action = QAction("Select All", self)
-            reverse_action = QAction("Reverse", self)
+            context_menu = QtWidgets.QMenu(self)
+            select_all_action = QtGui.QAction("Select All", self)
+            reverse_action = QtGui.QAction("Reverse", self)
 
             def emit_current_selectall():
                 item = self.itemAt(pos)
@@ -314,7 +313,7 @@ class LevelDataTreeView(QTreeWidget):
                     item = self.itemAt(pos)
                     self.duplicate.emit(item)
 
-                duplicate_action = QAction("Duplicate", self)
+                duplicate_action = QtGui.QAction("Duplicate", self)
                 duplicate_action.triggered.connect(emit_current_duplicate)
                 context_menu.addAction(duplicate_action)
 
@@ -436,14 +435,15 @@ class LevelDataTreeView(QTreeWidget):
         for item in items:
             self.objects.addChild(item)"""
 
-    def _get_expansion_states(self, parent_item: QTreeWidgetItem) -> 'tuple[bool]':
+    def _get_expansion_states(self, parent_item: QtWidgets.QTreeWidgetItem) -> 'tuple[bool]':
         expansion_states = []
         for i in range(parent_item.childCount()):
             item = parent_item.child(i)
             expansion_states.append(item.isExpanded())
         return expansion_states
 
-    def _set_expansion_states(self, parent_item: QTreeWidgetItem, expansion_states: 'tuple[bool]'):
+    def _set_expansion_states(self, parent_item: QtWidgets.QTreeWidgetItem,
+                              expansion_states: 'tuple[bool]'):
         item_count = parent_item.childCount()
         if item_count != len(expansion_states):
             # If the number of children has changed, it is not possible to reliably restore the

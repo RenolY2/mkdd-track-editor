@@ -23,7 +23,7 @@ bundle_dirpath = os.path.join(build_dirpath, bundle_dirname)
 build_exe_options = {
     "packages": ["OpenGL", "numpy.core._methods", "numpy.lib.format", "PIL"],
     "includes": ["widgets"],
-    "excludes": ["PyQt5.QtWebEngine", "PyQt5.QtWebEngineCore"],
+    "excludes": ["PySide6.QtWebEngine", "PySide6.QtWebEngineCore"],
     "optimize": 0,
     "build_exe": bundle_dirpath,
     "include_files": include_files

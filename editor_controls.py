@@ -2,7 +2,8 @@ from math import pi, tan, atan2, degrees, cos, sin
 from timeit import default_timer
 import abc
 
-from PyQt5.QtCore import Qt
+from PySide6 import QtCore
+
 from lib.vectors import Vector3, Plane, Vector2
 from gizmo import AXIS_X, AXIS_Y, AXIS_Z
 import numpy
@@ -16,9 +17,9 @@ MODE_3D = 1
 
 
 key_enums = {
-    "Middle": Qt.MiddleButton,
-    "Left": Qt.LeftButton,
-    "Right": Qt.RightButton
+    "Middle": QtCore.Qt.MiddleButton,
+    "Left": QtCore.Qt.LeftButton,
+    "Right": QtCore.Qt.RightButton
 }
 
 

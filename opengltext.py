@@ -1,8 +1,7 @@
 from math import sqrt
-# PyQt4 imports
-from PyQt5 import QtGui, QtCore, QtOpenGL, QtWidgets
-#from PyQt5.QtOpenGL import QOpenGLWidget
-# PyOpenGL imports
+
+from PySide6 import QtOpenGLWidgets, QtWidgets
+
 from OpenGL.GL import *
 import OpenGL.arrays.vbo as glvbo
 from lib.vectors import Vector3, Triangle
@@ -135,7 +134,7 @@ def draw_collision(verts, faces):
             glVertex3f(v3x, -v3z, v3y)
     glEnd()
 
-class GLPlotWidget(QtWidgets.QOpenGLWidget):
+class GLPlotWidget(QtOpenGLWidgets.QOpenGLWidget):
     # default window size
     width, height = 2000, 2000
 
@@ -221,4 +220,4 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     window = TempRenderWindow(verts, faces)
     window.show()
-    app.exec_()
+    app.exec()

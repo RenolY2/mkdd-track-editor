@@ -1,15 +1,16 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton
+from PySide6 import QtWidgets
+
 from lib.libbol import *
 from widgets.tree_view import BolHeader
 
-class MoreButtons(QWidget):
+class MoreButtons(QtWidgets.QWidget):
     def __init__(self, parent):
         super().__init__(parent)
-        self.vbox = QVBoxLayout(self)
+        self.vbox = QtWidgets.QVBoxLayout(self)
         self.vbox.setContentsMargins(0, 0, 0, 0)
 
     def add_button(self, obj, text, optionstring):
-        new_button = QPushButton(self)
+        new_button = QtWidgets.QPushButton(self)
         new_button.setText(text)
         gen_editor = self.parent().parent().parent()
         new_button.clicked.connect(

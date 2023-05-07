@@ -10,15 +10,7 @@ import json
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
-from PyQt5 import QtGui
-from PyQt5.QtGui import QCursor, QMouseEvent, QWheelEvent, QPainter, QColor, QFont, QFontMetrics, QPolygon, QImage, QPixmap, QKeySequence
-from PyQt5.QtWidgets import (QWidget, QListWidget, QListWidgetItem, QDialog, QMenu, QLineEdit,
-                            QMdiSubWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QTextEdit, QAction, QShortcut)
-import PyQt5.QtWidgets as QtWidgets
-import PyQt5.QtCore as QtCore
-from PyQt5.QtCore import QSize, pyqtSignal, QPoint, QRect
-from PyQt5.QtCore import Qt
-
+from PySide6 import QtCore, QtGui, QtOpenGLWidgets, QtWidgets
 
 from helper_functions import calc_zoom_in_factor, calc_zoom_out_factor
 from lib.libgen import GeneratorObject
@@ -78,21 +70,21 @@ class SelectionQueue(list):
             return None
 
 
-class BolMapViewer(QtWidgets.QOpenGLWidget):
-    mouse_clicked = pyqtSignal(QMouseEvent)
-    entity_clicked = pyqtSignal(QMouseEvent, str)
-    mouse_dragged = pyqtSignal(QMouseEvent)
-    mouse_released = pyqtSignal(QMouseEvent)
-    mouse_wheel = pyqtSignal(QWheelEvent)
-    position_update = pyqtSignal(QMouseEvent, tuple)
-    height_update = pyqtSignal(float)
-    select_update = pyqtSignal()
-    move_points = pyqtSignal(float, float, float)
-    connect_update = pyqtSignal(int, int)
-    create_waypoint = pyqtSignal(float, float)
-    create_waypoint_3d = pyqtSignal(float, float, float)
+class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
+    mouse_clicked = QtCore.Signal(QtGui.QMouseEvent)
+    entity_clicked = QtCore.Signal(QtGui.QMouseEvent, str)
+    mouse_dragged = QtCore.Signal(QtGui.QMouseEvent)
+    mouse_released = QtCore.Signal(QtGui.QMouseEvent)
+    mouse_wheel = QtCore.Signal(QtGui.QWheelEvent)
+    position_update = QtCore.Signal(QtGui.QMouseEvent, tuple)
+    height_update = QtCore.Signal(float)
+    select_update = QtCore.Signal()
+    move_points = QtCore.Signal(float, float, float)
+    connect_update = QtCore.Signal(int, int)
+    create_waypoint = QtCore.Signal(float, float)
+    create_waypoint_3d = QtCore.Signal(float, float, float)
 
-    rotate_current = pyqtSignal(Vector3)
+    rotate_current = QtCore.Signal(Vector3)
 
     def __init__(self, samples, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -113,15 +105,15 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.pick_depth_texture = None
 
         self._zoom_factor = 80
-        self.setFocusPolicy(Qt.ClickFocus)
+        self.setFocusPolicy(QtCore.Qt.ClickFocus)
 
         self.SIZEX = 1024#768#1024
         self.SIZEY = 1024#768#1024
 
         self.canvas_width, self.canvas_height = self.width(), self.height()
         self.resize(600, self.canvas_height)
-        #self.setMinimumSize(QSize(self.SIZEX, self.SIZEY))
-        #self.setMaximumSize(QSize(self.SIZEX, self.SIZEY))
+        #self.setMinimumSize(QtCore.QSize(self.SIZEX, self.SIZEY))
+        #self.setMaximumSize(QtCore.QSize(self.SIZEX, self.SIZEY))
         self.setObjectName("bw_map_screen")
 
         self.origin_x = self.SIZEX//2
@@ -167,7 +159,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.editorconfig = None
         self.visibility_menu = None
 
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 
         self.spawnpoint = None
         self.alternative_mesh = None
@@ -322,7 +314,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
             self.mode = MODE_3D
 
             if self.mousemode == MOUSE_MODE_NONE:
-                self.setContextMenuPolicy(Qt.DefaultContextMenu)
+                self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
 
             # This is necessary so that the position of the 3d camera equals the middle of the topdown view
             self.offset_x *= -1
@@ -334,7 +326,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         else:
             self.mode = MODE_TOPDOWN
             if self.mousemode == MOUSE_MODE_NONE:
-                self.setContextMenuPolicy(Qt.CustomContextMenu)
+                self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 
             self.offset_x *= -1
             self.do_redraw()
@@ -541,9 +533,9 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         self.mousemode = mode
 
         if self.mousemode == MOUSE_MODE_NONE and self.mode == MODE_TOPDOWN:
-            self.setContextMenuPolicy(Qt.CustomContextMenu)
+            self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         else:
-            self.setContextMenuPolicy(Qt.DefaultContextMenu)
+            self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
 
         cursor_shape = QtCore.Qt.ArrowCursor if mode == MOUSE_MODE_NONE else QtCore.Qt.CrossCursor
         self.setCursor(cursor_shape)
@@ -666,7 +658,7 @@ class BolMapViewer(QtWidgets.QOpenGLWidget):
         gizmo_hover_id = 0xFF
         if not self.selectionqueue and check_gizmo_hover_id:
             self.gizmo.render_collision_check(gizmo_scale, is3d=self.mode == MODE_3D)
-            mouse_pos = self.mapFromGlobal(QCursor.pos())
+            mouse_pos = self.mapFromGlobal(QtGui.QCursor.pos())
             pixels = glReadPixels(mouse_pos.x(), self.canvas_height - mouse_pos.y(), 1, 1, GL_RGB, GL_UNSIGNED_BYTE)
             gizmo_hover_id = pixels[2]
 
@@ -1553,8 +1545,8 @@ class ObjectViewSelectionToggle(object):
         for size in (16, 22, 24, 28, 32, 40, 48, 64, 80, 96):
             icon.addPixmap(create_object_type_pixmap(size, directed, colors))
 
-        self.action_view_toggle = QAction("{0}".format(name), menuparent)
-        self.action_select_toggle = QAction("{0} selectable".format(name), menuparent)
+        self.action_view_toggle = QtGui.QAction("{0}".format(name), menuparent)
+        self.action_select_toggle = QtGui.QAction("{0} selectable".format(name), menuparent)
         self.action_view_toggle.setCheckable(True)
         self.action_view_toggle.setChecked(True)
         self.action_view_toggle.setIcon(icon)
@@ -1585,18 +1577,18 @@ class ObjectViewSelectionToggle(object):
         return self.action_select_toggle.isChecked()
 
 
-class FilterViewMenu(QMenu):
-    filter_update = pyqtSignal()
+class FilterViewMenu(QtWidgets.QMenu):
+    filter_update = QtCore.Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setTitle("Filter View")
 
-        self.show_all = QAction("Show All", self)
+        self.show_all = QtGui.QAction("Show All", self)
         self.show_all.triggered.connect(self.handle_show_all)
         self.addAction(self.show_all)
 
-        self.hide_all = QAction("Hide All", self)
+        self.hide_all = QtGui.QAction("Hide All", self)
         self.hide_all.triggered.connect(self.handle_hide_all)
         self.addAction(self.hide_all)
 
@@ -1663,6 +1655,6 @@ class FilterViewMenu(QMenu):
             if action and action.isEnabled():
                 action.trigger()
             else:
-                QMenu.mouseReleaseEvent(self, e)
+                QtWidgets.QMenu.mouseReleaseEvent(self, e)
         except:
             traceback.print_exc()

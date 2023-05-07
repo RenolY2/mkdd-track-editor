@@ -1,11 +1,11 @@
-from PyQt5.Qt import QDialog, QWidget, QVBoxLayout, QListWidget
+from PySide6 import QtWidgets
 
 
-class FileSelect(QDialog):
+class FileSelect(QtWidgets.QDialog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        layout = QVBoxLayout(self)
-        self.listbox = QListWidget(self)
+        layout = QtWidgets.QVBoxLayout(self)
+        self.listbox = QtWidgets.QListWidget(self)
         layout.addWidget(self.listbox)
 
         self.listbox.doubleClicked.connect(self.set_selected)
