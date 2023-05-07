@@ -1,12 +1,30 @@
 {
-  "Object Parameters":
-          ["Duration",
-            "Time Offset",
-            "Throw Power",
-            "Unknown 4",
-             "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["geyser1.bmd", "geyser11.bca", "geyser12.bca", "geyser13.bca", "geyser14.bca"]
+    "Object Parameters": [
+        "Duration",
+        "Time Offset",
+        "Throw Power",
+        "Unknown 4",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "geyser1.bmd",
+        "geyser11.bca",
+        "geyser12.bca",
+        "geyser13.bca",
+        "geyser14.bca"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        457,
+        210,
+        102,
+        65,
+        0,
+        0,
+        0,
+        0
+    ]
 }

@@ -1,12 +1,26 @@
 {
-  "Object Parameters":
-          ["Unknown 1",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["snowrock1.bmd"]
+    "Object Parameters": [
+        "Unknown 1",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "snowrock1.bmd"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        943,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

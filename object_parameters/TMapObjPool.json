@@ -1,12 +1,27 @@
 {
-  "Object Parameters":
-          ["Unknown 1",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["pool.bmd", "pool.btk"]
+    "Object Parameters": [
+        "Unknown 1",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "pool.bmd",
+        "pool.btk"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        5,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

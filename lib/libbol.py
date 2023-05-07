@@ -6,6 +6,8 @@ from .vectors import Vector3
 from collections import OrderedDict
 from io import BytesIO
 from copy import deepcopy
+from os import exists
+from os.path import join
 
 def read_uint8(f):
     return unpack(">B", f.read(1))[0]
@@ -702,6 +704,16 @@ class MapObject(object):
             f.write(pack(">h", self.userdata[i]))
         #assert f.tell() - start == self._size
 
+    def route_info(self):
+        if not self.objectid in OBJECTNAMES:
+            return
+        name = OBJECTNAMES[self.objectid]
+        filename = join("object_parameters", name+".json")
+        if not exists(filename):
+            return
+        with open(filename, "r") as f:
+            json_data = json.load(f)
+        return json_data["RouteInfo"]
 
 class MapObjects(object):
     def __init__(self):

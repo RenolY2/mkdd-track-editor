@@ -1,12 +1,26 @@
 {
-  "Object Parameters":
-          ["Index",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": [""]
+    "Object Parameters": [
+        "Index",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        ""
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

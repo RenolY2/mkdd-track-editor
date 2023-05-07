@@ -1,12 +1,27 @@
 {
-  "Object Parameters":
-          ["Unknown 1",
-            "Unknown 2",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["yoshiheli.bmd", "yoshiheli.btk"]
+    "Object Parameters": [
+        "Unknown 1",
+        "Unknown 2",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "yoshiheli.bmd",
+        "yoshiheli.btk"
+    ],
+    "RouteInfo": "Indiv",
+    "DefaultValues": [
+        10000,
+        30000,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

@@ -1,12 +1,26 @@
 {
-  "Object Parameters":
-          ["Unknown 1",
-            "Unknown 2",
-            "Unknown 3",
-            "Unknown 4",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["geostar.bmd"]
+    "Object Parameters": [
+        "Unknown 1",
+        "Unknown 2",
+        "Unknown 3",
+        "Unknown 4",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "geostar.bmd"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        0,
+        80,
+        475,
+        1,
+        0,
+        0,
+        0,
+        0
+    ]
 }

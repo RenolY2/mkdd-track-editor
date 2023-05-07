@@ -1,12 +1,30 @@
 {
-  "Object Parameters":
-          ["Unknown 1",
-            "Unknown 2",
-            "Unknown 3",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["pakkun.bmd", "pakkun_attack.bca", "pakkun_damage.bca", "pakkun_wait.bca", "pakkunshadow.bmd"]
+    "Object Parameters": [
+        "Unknown 1",
+        "Unknown 2",
+        "Unknown 3",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "pakkun.bmd",
+        "pakkun_attack.bca",
+        "pakkun_damage.bca",
+        "pakkun_wait.bca",
+        "pakkunshadow.bmd"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        120,
+        5090,
+        1090,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

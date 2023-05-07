@@ -1,12 +1,27 @@
 {
-  "Object Parameters":
-          ["Unknown 1",
-            "Respawn ID",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["antlion.bmd", "antlion_eat.bck"]
+    "Object Parameters": [
+        "Unknown 1",
+        "Respawn ID",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "antlion.bmd",
+        "antlion_eat.bck"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        -570,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

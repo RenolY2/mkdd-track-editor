@@ -1,12 +1,29 @@
 {
-  "Object Parameters":
-          ["Speed",
-            "Partner",
-            "Color ID",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["heyho1.bca", "heyho1.bmd", "heyho1.btp", "heyho1shadow.bmd"]
+    "Object Parameters": [
+        "Speed",
+        "Partner",
+        "Color ID",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "heyho1.bca",
+        "heyho1.bmd",
+        "heyho1.btp",
+        "heyho1shadow.bmd"
+    ],
+    "RouteInfo": "Shared",
+    "DefaultValues": [
+        16,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

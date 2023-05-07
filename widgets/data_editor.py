@@ -5,7 +5,7 @@ import widgets.tooltip_list as ttl
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from collections import OrderedDict
-from PyQt5.QtWidgets import QSizePolicy, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QCheckBox, QLineEdit, QComboBox, QSizePolicy
+from PyQt5.QtWidgets import QSizePolicy, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QCheckBox, QLineEdit, QComboBox, QSizePolicy, QPushButton
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator
 from math import inf
 from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint, Route, RoutePoint,
@@ -37,6 +37,16 @@ def load_parameter_names(objectname):
         print(err)
         return None, None
 
+def load_default_values(objectid):
+    if not objectid in OBJECTNAMES:
+        return
+    name = OBJECTNAMES[objectid]
+    filename = os.path.join("object_parameters", name+".json")
+    if not os.exists(filename):
+        return
+    with open(filename, "r") as f:
+        json_data = json.load(f)
+    return json_data["DefaultValues"]
 
 class PythonIntValidator(QValidator):
     def __init__(self, min, max, parent):
@@ -301,6 +311,14 @@ class DataEditor(QWidget):
         self.vbox.addLayout(layout)
 
         return combobox
+
+    def add_button_input(self, labeltext, text, function):
+        button = QPushButton(self)
+        button.setText(text)
+        button.clicked.connect(function)
+        layout = self.create_labeled_widget(self, labeltext, button)
+        self.vbox.addLayout(layout)
+        return button
 
     def add_color_input(self, text, attribute, with_alpha=False):
         line_edits = []
@@ -873,6 +891,8 @@ class ObjectEdit(DataEditor):
         self.unk_2f = self.add_integer_input("Unknown 0x2F", "unk_2f",
                                              MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
 
+        self.objdatalabel = self.add_button_input(
+            "Object-Specific Settings", "Fill With Default Values", self.fill_default_values)
         self.userdata = []
         for i in range(8):
             self.userdata.append(
@@ -962,6 +982,16 @@ class ObjectEdit(DataEditor):
         self.flag.setChecked(obj.unk_flag != 0)
         for i in range(8):
             self.userdata[i][1].setText(str(obj.userdata[i]))
+
+    def fill_default_values(self):
+        obj = self.bound_to
+        defaults = load_default_values(obj.objectid)
+        if defaults is None:
+            return
+        obj.userdata = defaults.copy()
+
+        for i in range(8):
+            self.userdata[i][1].setText(str(defaults[i]))
 
 
 class KartStartPointEdit(DataEditor):
