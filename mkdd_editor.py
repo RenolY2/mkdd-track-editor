@@ -588,7 +588,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.file_menu = QtWidgets.QMenu(self)
         self.file_menu.setTitle("File")
 
-        save_file_shortcut = QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_S, self.file_menu)
+        save_file_shortcut = QtGui.QShortcut(QtCore.Qt.CTRL | QtCore.Qt.Key_S, self.file_menu)
         save_file_shortcut.activated.connect(self.button_save_level)
         #QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_O, self.file_menu).activated.connect(self.button_load_level)
         #QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_Alt + QtCore.Qt.Key_S, self.file_menu).activated.connect(self.button_save_level_as)
