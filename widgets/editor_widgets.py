@@ -11,14 +11,7 @@ import sys
 
 from PIL import Image
 
-from PyQt5.QtGui import QMouseEvent, QWheelEvent, QPainter, QColor, QFont, QFontMetrics, QPolygon, QImage, QPixmap, QKeySequence
-from PyQt5.QtWidgets import (QWidget, QListWidget, QListWidgetItem, QDialog, QMenu, QLineEdit, QFileDialog, QScrollArea,
-                            QMdiSubWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QTextEdit, QAction, QShortcut)
-import PyQt5.QtWidgets as QtWidgets
-import PyQt5.QtCore as QtCore
-from PyQt5.QtCore import QSize, pyqtSignal, QPoint, QRect
-from PyQt5.QtCore import Qt
-import PyQt5.QtGui as QtGui
+from PySide6 import QtCore, QtGui, QtWidgets
 
 import configuration
 import lib.libbol as libbol
@@ -75,24 +68,24 @@ def open_info_dialog(msg, self):
     box.setFixedSize(500, 200)
 
 
-class ErrorAnalyzer(QDialog):
+class ErrorAnalyzer(QtWidgets.QDialog):
 
     @catch_exception
     def __init__(self, bol, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        font = QFont()
+        font = QtGui.QFont()
         font.setFamily("Consolas")
-        font.setStyleHint(QFont.Monospace)
+        font.setStyleHint(QtGui.QFont.Monospace)
         font.setFixedPitch(True)
         font.setPointSize(10)
 
         self.setWindowTitle("Analysis Results")
-        self.text_widget = QTextEdit(self)
-        layout = QHBoxLayout(self)
+        self.text_widget = QtWidgets.QTextEdit(self)
+        layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.text_widget)
 
-        self.setMinimumSize(QSize(300, 300))
+        self.setMinimumSize(QtCore.QSize(300, 300))
         self.text_widget.setFont(font)
         self.text_widget.setReadOnly(True)
 
@@ -275,7 +268,7 @@ class ErrorAnalyzerButton(QtWidgets.QPushButton):
         self.setEnabled(True)
 
 
-class AddPikObjectWindow(QDialog):
+class AddPikObjectWindow(QtWidgets.QDialog):
 
     @catch_exception
     def __init__(self, *args, **kwargs):
@@ -288,19 +281,19 @@ class AddPikObjectWindow(QDialog):
         width = self.fontMetrics().averageCharWidth() * 80
         height = self.fontMetrics().height() * 42
         self.resize(width, height)
-        self.setMinimumSize(QSize(300, 300))
+        self.setMinimumSize(QtCore.QSize(300, 300))
 
         self.entity = None
 
-        font = QFont()
+        font = QtGui.QFont()
         font.setFamily("Consolas")
-        font.setStyleHint(QFont.Monospace)
+        font.setStyleHint(QtGui.QFont.Monospace)
         font.setFixedPitch(True)
         font.setPointSize(10)
 
 
-        self.verticalLayout = QVBoxLayout(self)
-        self.verticalLayout.setAlignment(Qt.AlignTop)
+        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+        self.verticalLayout.setAlignment(QtCore.Qt.AlignTop)
 
 
 
@@ -308,23 +301,23 @@ class AddPikObjectWindow(QDialog):
 
 
 
-        self.hbox1 = QHBoxLayout()
-        self.hbox2 = QHBoxLayout()
+        self.hbox1 = QtWidgets.QHBoxLayout()
+        self.hbox2 = QtWidgets.QHBoxLayout()
 
-        self.label1 = QLabel(self)
-        self.label2 = QLabel(self)
-        self.label3 = QLabel(self)
+        self.label1 = QtWidgets.QLabel(self)
+        self.label2 = QtWidgets.QLabel(self)
+        self.label3 = QtWidgets.QLabel(self)
         self.label1.setText("Group")
         self.label2.setText("Position in Group")
         self.label3.setText("(-1 means end of Group)")
-        self.group_edit = QLineEdit(self)
-        self.position_edit = QLineEdit(self)
+        self.group_edit = QtWidgets.QLineEdit(self)
+        self.position_edit = QtWidgets.QLineEdit(self)
 
         self.group_edit.setValidator(QtGui.QIntValidator(0, 2**31-1))
         self.position_edit.setValidator(QtGui.QIntValidator(-1, 2**31-1))
 
-        self.hbox1.setAlignment(Qt.AlignRight)
-        self.hbox2.setAlignment(Qt.AlignRight)
+        self.hbox1.setAlignment(QtCore.Qt.AlignRight)
+        self.hbox2.setAlignment(QtCore.Qt.AlignRight)
 
         self.verticalLayout.addLayout(self.hbox1)
         self.verticalLayout.addLayout(self.hbox2)
@@ -342,15 +335,14 @@ class AddPikObjectWindow(QDialog):
 
 
         self.editor_widget = None
-        self.editor_layout = QScrollArea()#QVBoxLayout(self.centralwidget)
+        self.editor_layout = QtWidgets.QScrollArea()
         palette = self.editor_layout.palette()
         palette.setBrush(self.editor_layout.backgroundRole(), palette.dark())
         self.editor_layout.setPalette(palette)
         self.editor_layout.setWidgetResizable(True)
         self.verticalLayout.addWidget(self.editor_layout)
-        #self.textbox_xml = QTextEdit(self.centralwidget)
-        button_area_layout = QHBoxLayout()
-        self.button_savetext = QPushButton(self)
+        button_area_layout = QtWidgets.QHBoxLayout()
+        self.button_savetext = QtWidgets.QPushButton(self)
         self.button_savetext.setText("Add Object")
         self.button_savetext.setToolTip("Hotkey: Ctrl+S")
         self.button_savetext.setDisabled(True)
@@ -361,10 +353,10 @@ class AddPikObjectWindow(QDialog):
         self.verticalLayout.addLayout(button_area_layout)
         self.setWindowTitle(self.window_name)
         self.created_object = None
-        #QtWidgets.QShortcut(Qt.CTRL + Qt.Key_S, self).activated.connect(self.emit_add_object)
+        #QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_S, self).activated.connect(self.emit_add_object)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent):
-        if event.key() == Qt.CTRL + Qt.Key_S:
+        if event.key() == QtCore.Qt.CTRL + QtCore.Qt.Key_S:
             self.emit_add_object()
         else:
             super().keyPressEvent(event)
@@ -509,35 +501,35 @@ class AddPikObjectWindow(QDialog):
         self.label2.setVisible(self.position_edit.isVisible())
         self.label3.setVisible(self.position_edit.isVisible())
 
-class SpawnpointEditor(QMdiSubWindow):
-    triggered = pyqtSignal(object)
-    closing = pyqtSignal()
+class SpawnpointEditor(QtWidgets.QMdiSubWindow):
+    triggered = QtCore.Signal(object)
+    closing = QtCore.Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.centralwidget = QWidget(self)
+        self.centralwidget = QtWidgets.QWidget(self)
         self.setWidget(self.centralwidget)
         self.entity = None
         self.resize(400, 200)
 
-        font = QFont()
+        font = QtGui.QFont()
         font.setFamily("Consolas")
-        font.setStyleHint(QFont.Monospace)
+        font.setStyleHint(QtGui.QFont.Monospace)
         font.setFixedPitch(True)
         font.setPointSize(10)
-        self.verticalLayout = QVBoxLayout(self.centralwidget)
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
 
-        self.position = QLineEdit(self.centralwidget)
-        self.rotation = QLineEdit(self.centralwidget)
+        self.position = QtWidgets.QLineEdit(self.centralwidget)
+        self.rotation = QtWidgets.QLineEdit(self.centralwidget)
 
-        self.button_savetext = QPushButton(self.centralwidget)
+        self.button_savetext = QtWidgets.QPushButton(self.centralwidget)
         self.button_savetext.setText("Set Data")
         self.button_savetext.setMaximumWidth(400)
 
-        self.verticalLayout.addWidget(QLabel("startPos"))
+        self.verticalLayout.addWidget(QtWidgets.QLabel("startPos"))
         self.verticalLayout.addWidget(self.position)
-        self.verticalLayout.addWidget(QLabel("startDir"))
+        self.verticalLayout.addWidget(QtWidgets.QLabel("startDir"))
         self.verticalLayout.addWidget(self.rotation)
         self.verticalLayout.addWidget(self.button_savetext)
         self.setWindowTitle("Edit startPos/Dir")
@@ -572,7 +564,7 @@ def blocked_signals(obj: QtCore.QObject):
 
 class SpinnableSlider(QtWidgets.QWidget):
 
-    value_changed = QtCore.pyqtSignal(int)
+    value_changed = QtCore.Signal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -830,7 +822,7 @@ def show_minimap_generator(editor: 'GenEditor'):
     image_widget.setAlignment(QtCore.Qt.AlignCenter)
     image_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
     image_widget.customContextMenuRequested.connect(
-        lambda pos: menu.exec_(image_widget.mapToGlobal(pos)))
+        lambda pos: menu.exec(image_widget.mapToGlobal(pos)))
     palette = image_widget.palette()
     palette.setColor(image_widget.foregroundRole(), QtGui.QColor(170, 20, 20))
     image_widget.setPalette(palette)
@@ -1014,7 +1006,7 @@ def show_minimap_generator(editor: 'GenEditor'):
 
     update()
 
-    dialog.exec_()
+    dialog.exec()
 
     # Save values in settings before returning.
     config['orientation'] = str(orientation_combobox.currentIndex())

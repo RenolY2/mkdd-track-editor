@@ -2,11 +2,9 @@ import os
 import json
 import widgets.tooltip_list as ttl
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from collections import OrderedDict
-from PyQt5.QtWidgets import QSizePolicy, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QCheckBox, QLineEdit, QComboBox, QSizePolicy
-from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator
 from math import inf
 from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint, Route, RoutePoint,
                         MapObject, KartStartPoint, Area, Camera, BOL, JugemPoint, MapObject,
@@ -14,7 +12,6 @@ from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint
                         SWERVE_IDS, REVERSE_SWERVE_IDS, REVERSE_AREA_TYPES)
 from lib.vectors import Vector3
 from lib.model_rendering import Minimap
-from PyQt5.QtCore import pyqtSignal
 
 
 def load_parameter_names(objectname):
@@ -38,7 +35,7 @@ def load_parameter_names(objectname):
         return None, None
 
 
-class PythonIntValidator(QValidator):
+class PythonIntValidator(QtGui.QValidator):
     def __init__(self, min, max, parent):
         super().__init__(parent)
         self.min = min
@@ -46,17 +43,17 @@ class PythonIntValidator(QValidator):
 
     def validate(self, p_str, p_int):
         if p_str == "" or p_str == "-":
-            return QValidator.Intermediate, p_str, p_int
+            return QtGui.QValidator.Intermediate, p_str, p_int
 
         try:
             result = int(p_str)
         except:
-            return QValidator.Invalid, p_str, p_int
+            return QtGui.QValidator.Invalid, p_str, p_int
 
         if self.min <= result <= self.max:
-            return QValidator.Acceptable, p_str, p_int
+            return QtGui.QValidator.Acceptable, p_str, p_int
         else:
-            return QValidator.Invalid, p_str, p_int
+            return QtGui.QValidator.Invalid, p_str, p_int
 
     def fixup(self, s):
         pass
@@ -64,7 +61,7 @@ class PythonIntValidator(QValidator):
 
 class ClickableLabel(QtWidgets.QLabel):
 
-    clicked = pyqtSignal()
+    clicked = QtCore.Signal()
 
     def mouseReleaseEvent(self, event):
 
@@ -75,8 +72,8 @@ class ClickableLabel(QtWidgets.QLabel):
 
 class ColorPicker(ClickableLabel):
 
-    color_changed = QtCore.pyqtSignal(QtGui.QColor)
-    color_picked = QtCore.pyqtSignal(QtGui.QColor)
+    color_changed = QtCore.Signal(QtGui.QColor)
+    color_picked = QtCore.Signal(QtGui.QColor)
 
     def __init__(self, with_alpha=False):
         super().__init__()
@@ -104,7 +101,7 @@ class ColorPicker(ClickableLabel):
 
         color = self.color
 
-        accepted = dialog.exec_()
+        accepted = dialog.exec()
         if accepted:
             self.color = dialog.currentColor()
             self.color_picked.emit(self.color)
@@ -122,14 +119,14 @@ class ColorPicker(ClickableLabel):
         self.setPixmap(pixmap)
 
 
-class DataEditor(QWidget):
-    emit_3d_update = pyqtSignal()
+class DataEditor(QtWidgets.QWidget):
+    emit_3d_update = QtCore.Signal()
 
     def __init__(self, parent, bound_to):
         super().__init__(parent)
 
         self.bound_to = bound_to
-        self.vbox = QVBoxLayout(self)
+        self.vbox = QtWidgets.QVBoxLayout(self)
         self.vbox.setContentsMargins(0, 0, 0, 0)
         self.vbox.setSpacing(3)
 
@@ -145,7 +142,7 @@ class DataEditor(QWidget):
         pass
 
     def create_label(self, text):
-        label = QLabel(self)
+        label = QtWidgets.QLabel(self)
         label.setText(text)
         return label
 
@@ -155,7 +152,7 @@ class DataEditor(QWidget):
         return label
 
     def create_labeled_widget(self, parent, text, widget):
-        layout = QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         layout.setSpacing(5)
         label = self.create_label(text)
         label.setText(text)
@@ -164,13 +161,13 @@ class DataEditor(QWidget):
         return layout
 
     def create_labeled_widgets(self, parent, text, widgetlist):
-        layout = QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         layout.setSpacing(5)
         label = self.create_label(text)
         label.setText(text)
         layout.addWidget(label)
         if len(widgetlist) > 1:
-            child_layout = QHBoxLayout()
+            child_layout = QtWidgets.QHBoxLayout()
             child_layout.setSpacing(1)
             child_layout.setContentsMargins(0, 0, 0, 0)
             for widget in widgetlist:
@@ -181,7 +178,7 @@ class DataEditor(QWidget):
         return layout
 
     def add_checkbox(self, text, attribute, off_value, on_value):
-        checkbox = QCheckBox(self)
+        checkbox = QtWidgets.QCheckBox(self)
         layout = self.create_labeled_widget(self, text, checkbox)
 
         def checked(state):
@@ -196,7 +193,7 @@ class DataEditor(QWidget):
         return checkbox
 
     def add_integer_input(self, text, attribute, min_val, max_val):
-        line_edit = QLineEdit(self)
+        line_edit = QtWidgets.QLineEdit(self)
         layout = self.create_labeled_widget(self, text, line_edit)
 
         line_edit.setValidator(PythonIntValidator(min_val, max_val, line_edit))
@@ -215,10 +212,10 @@ class DataEditor(QWidget):
         return line_edit
 
     def add_integer_input_index(self, text, attribute, index, min_val, max_val):
-        line_edit = QLineEdit(self)
+        line_edit = QtWidgets.QLineEdit(self)
         layout = self.create_labeled_widget(self, text, line_edit)
 
-        line_edit.setValidator(QIntValidator(min_val, max_val, self))
+        line_edit.setValidator(QtGui.QIntValidator(min_val, max_val, self))
 
         def input_edited():
             text = line_edit.text()
@@ -233,10 +230,10 @@ class DataEditor(QWidget):
         return label, line_edit
 
     def add_decimal_input(self, text, attribute, min_val, max_val):
-        line_edit = QLineEdit(self)
+        line_edit = QtWidgets.QLineEdit(self)
         layout = self.create_labeled_widget(self, text, line_edit)
 
-        line_edit.setValidator(QDoubleValidator(min_val, max_val, 6, self))
+        line_edit.setValidator(QtGui.QDoubleValidator(min_val, max_val, 6, self))
 
         def input_edited():
             text = line_edit.text()
@@ -251,7 +248,7 @@ class DataEditor(QWidget):
         return line_edit
 
     def add_text_input(self, text, attribute, maxlength):
-        line_edit = QLineEdit(self)
+        line_edit = QtWidgets.QLineEdit(self)
         layout = self.create_labeled_widget(self, text, line_edit)
 
         line_edit.setMaxLength(maxlength)
@@ -267,7 +264,7 @@ class DataEditor(QWidget):
         return line_edit
 
     def add_dropdown_input(self, text, attribute, keyval_dict):
-        combobox = QComboBox(self)
+        combobox = QtWidgets.QComboBox(self)
         for val in keyval_dict:
             combobox.addItem(val)
 
@@ -281,9 +278,9 @@ class DataEditor(QWidget):
                 combobox.setToolTip(tt_dict[defaultitem])
 
         policy = combobox.sizePolicy()
-        policy.setHorizontalPolicy(QSizePolicy.Expanding)
+        policy.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
         combobox.setSizePolicy(policy)
-        combobox.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        combobox.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
 
         layout = self.create_labeled_widget(self, text, combobox)
 
@@ -307,9 +304,9 @@ class DataEditor(QWidget):
         input_edited_callbacks = []
 
         for subattr in ["r", "g", "b", "a"] if with_alpha else ["r", "g", "b"]:
-            line_edit = QLineEdit(self)
+            line_edit = QtWidgets.QLineEdit(self)
             line_edit.setMaximumWidth(30)
-            line_edit.setValidator(QIntValidator(0, 255, self))
+            line_edit.setValidator(QtGui.QIntValidator(0, 255, self))
             input_edited = create_setter(line_edit, self.bound_to, attribute, subattr, self.catch_text_update, isFloat=False)
             input_edited_callbacks.append(input_edited)
             line_edit.editingFinished.connect(input_edited)
@@ -351,12 +348,12 @@ class DataEditor(QWidget):
     def add_multiple_integer_input(self, text, attribute, subattributes, min_val, max_val):
         line_edits = []
         for subattr in subattributes:
-            line_edit = QLineEdit(self)
+            line_edit = QtWidgets.QLineEdit(self)
 
             if max_val <= MAX_UNSIGNED_BYTE:
                 line_edit.setMaximumWidth(30)
 
-            line_edit.setValidator(QIntValidator(min_val, max_val, self))
+            line_edit.setValidator(QtGui.QIntValidator(min_val, max_val, self))
 
             input_edited = create_setter(line_edit, self.bound_to, attribute, subattr, self.catch_text_update, isFloat=False)
 
@@ -372,9 +369,9 @@ class DataEditor(QWidget):
     def add_multiple_decimal_input(self, text, attribute, subattributes, min_val, max_val):
         line_edits = []
         for subattr in subattributes:
-            line_edit = QLineEdit(self)
+            line_edit = QtWidgets.QLineEdit(self)
 
-            line_edit.setValidator(QDoubleValidator(min_val, max_val, 6, self))
+            line_edit.setValidator(QtGui.QDoubleValidator(min_val, max_val, 6, self))
 
             input_edited = create_setter(line_edit, self.bound_to, attribute, subattr, self.catch_text_update, isFloat=True)
             line_edit.editingFinished.connect(input_edited)
@@ -389,10 +386,10 @@ class DataEditor(QWidget):
         line_edits = []
         fieldlist = getattr(self.bound_to, attribute)
         for i in range(len(fieldlist)):
-            line_edit = QLineEdit(self)
+            line_edit = QtWidgets.QLineEdit(self)
             line_edit.setMaximumWidth(30)
 
-            line_edit.setValidator(QIntValidator(min_val, max_val, self))
+            line_edit.setValidator(QtGui.QIntValidator(min_val, max_val, self))
 
             input_edited = create_setter_list(line_edit, self.bound_to, attribute, i)
             line_edit.editingFinished.connect(input_edited)
@@ -440,25 +437,25 @@ class DataEditor(QWidget):
         left_edits = []
 
         for attr in ("x", "y", "z"):
-            line_edit = QLineEdit(self)
-            validator = QDoubleValidator(-1.0, 1.0, 9999, self)
-            validator.setNotation(QDoubleValidator.StandardNotation)
+            line_edit = QtWidgets.QLineEdit(self)
+            validator = QtGui.QDoubleValidator(-1.0, 1.0, 9999, self)
+            validator.setNotation(QtGui.QDoubleValidator.StandardNotation)
             line_edit.setValidator(validator)
 
             forward_edits.append(line_edit)
 
         for attr in ("x", "y", "z"):
-            line_edit = QLineEdit(self)
-            validator = QDoubleValidator(-1.0, 1.0, 9999, self)
-            validator.setNotation(QDoubleValidator.StandardNotation)
+            line_edit = QtWidgets.QLineEdit(self)
+            validator = QtGui.QDoubleValidator(-1.0, 1.0, 9999, self)
+            validator.setNotation(QtGui.QDoubleValidator.StandardNotation)
             line_edit.setValidator(validator)
 
             up_edits.append(line_edit)
 
         for attr in ("x", "y", "z"):
-            line_edit = QLineEdit(self)
-            validator = QDoubleValidator(-1.0, 1.0, 9999, self)
-            validator.setNotation(QDoubleValidator.StandardNotation)
+            line_edit = QtWidgets.QLineEdit(self)
+            validator = QtGui.QDoubleValidator(-1.0, 1.0, 9999, self)
+            validator.setNotation(QtGui.QDoubleValidator.StandardNotation)
             line_edit.setValidator(validator)
 
             left_edits.append(line_edit)
@@ -890,7 +887,7 @@ class ObjectEdit(DataEditor):
         self.assets = self.add_label("Required Assets: Unknown")
         self.assets.setWordWrap(True)
         hint = self.assets.sizePolicy()
-        hint.setVerticalPolicy(QSizePolicy.Minimum)
+        hint.setVerticalPolicy(QtWidgets.QSizePolicy.Minimum)
         self.assets.setSizePolicy(hint)
 
     def rename_object_parameters(self, current):

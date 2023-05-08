@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PySide6 import QtCore, QtWidgets, QtGui
 
 from widgets.data_editor import choose_data_editor
 from widgets.more_buttons import MoreButtons

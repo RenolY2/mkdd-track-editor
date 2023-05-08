@@ -8,15 +8,8 @@ from io import TextIOWrapper, BytesIO, StringIO
 from math import sin, cos, atan2
 import json
 from PIL import Image
-import PyQt5.QtWidgets as QtWidgets
-import PyQt5.QtCore as QtCore
-from PyQt5.QtCore import Qt
 
-from PyQt5.QtWidgets import (QWidget, QMainWindow, QFileDialog, QSplitter,
-                             QSpacerItem, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QHBoxLayout,
-                             QScrollArea, QGridLayout, QMenuBar, QMenu, QAction, QApplication, QStatusBar, QLineEdit)
-from PyQt5.QtGui import QMouseEvent, QImage
-import PyQt5.QtGui as QtGui
+from PySide6 import QtCore, QtGui, QtWidgets
 
 import opengltext
 import py_obj
@@ -40,7 +33,6 @@ from lib.model_rendering import TexturedModel, CollisionModel, Minimap
 from widgets.editor_widgets import ErrorAnalyzer, ErrorAnalyzerButton, show_minimap_generator
 from lib.dolreader import DolFile, read_float, write_float, read_load_immediate_r0, write_load_immediate_r0, UnmappedAddress
 from widgets.file_select import FileSelect
-from PyQt5.QtWidgets import QTreeWidgetItem
 from lib.bmd_render import clear_temp_folder, load_textured_bmd
 from lib.game_visualizer import Game
 PIKMIN2GEN = "Generator files (defaultgen.txt;initgen.txt;plantsgen.txt;*.txt)"
@@ -83,7 +75,7 @@ def detect_dol_region(dol):
     raise RuntimeError("Unsupported DOL version/region")
 
 
-def get_treeitem(root:QTreeWidgetItem, obj):
+def get_treeitem(root: QtWidgets.QTreeWidgetItem, obj):
     for i in range(root.childCount()):
         child = root.child(i)
         if child.bound_to == obj:
@@ -106,7 +98,7 @@ class UndoEntry:
         return self.hash == other.hash
 
 
-class GenEditor(QMainWindow):
+class GenEditor(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.level_file = BOL()
@@ -212,7 +204,7 @@ class GenEditor(QMainWindow):
             msgbox.setText('Are you sure you want to exit the application?')
             msgbox.addButton('Cancel', QtWidgets.QMessageBox.RejectRole)
             exit_button = msgbox.addButton('Exit', QtWidgets.QMessageBox.DestructiveRole)
-            msgbox.exec_()
+            msgbox.exec()
             if msgbox.clickedButton() != exit_button:
                 event.ignore()
                 return
@@ -558,7 +550,7 @@ class GenEditor(QMainWindow):
         #self.centralwidget = QWidget(self)
         #self.centralwidget.setObjectName("centralwidget")
 
-        self.horizontalLayout = QSplitter()
+        self.horizontalLayout = QtWidgets.QSplitter()
         self.centralwidget = self.horizontalLayout
         self.setCentralWidget(self.horizontalLayout)
         self.leveldatatreeview = LevelDataTreeView(self.centralwidget)
@@ -574,15 +566,13 @@ class GenEditor(QMainWindow):
         self.horizontalLayout.addWidget(self.leveldatatreeview)
         self.horizontalLayout.addWidget(self.level_view)
         self.leveldatatreeview.resize(200, self.leveldatatreeview.height())
-        spacerItem = QSpacerItem(10, 20, QSizePolicy.Minimum, QSizePolicy.Expanding)
-        #self.horizontalLayout.addItem(spacerItem)
 
         self.pik_control = PikminSideWidget(self)
         self.horizontalLayout.addWidget(self.pik_control)
 
-        QtWidgets.QShortcut(Qt.Key_G, self).activated.connect(self.action_ground_objects)
-        #QtWidgets.QShortcut(Qt.CTRL + Qt.Key_A, self).activated.connect(self.shortcut_open_add_item_window)
-        self.statusbar = QStatusBar(self)
+        QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_G), self).activated.connect(self.action_ground_objects)
+        #QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_A, self).activated.connect(self.shortcut_open_add_item_window)
+        self.statusbar = QtWidgets.QStatusBar(self)
         self.statusbar.setObjectName("statusbar")
         self.setStatusBar(self.statusbar)
 
@@ -594,24 +584,24 @@ class GenEditor(QMainWindow):
 
     @catch_exception_with_dialog
     def setup_ui_menubar(self):
-        self.menubar = QMenuBar(self)
-        self.file_menu = QMenu(self)
+        self.menubar = QtWidgets.QMenuBar(self)
+        self.file_menu = QtWidgets.QMenu(self)
         self.file_menu.setTitle("File")
 
-        save_file_shortcut = QtWidgets.QShortcut(Qt.CTRL + Qt.Key_S, self.file_menu)
+        save_file_shortcut = QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_S, self.file_menu)
         save_file_shortcut.activated.connect(self.button_save_level)
-        #QtWidgets.QShortcut(Qt.CTRL + Qt.Key_O, self.file_menu).activated.connect(self.button_load_level)
-        #QtWidgets.QShortcut(Qt.CTRL + Qt.Key_Alt + Qt.Key_S, self.file_menu).activated.connect(self.button_save_level_as)
+        #QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_O, self.file_menu).activated.connect(self.button_load_level)
+        #QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_Alt + QtCore.Qt.Key_S, self.file_menu).activated.connect(self.button_save_level_as)
 
-        self.file_load_action = QAction("Load", self)
-        self.file_load_recent_menu = QMenu("Load Recent", self)
-        self.save_file_action = QAction("Save", self)
-        self.save_file_as_action = QAction("Save As", self)
+        self.file_load_action = QtGui.QAction("Load", self)
+        self.file_load_recent_menu = QtWidgets.QMenu("Load Recent", self)
+        self.save_file_action = QtGui.QAction("Save", self)
+        self.save_file_as_action = QtGui.QAction("Save As", self)
         self.save_file_action.setShortcut("Ctrl+S")
         self.file_load_action.setShortcut("Ctrl+O")
         self.save_file_as_action.setShortcut("Ctrl+Alt+S")
 
-        self.save_file_copy_as_action = QAction("Save Copy As", self)
+        self.save_file_copy_as_action = QtGui.QAction("Save Copy As", self)
 
         self.file_load_action.triggered.connect(self.button_load_level)
         self.save_file_action.triggered.connect(self.button_save_level)
@@ -628,7 +618,7 @@ class GenEditor(QMainWindow):
 
         self.file_menu.aboutToShow.connect(self.on_file_menu_aboutToShow)
 
-        self.edit_menu = QMenu(self)
+        self.edit_menu = QtWidgets.QMenu(self)
         self.edit_menu.setTitle("Edit")
         self.undo_action = self.edit_menu.addAction('Undo')
         self.undo_action.setShortcut(QtGui.QKeySequence('Ctrl+Z'))
@@ -666,15 +656,15 @@ class GenEditor(QMainWindow):
                 object_toggle.action_select_toggle.blockSignals(False)
 
         # ------ Collision Menu
-        self.collision_menu = QMenu(self.menubar)
+        self.collision_menu = QtWidgets.QMenu(self.menubar)
         self.collision_menu.setTitle("Geometry")
-        self.collision_load_action = QAction("Load OBJ", self)
+        self.collision_load_action = QtGui.QAction("Load OBJ", self)
         self.collision_load_action.triggered.connect(self.button_load_collision)
         self.collision_menu.addAction(self.collision_load_action)
-        self.collision_load_grid_action = QAction("Load BCO", self)
+        self.collision_load_grid_action = QtGui.QAction("Load BCO", self)
         self.collision_load_grid_action.triggered.connect(self.button_load_collision_bco)
         self.collision_menu.addAction(self.collision_load_grid_action)
-        self.collision_load_bmd_action = QAction("Load BMD", self)
+        self.collision_load_bmd_action = QtGui.QAction("Load BMD", self)
         self.collision_load_bmd_action.triggered.connect(self.button_load_collision_bmd)
         self.collision_menu.addAction(self.collision_load_bmd_action)
         self.collision_menu.addSeparator()
@@ -683,7 +673,7 @@ class GenEditor(QMainWindow):
         cull_faces_action.setChecked(self.editorconfig.get("cull_faces") == "True")
         cull_faces_action.triggered.connect(self.on_cull_faces_triggered)
         self.collision_menu.addSeparator()
-        self.choose_default_collision = QMenu("Choose Autoloaded Geometry", self)
+        self.choose_default_collision = QtWidgets.QMenu("Choose Autoloaded Geometry", self)
         self.collision_menu.addMenu(self.choose_default_collision)
         self.auto_load_choose = self.choose_default_collision.addAction("Always Ask")
         self.auto_load_choose.setCheckable(True)
@@ -704,20 +694,20 @@ class GenEditor(QMainWindow):
         if self.editorconfig.get("addi_file_on_load") not in ("BCO", "BMD", "None", "Choose"):
             self.on_default_geometry_changed("Choose")
         self.collision_menu.addSeparator()
-        self.clear_current_collision = QAction("Clear Current Model", self)
+        self.clear_current_collision = QtGui.QAction("Clear Current Model", self)
         self.clear_current_collision.triggered.connect(self.clear_collision)
         self.collision_menu.addAction(self.clear_current_collision)
 
-        self.minimap_menu = QMenu(self.menubar)
+        self.minimap_menu = QtWidgets.QMenu(self.menubar)
         self.minimap_menu.setTitle("Minimap")
-        load_minimap = QAction("Load Minimap Image", self)
-        save_minimap_png = QAction("Save Minimap Image as PNG", self)
-        save_minimap_bti = QAction("Save Minimap Image as BTI", self)
-        load_coordinates_dol = QAction("Load Data from DOL", self)
-        save_coordinates_dol = QAction("Save Data to DOL", self)
-        load_coordinates_json = QAction("Load Data from JSON", self)
-        save_coordinates_json = QAction("Save Data to JSON", self)
-        minimap_generator_action = QAction("Minimap Generator", self)
+        load_minimap = QtGui.QAction("Load Minimap Image", self)
+        save_minimap_png = QtGui.QAction("Save Minimap Image as PNG", self)
+        save_minimap_bti = QtGui.QAction("Save Minimap Image as BTI", self)
+        load_coordinates_dol = QtGui.QAction("Load Data from DOL", self)
+        save_coordinates_dol = QtGui.QAction("Save Data to DOL", self)
+        load_coordinates_json = QtGui.QAction("Load Data from JSON", self)
+        save_coordinates_json = QtGui.QAction("Save Data to JSON", self)
+        minimap_generator_action = QtGui.QAction("Minimap Generator", self)
         minimap_generator_action.setShortcut("Ctrl+M")
 
 
@@ -743,21 +733,21 @@ class GenEditor(QMainWindow):
         self.minimap_menu.addAction(minimap_generator_action)
 
         # Misc
-        self.misc_menu = QMenu(self.menubar)
+        self.misc_menu = QtWidgets.QMenu(self.menubar)
         self.misc_menu.setTitle("Misc")
-        #self.spawnpoint_action = QAction("Set startPos/Dir", self)
+        #self.spawnpoint_action = QtGui.QAction("Set startPos/Dir", self)
         #self.spawnpoint_action.triggered.connect(self.action_open_rotationedit_window)
         #self.misc_menu.addAction(self.spawnpoint_action)
-        self.rotation_mode = QAction("Rotate Positions around Pivot", self)
+        self.rotation_mode = QtGui.QAction("Rotate Positions around Pivot", self)
         self.rotation_mode.setCheckable(True)
         self.rotation_mode.setChecked(True)
-        self.frame_action = QAction("Frame Selection/All", self)
+        self.frame_action = QtGui.QAction("Frame Selection/All", self)
         self.frame_action.triggered.connect(
             lambda _checked: self.frame_selection(adjust_zoom=True))
         self.frame_action.setShortcut("F")
         self.misc_menu.addAction(self.rotation_mode)
         self.misc_menu.addAction(self.frame_action)
-        self.analyze_action = QAction("Analyze for common mistakes", self)
+        self.analyze_action = QtGui.QAction("Analyze for common mistakes", self)
         self.analyze_action.triggered.connect(self.analyze_for_mistakes)
         self.misc_menu.addAction(self.analyze_action)
 
@@ -765,9 +755,9 @@ class GenEditor(QMainWindow):
             lambda: self.frame_action.setText(
                 "Frame Selection" if self.level_view.selected_positions else "Frame All"))
 
-        self.view_action_group = QtWidgets.QActionGroup(self)
+        self.view_action_group = QtGui.QActionGroup(self)
 
-        self.change_to_topdownview_action = QAction("Topdown View", self)
+        self.change_to_topdownview_action = QtGui.QAction("Topdown View", self)
         self.view_action_group.addAction(self.change_to_topdownview_action)
         self.change_to_topdownview_action.triggered.connect(self.change_to_topdownview)
         self.misc_menu.addAction(self.change_to_topdownview_action)
@@ -775,14 +765,14 @@ class GenEditor(QMainWindow):
         self.change_to_topdownview_action.setChecked(True)
         self.change_to_topdownview_action.setShortcut("Ctrl+1")
 
-        self.change_to_3dview_action = QAction("3D View", self)
+        self.change_to_3dview_action = QtGui.QAction("3D View", self)
         self.view_action_group.addAction(self.change_to_3dview_action)
         self.change_to_3dview_action.triggered.connect(self.change_to_3dview)
         self.misc_menu.addAction(self.change_to_3dview_action)
         self.change_to_3dview_action.setCheckable(True)
         self.change_to_3dview_action.setShortcut("Ctrl+2")
 
-        self.choose_bco_area = QAction("Collision Areas (BCO)")
+        self.choose_bco_area = QtGui.QAction("Collision Areas (BCO)")
         self.choose_bco_area.triggered.connect(self.action_choose_bco_area)
         self.misc_menu.addAction(self.choose_bco_area)
         self.choose_bco_area.setShortcut("Ctrl+3")
@@ -798,14 +788,14 @@ class GenEditor(QMainWindow):
         self.last_obj_select_pos = 0
 
 
-        self.dolphin_action = QAction("Hook into Dolphin", self)
+        self.dolphin_action = QtGui.QAction("Hook into Dolphin", self)
         self.dolphin_action.triggered.connect(self.action_hook_into_dolphion)
         self.misc_menu.addAction(self.dolphin_action)
 
-        self.camera_actions = [QAction("Unfollow", self)]
+        self.camera_actions = [QtGui.QAction("Unfollow", self)]
 
         for i in range(8):
-            self.camera_actions.append(QAction("Follow Player {0}".format(i+1)))
+            self.camera_actions.append(QtGui.QAction("Follow Player {0}".format(i+1)))
 
         def make_func(i):
             def action_follow_player():
@@ -832,7 +822,7 @@ class GenEditor(QMainWindow):
         if "minimap_image" not in self.pathsconfig:
             self.pathsconfig["minimap_image"] = ""
 
-        filepath, choosentype = QFileDialog.getOpenFileName(
+        filepath, choosentype = QtWidgets.QFileDialog.getOpenFileName(
             self, "Open Image", self.pathsconfig["minimap_image"],
             f"Images ({supported_extensions});;All files (*)")
 
@@ -860,7 +850,7 @@ class GenEditor(QMainWindow):
         stem, _ext = os.path.splitext(initial_filepath)
         initial_filepath = f'{stem}.{extension}'
 
-        filepath, _choosentype = QFileDialog.getSaveFileName(
+        filepath, _choosentype = QtWidgets.QFileDialog.getSaveFileName(
             self, f"Save {extension.upper()} Image", initial_filepath,
             f"{extension.upper()} (*.{extension})")
 
@@ -883,8 +873,8 @@ class GenEditor(QMainWindow):
             save_cfg(self.configuration)
 
     @catch_exception_with_dialog
-    def action_load_dol(self, val):
-        filepath, choosentype = QFileDialog.getOpenFileName(
+    def action_load_dol(self):
+        filepath, choosentype = QtWidgets.QFileDialog.getOpenFileName(
             self, "Open File",
             self.pathsconfig["dol"],
             "Game Executable (*.dol);;All files (*)")
@@ -931,7 +921,7 @@ class GenEditor(QMainWindow):
 
     @catch_exception_with_dialog
     def action_save_to_dol(self, val):
-        filepath, choosentype = QFileDialog.getSaveFileName(
+        filepath, choosentype = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save to File",
             self.pathsconfig["dol"],
             "Game Executable (*.dol);;All files (*)")
@@ -988,8 +978,8 @@ class GenEditor(QMainWindow):
             save_cfg(self.configuration)
 
     @catch_exception_with_dialog
-    def action_load_coordinates_json(self, val):
-        filepath, choosentype = QFileDialog.getOpenFileName(
+    def action_load_coordinates_json(self):
+        filepath, choosentype = QtWidgets.QFileDialog.getOpenFileName(
             self, "Open File",
             self.pathsconfig["minimap_json"],
             "Json File (*.json);;All files (*)")
@@ -1007,8 +997,8 @@ class GenEditor(QMainWindow):
             save_cfg(self.configuration)
 
     @catch_exception_with_dialog
-    def action_save_coordinates_json(self, val):
-        filepath, choosentype = QFileDialog.getSaveFileName(
+    def action_save_coordinates_json(self):
+        filepath, choosentype = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save File",
             self.pathsconfig["minimap_json"],
             "Json File (*.json);;All files (*)")
@@ -1027,9 +1017,7 @@ class GenEditor(QMainWindow):
             save_cfg(self.configuration)
 
     @catch_exception_with_dialog
-    def minimap_generator_action(self, checked):
-        _ = checked
-
+    def minimap_generator_action(self):
         if self.bco_coll is None:
             open_info_dialog('No BCO file has been loaded yet.', self)
             return
@@ -1236,7 +1224,7 @@ class GenEditor(QMainWindow):
 
     def analyze_for_mistakes(self):
         analyzer_window = ErrorAnalyzer(self.level_file, parent=self)
-        analyzer_window.exec_()
+        analyzer_window.exec()
         analyzer_window.deleteLater()
 
     def on_file_menu_aboutToShow(self):
@@ -1247,8 +1235,8 @@ class GenEditor(QMainWindow):
 
         for filepath in recent_files:
             recent_file_action = self.file_load_recent_menu.addAction(filepath)
-            recent_file_action.triggered.connect(
-                lambda checked, filepath=filepath: self.button_load_level(checked, filepath))
+            recent_file_action.triggered[bool].connect(
+                lambda _checked, filepath=filepath: self.button_load_level(filepath))
 
     def on_filter_update(self):
         filters = []
@@ -1297,12 +1285,12 @@ class GenEditor(QMainWindow):
 
     def setup_ui_toolbar(self):
         # self.toolbar = QtWidgets.QToolBar("Test", self)
-        # self.toolbar.addAction(QAction("TestToolbar", self))
-        # self.toolbar.addAction(QAction("TestToolbar2", self))
-        # self.toolbar.addAction(QAction("TestToolbar3", self))
+        # self.toolbar.addAction(QtGui.QAction("TestToolbar", self))
+        # self.toolbar.addAction(QtGui.QAction("TestToolbar2", self))
+        # self.toolbar.addAction(QtGui.QAction("TestToolbar3", self))
 
         # self.toolbar2 = QtWidgets.QToolBar("Second Toolbar", self)
-        # self.toolbar2.addAction(QAction("I like cake", self))
+        # self.toolbar2.addAction(QtGui.QAction("I like cake", self))
 
         # self.addToolBar(self.toolbar)
         # self.addToolBarBreak()
@@ -1336,7 +1324,7 @@ class GenEditor(QMainWindow):
         self.pik_control.button_remove_object.clicked.connect(
             lambda _checked: self.action_delete_objects())
 
-        delete_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(Qt.Key_Delete), self)
+        delete_shortcut = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Delete), self)
         delete_shortcut.activated.connect(self.action_delete_objects)
 
         self.level_view.rotate_current.connect(self.action_rotate_object)
@@ -1481,11 +1469,9 @@ class GenEditor(QMainWindow):
         return recent_files
 
     #@catch_exception
-    def button_load_level(self, checked=False, filepath=None, update_config=True):
-        _ = checked
-
+    def button_load_level(self, filepath=None, update_config=True):
         if filepath is None:
-            filepath, chosentype = QFileDialog.getOpenFileName(
+            filepath, chosentype = QtWidgets.QFileDialog.getOpenFileName(
                 self, "Open File",
                 self.pathsconfig["bol"],
                 "BOL files (*.bol);;Archived files (*.arc);;All files (*)",
@@ -1832,7 +1818,7 @@ class GenEditor(QMainWindow):
 
     @catch_exception_with_dialog
     def _button_save_level_as(self, modify_current_path, *args, **kwargs):
-        filepath, choosentype = QFileDialog.getSaveFileName(
+        filepath, choosentype = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save File",
             self.pathsconfig["bol"],
             "MKDD Track Data (*.bol);;Archived files (*.arc);;All files (*)",
@@ -1876,7 +1862,7 @@ class GenEditor(QMainWindow):
 
     def button_load_collision(self):
         try:
-            filepath, choosentype = QFileDialog.getOpenFileName(
+            filepath, choosentype = QtWidgets.QFileDialog.getOpenFileName(
                 self, "Open File",
                 self.pathsconfig["collision"],
                 "Collision (*.obj);;All files (*)")
@@ -1899,7 +1885,7 @@ class GenEditor(QMainWindow):
 
     def button_load_collision_bmd(self):
         try:
-            filepath, choosentype = QFileDialog.getOpenFileName(
+            filepath, choosentype = QtWidgets.QFileDialog.getOpenFileName(
                 self, "Open File",
                 self.pathsconfig["collision"],
                 "Course Model (*.bmd);;Archived files (*.arc);;All files (*)")
@@ -1937,7 +1923,7 @@ class GenEditor(QMainWindow):
 
     def button_load_collision_bco(self):
         try:
-            filepath, choosentype = QFileDialog.getOpenFileName(
+            filepath, choosentype = QtWidgets.QFileDialog.getOpenFileName(
                 self, "Open File",
                 self.pathsconfig["collision"],
                 "MKDD Collision (*.bco);;Archived files (*.arc);;All files (*)")
@@ -1982,7 +1968,7 @@ class GenEditor(QMainWindow):
 
         # Synchronously force a draw operation to provide immediate feedback.
         self.level_view.update()
-        QApplication.instance().processEvents()
+        QtWidgets.QApplication.instance().processEvents()
 
     def setup_collision(self, verts, faces, filepath, alternative_mesh=None):
         self.level_view.set_collision(verts, faces, alternative_mesh)
@@ -2014,7 +2000,7 @@ class GenEditor(QMainWindow):
         self.add_object_window.update_label()
         self.next_checkpoint_start_position = None
 
-        accepted = self.add_object_window.exec_()
+        accepted = self.add_object_window.exec()
         if accepted:
             self.add_item_window_save()
         else:
@@ -2323,57 +2309,57 @@ class GenEditor(QMainWindow):
 
     def keyPressEvent(self, event: QtGui.QKeyEvent):
 
-        if event.key() == Qt.Key_Escape:
+        if event.key() == QtCore.Qt.Key_Escape:
             self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
             self.next_checkpoint_start_position = None
             self.pik_control.button_add_object.setChecked(False)
             #self.pik_control.button_move_object.setChecked(False)
             self.update_3d()
 
-        if event.key() == Qt.Key_Shift:
+        if event.key() == QtCore.Qt.Key_Shift:
             self.level_view.shift_is_pressed = True
-        elif event.key() == Qt.Key_R:
+        elif event.key() == QtCore.Qt.Key_R:
             self.level_view.rotation_is_pressed = True
-        elif event.key() == Qt.Key_H:
+        elif event.key() == QtCore.Qt.Key_H:
             self.level_view.change_height_is_pressed = True
 
-        if event.key() == Qt.Key_W:
+        if event.key() == QtCore.Qt.Key_W:
             self.level_view.MOVE_FORWARD = 1
-        elif event.key() == Qt.Key_S:
+        elif event.key() == QtCore.Qt.Key_S:
             self.level_view.MOVE_BACKWARD = 1
-        elif event.key() == Qt.Key_A:
+        elif event.key() == QtCore.Qt.Key_A:
             self.level_view.MOVE_LEFT = 1
-        elif event.key() == Qt.Key_D:
+        elif event.key() == QtCore.Qt.Key_D:
             self.level_view.MOVE_RIGHT = 1
-        elif event.key() == Qt.Key_Q:
+        elif event.key() == QtCore.Qt.Key_Q:
             self.level_view.MOVE_UP = 1
-        elif event.key() == Qt.Key_E:
+        elif event.key() == QtCore.Qt.Key_E:
             self.level_view.MOVE_DOWN = 1
 
-        if event.key() == Qt.Key_Plus:
+        if event.key() == QtCore.Qt.Key_Plus:
             self.level_view.zoom_in()
-        elif event.key() == Qt.Key_Minus:
+        elif event.key() == QtCore.Qt.Key_Minus:
             self.level_view.zoom_out()
 
     def keyReleaseEvent(self, event: QtGui.QKeyEvent):
-        if event.key() == Qt.Key_Shift:
+        if event.key() == QtCore.Qt.Key_Shift:
             self.level_view.shift_is_pressed = False
-        elif event.key() == Qt.Key_R:
+        elif event.key() == QtCore.Qt.Key_R:
             self.level_view.rotation_is_pressed = False
-        elif event.key() == Qt.Key_H:
+        elif event.key() == QtCore.Qt.Key_H:
             self.level_view.change_height_is_pressed = False
 
-        if event.key() == Qt.Key_W:
+        if event.key() == QtCore.Qt.Key_W:
             self.level_view.MOVE_FORWARD = 0
-        elif event.key() == Qt.Key_S:
+        elif event.key() == QtCore.Qt.Key_S:
             self.level_view.MOVE_BACKWARD = 0
-        elif event.key() == Qt.Key_A:
+        elif event.key() == QtCore.Qt.Key_A:
             self.level_view.MOVE_LEFT = 0
-        elif event.key() == Qt.Key_D:
+        elif event.key() == QtCore.Qt.Key_D:
             self.level_view.MOVE_RIGHT = 0
-        elif event.key() == Qt.Key_Q:
+        elif event.key() == QtCore.Qt.Key_Q:
             self.level_view.MOVE_UP = 0
-        elif event.key() == Qt.Key_E:
+        elif event.key() == QtCore.Qt.Key_E:
             self.level_view.MOVE_DOWN = 0
 
     def reset_move_flags(self):
@@ -2763,16 +2749,17 @@ class GenEditor(QMainWindow):
     def mapview_showcontextmenu(self, position):
         self.reset_move_flags()
 
-        context_menu = QMenu(self)
-        action = QAction("Copy Coordinates", self)
+        context_menu = QtWidgets.QMenu(self)
+        action = QtGui.QAction("Copy Coordinates", self)
         action.triggered.connect(self.action_copy_coords_to_clipboard)
         context_menu.addAction(action)
-        context_menu.exec(self.sender().mapToGlobal(position))
+        context_menu.exec(self.level_view.mapToGlobal(position))
         context_menu.destroy()
 
     def action_copy_coords_to_clipboard(self):
         if self.current_coordinates is not None:
-            QApplication.clipboard().setText(", ".join(str(x) for x in self.current_coordinates))
+            QtWidgets.QApplication.clipboard().setText(", ".join(
+                str(x) for x in self.current_coordinates))
 
     def action_update_position(self, event, pos):
         self.current_coordinates = pos
@@ -2810,7 +2797,7 @@ class GenEditor(QMainWindow):
             filepath = url.toLocalFile()
             ext = os.path.splitext(filepath)[1].lower()
             if ext in (".bol", ".arc"):
-                self.button_load_level(False, filepath, update_config=False)
+                self.button_load_level(filepath, update_config=False)
             elif ext == ".bco":
                 self.load_optional_bco(filepath)
             elif ext == ".bmd":
@@ -2845,7 +2832,7 @@ POTENTIALLY_EDITING_EVENTS = (
 
 class Application(QtWidgets.QApplication):
 
-    document_potentially_changed = QtCore.pyqtSignal()
+    document_potentially_changed = QtCore.Signal()
 
     def notify(self, receiver: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if event.type() in POTENTIALLY_EDITING_EVENTS:
@@ -2860,9 +2847,8 @@ if __name__ == "__main__":
     import platform
     import signal
     import argparse
-    from PyQt5.QtCore import QLocale
 
-    QLocale.setDefault(QLocale(QLocale.English))
+    QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English))
 
     sys.excepthook = except_hook
 
@@ -2895,14 +2881,14 @@ if __name__ == "__main__":
     role_colors.append((QtGui.QPalette.Text, QtGui.QColor(200, 200, 200)))
     role_colors.append((QtGui.QPalette.Button, QtGui.QColor(55, 55, 55)))
     role_colors.append((QtGui.QPalette.ButtonText, QtGui.QColor(200, 200, 200)))
-    role_colors.append((QtGui.QPalette.BrightText, Qt.red))
+    role_colors.append((QtGui.QPalette.BrightText, QtCore.Qt.red))
     role_colors.append((QtGui.QPalette.Light, QtGui.QColor(65, 65, 65)))
     role_colors.append((QtGui.QPalette.Midlight, QtGui.QColor(60, 60, 60)))
     role_colors.append((QtGui.QPalette.Dark, QtGui.QColor(45, 45, 45)))
     role_colors.append((QtGui.QPalette.Mid, QtGui.QColor(50, 50, 50)))
-    role_colors.append((QtGui.QPalette.Shadow, Qt.black))
+    role_colors.append((QtGui.QPalette.Shadow, QtCore.Qt.black))
     role_colors.append((QtGui.QPalette.Highlight, QtGui.QColor(45, 140, 225)))
-    role_colors.append((QtGui.QPalette.HighlightedText, Qt.black))
+    role_colors.append((QtGui.QPalette.HighlightedText, QtCore.Qt.black))
     role_colors.append((QtGui.QPalette.Link, QtGui.QColor(40, 130, 220)))
     role_colors.append((QtGui.QPalette.LinkVisited, QtGui.QColor(110, 70, 150)))
     palette = QtGui.QPalette()
