@@ -1425,7 +1425,15 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         if self.shift_is_pressed:
             speedup *= self._wasdscrolling_speedupfactor
         speed = self._wasdscrolling_speed / 2
-        self.camera_height -= speed * speedup
+
+        self.camera_direction.normalize()
+        view = self.camera_direction.copy()
+        view = view * speed * speedup
+
+        self.offset_x += view.x
+        self.camera_height += view.z
+        self.offset_z += view.y
+
         self.do_redraw()
 
     def create_ray_from_mouseclick(self, mousex, mousey, yisup=False):
