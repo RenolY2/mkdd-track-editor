@@ -43,6 +43,9 @@ class MoreButtons(QtWidgets.QWidget):
             #or, someone needs to look into multiple starting points for regular courses
             #i suspect that it's useless to add more than 1 point
             self.add_button(obj, "Add Starting Point", "add_startpoint")
+        elif isinstance(obj, MapObject):
+            if obj.route_info() == "Individual" and obj.pathid == -1:
+                self.add_button(obj, "Add Route for Object", "route_object")
 
     def clear_buttons(self):
         for i in reversed(range(self.vbox.count())):

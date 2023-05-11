@@ -1,12 +1,28 @@
 {
-  "Object Parameters":
-          ["Number of back segments",
-            "Unknown 2",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["babyjet.bck", "babyjet_body.bmd", "babyjet_head.bmd"]
+    "Object Parameters": [
+        "Number of back segments",
+        "Unknown 2",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "babyjet.bck",
+        "babyjet_body.bmd",
+        "babyjet_head.bmd"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        8,
+        100,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

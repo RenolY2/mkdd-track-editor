@@ -1,12 +1,26 @@
 {
-  "Object Parameters":
-          ["Unknown 1",
-            "Unknown 2",
-            "Unknown 3",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["testhimo1ukiwa.bmd"]
+    "Object Parameters": [
+        "Unknown 1",
+        "Unknown 2",
+        "Unknown 3",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "testhimo1ukiwa.bmd"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        15,
+        1250,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

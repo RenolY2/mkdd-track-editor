@@ -1,12 +1,27 @@
 {
-  "Object Parameters":
-          ["Unknown 1",
-            "Unknown 2",
-            "Unknown 3",
-            "Unknown 4",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["donkyrock1.bmd", "donkyrock1shadow.bmd"]
+    "Object Parameters": [
+        "Unknown 1",
+        "Unknown 2",
+        "Unknown 3",
+        "Unknown 4",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "donkyrock1.bmd",
+        "donkyrock1shadow.bmd"
+    ],
+    "RouteInfo": "Individual",
+    "DefaultValues": [
+        1,
+        408,
+        35,
+        60,
+        0,
+        0,
+        0,
+        0
+    ]
 }

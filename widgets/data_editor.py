@@ -299,6 +299,19 @@ class DataEditor(QtWidgets.QWidget):
 
         return combobox
 
+    def add_button_input(self, labeltext, text, function):
+        button = QtWidgets.QPushButton(self)
+        button.setText(text)
+        button.clicked.connect(function)
+
+        policy = button.sizePolicy()
+        policy.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
+        button.setSizePolicy(policy)
+
+        layout = self.create_labeled_widget(self, labeltext, button)
+        self.vbox.addLayout(layout)
+        return button
+
     def add_color_input(self, text, attribute, with_alpha=False):
         line_edits = []
         input_edited_callbacks = []
@@ -870,6 +883,8 @@ class ObjectEdit(DataEditor):
         self.unk_2f = self.add_integer_input("Unknown 0x2F", "unk_2f",
                                              MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
 
+        self.objdatalabel = self.add_button_input(
+            "Object-Specific Settings", "Reset to Default", self.fill_default_values)
         self.userdata = []
         for i in range(8):
             self.userdata.append(
@@ -959,6 +974,16 @@ class ObjectEdit(DataEditor):
         self.flag.setChecked(obj.unk_flag != 0)
         for i in range(8):
             self.userdata[i][1].setText(str(obj.userdata[i]))
+
+    def fill_default_values(self):
+        obj = self.bound_to
+        defaults = obj.default_values()
+        if defaults is None:
+            return
+        obj.userdata = defaults.copy()
+
+        for i, (_label_widget, value_widget) in enumerate(self.userdata):
+            value_widget.setText(str(defaults[i]))
 
 
 class KartStartPointEdit(DataEditor):

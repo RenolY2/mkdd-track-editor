@@ -1,12 +1,26 @@
 {
-  "Object Parameters":
-          ["Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["wl_screen1.bmd"]
+    "Object Parameters": [
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "wl_screen1.bmd"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

@@ -1,22 +1,36 @@
 {
-  "Object Parameters":
-          ["Unknown 1",
-            "50cc pull",
-            "100cc pull",
-            "150cc pull",
-            "Unknown 5",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": [""],
-  "Tooltips": [
-    "The strength it'll pull with on 50cc",
-    "The strength it'll pull with on 100cc",
-    "The strength it'll pull with on 150cc",
-    "",
-    "",
-    "",
-    "",
-    ""
-  ]
+    "Object Parameters": [
+        "Unknown 1",
+        "50cc pull",
+        "100cc pull",
+        "150cc pull",
+        "Unknown 5",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        ""
+    ],
+    "Tooltips": [
+        "The strength it'll pull with on 50cc",
+        "The strength it'll pull with on 100cc",
+        "The strength it'll pull with on 150cc",
+        "",
+        "",
+        "",
+        "",
+        ""
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        0,
+        60,
+        65,
+        70,
+        87,
+        0,
+        0,
+        0
+    ]
 }

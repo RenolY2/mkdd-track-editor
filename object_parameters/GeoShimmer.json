@@ -1,12 +1,26 @@
 {
-  "Object Parameters":
-          ["Texture-based Shimmering",
-            "Offset Z0",
-            "Offset Z1",
-            "Blend Rate Z0",
-            "Blend Rate Z1",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["shimmer_ind.bti"]
+    "Object Parameters": [
+        "Texture-based Shimmering",
+        "Offset Z0",
+        "Offset Z1",
+        "Blend Rate Z0",
+        "Blend Rate Z1",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "shimmer_ind.bti"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        0,
+        3930,
+        4061,
+        115,
+        250,
+        0,
+        0,
+        0
+    ]
 }

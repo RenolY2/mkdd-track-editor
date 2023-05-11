@@ -1,12 +1,28 @@
 {
-  "Object Parameters":
-          ["Unknown 1",
-            "Color ID",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["swimnossie.bmd", "swimnossie.bca", "swimnossie.btp"]
+    "Object Parameters": [
+        "Unknown 1",
+        "Color ID",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "swimnossie.bmd",
+        "swimnossie.bca",
+        "swimnossie.btp"
+    ],
+    "RouteInfo": "Individual",
+    "DefaultValues": [
+        3,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

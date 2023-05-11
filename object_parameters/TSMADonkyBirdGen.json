@@ -1,12 +1,27 @@
 {
-  "Object Parameters":
-          ["Unknown 1",
-            "Unknown 2",
-            "Unknown 3",
-            "Unknown 4",
-             "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["bird1.bmd", "bird1.bca"]
+    "Object Parameters": [
+        "Unknown 1",
+        "Unknown 2",
+        "Unknown 3",
+        "Unknown 4",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "bird1.bmd",
+        "bird1.bca"
+    ],
+    "RouteInfo": "Individual",
+    "DefaultValues": [
+        9,
+        1,
+        15,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }
