@@ -37,7 +37,7 @@ MODE_TOPDOWN = 0
 MODE_3D = 1
 
 #colors = [(1.0, 0.0, 0.0), (0.0, 0.5, 0.0), (0.0, 0.0, 1.0), (1.0, 1.0, 0.0)]
-colors = [(0.0,191/255.0,255/255.0), (30/255.0,144/255.0,255/255.0), (0.0,0.0,255/255.0), (0.0,0.0,139/255.0)]
+colors = [(0.0,191/255.0,255/255.0), (30/255.0,144/255.0,255/255.0), (0.0,0.0,255/255.0), (0.0,0.0,139/255.0), (0.0,255/255.0,0.0)]
 
 with open("lib/color_coding.json", "r") as f:
     colors_json = json.load(f)
@@ -1158,12 +1158,14 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
             if vismenu.checkpoints.is_visible():
                 checkpoints_to_highlight = set()
+                section_points = set()
                 count = 0
                 for i, group in enumerate(self.level_file.checkpoints.groups):
                     prev = None
                     for checkpoint in group.points:
                         start_point_selected = checkpoint.start in positions
                         end_point_selected = checkpoint.end in positions
+                        is_sectionpoint = checkpoint.unk4 != 0
                         self.models.render_generic_position_colored(checkpoint.start,
                                                                     start_point_selected,
                                                                     "checkpointleft")
@@ -1173,6 +1175,10 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
                         if start_point_selected or end_point_selected:
                             checkpoints_to_highlight.add(count)
+
+                        if is_sectionpoint:
+                            section_points.add(count)
+                        
                         count += 1
 
                     glColor3f(*colors[i % 4])
@@ -1218,6 +1224,23 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                         glColor3f(*colors[i % 4])
                         for checkpoint in group.points:
                             if point_index in checkpoints_to_highlight:
+                                pos1 = checkpoint.start
+                                pos2 = checkpoint.end
+                                glBegin(GL_LINES)
+                                glVertex3f(pos1.x, -pos1.z, pos1.y)
+                                glVertex3f(pos2.x, -pos2.z, pos2.y)
+                                glEnd()
+                            point_index += 1
+                    glLineWidth(1.0)
+
+                # Mark lap/section checkpoints in a fancy green
+                if section_points:
+                    glLineWidth(3.0)
+                    point_index = 0
+                    for i, group in enumerate(self.level_file.checkpoints.groups):
+                        glColor3f(*colors[4])
+                        for checkpoint in group.points:
+                            if point_index in section_points:
                                 pos1 = checkpoint.start
                                 pos2 = checkpoint.end
                                 glBegin(GL_LINES)

@@ -711,12 +711,17 @@ class CheckpointEdit(DataEditor):
         self.end = self.add_multiple_decimal_input("End", "end", ["x", "y", "z"],
                                                      -inf, +inf)
 
-        self.unk1 = self.add_integer_input("Unknown", "unk1",
+        self.unk1 = self.add_integer_input("Shortcut Point ID", "unk1",
                                            MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
         self.unk2 = self.add_checkbox("Unknown Flag", "unk2",
                                       0, 1)
-        self.unk3 = self.add_checkbox("Unknown Flag 2", "unk3",
+        self.unk3 = self.add_checkbox("Double-sided", "unk3",
                                            0, 1)
+        self.unk4 = self.add_checkbox("Lap Checkpoint", "unk4",
+                                           0, 1)
+        self.unk1.setToolTip(ttl.checkpoints["Shortcut Point ID"])
+        self.unk3.setToolTip(ttl.checkpoints["Double-sided"])
+        self.unk4.setToolTip(ttl.checkpoints["Lap Checkpoint"])
 
     def update_data(self):
         obj: Checkpoint = self.bound_to
@@ -731,6 +736,7 @@ class CheckpointEdit(DataEditor):
         self.unk1.setText(str(obj.unk1))
         self.unk2.setChecked(obj.unk2 != 0)
         self.unk3.setChecked(obj.unk3 != 0)
+        self.unk4.setChecked(obj.unk4 != 0)
 
 
 class ObjectRouteEdit(DataEditor):

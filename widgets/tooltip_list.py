@@ -18,6 +18,12 @@ enemypoints = {
     "No Mushroom Zone": "Whether CPUs are allowed to use mushrooms at this point or not",
 }
 
+checkpoints = {
+    "Shortcut Point ID": "Halts the lap checker on all regions containing checkpoint pairs with this ID, allowing for dev-intended shortcuts.\nOnce the region is left, the lap checker will jump to the next standard checkpoint.",
+    "Double-sided": "If set, the game will check if this point has been crossed from the opposite side.",
+    "Lap Checkpoint": "(Will only work with the \"Sectioned Courses\" patch enabled) \nWill increment a lap when crossed. \nIf this is the last checkpoint of its kind, it will finish the race instead. \nIf \"Shortcut Point ID\" is set, this flag is ignored.",
+}
+
 objectid = {
     "GeoAirJet": "The blowing wind from Sherbet Land",
     "GeoMarioFlower1": "The flowers with eyes from several tracks",
