@@ -1,12 +1,28 @@
 {
-  "Object Parameters":
-          ["Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["wlarrow1.bck", "wlarrow1.bmd", "wlarrow1.btk"]
+    "Object Parameters": [
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "wlarrow1.bck",
+        "wlarrow1.bmd",
+        "wlarrow1.btk"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

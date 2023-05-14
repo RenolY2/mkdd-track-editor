@@ -1,12 +1,27 @@
 {
-  "Object Parameters":
-          ["Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["kpgear1.bck", "kpgear1.bmd"]
+    "Object Parameters": [
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "kpgear1.bck",
+        "kpgear1.bmd"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

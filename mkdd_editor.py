@@ -2250,6 +2250,21 @@ class GenEditor(QtWidgets.QMainWindow):
             self.object_to_be_added = [libbol.KartStartPoint.new(), -1, -1]
             self.pik_control.button_add_object.setChecked(True)
             self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
+        elif option == "route_object":
+            new_route = libbol.Route.new()
+            forward, up, left = obj.rotation.get_vectors()
+
+            new_point_1 = libbol.RoutePoint.new()
+            new_point_1.position = obj.position + left * 250
+            new_route.points.append(new_point_1)
+
+            new_point_2 = libbol.RoutePoint.new()
+            new_point_2.position = obj.position + left * -750
+            new_route.points.append(new_point_2)
+            self.action_ground_objects((new_point_1.position, new_point_2.position))
+
+            self.level_file.routes.append(new_route)
+            obj.pathid = len(self.level_file.routes) - 1
 
         self.leveldatatreeview.set_objects(self.level_file)
 
@@ -2408,8 +2423,8 @@ class GenEditor(QtWidgets.QMainWindow):
         self.set_has_unsaved_changes(True)
         self.pik_control.update_info()
 
-    def action_ground_objects(self):
-        for pos in self.level_view.selected_positions:
+    def action_ground_objects(self, objects=None):
+        for pos in objects or self.level_view.selected_positions:
             if self.level_view.collision is None:
                 return None
             height = self.level_view.collision.collide_ray_closest(pos.x, pos.z, pos.y)

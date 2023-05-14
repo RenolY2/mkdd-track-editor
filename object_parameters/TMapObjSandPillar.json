@@ -1,12 +1,28 @@
 {
-  "Object Parameters":
-          ["Unknown 1",
-            "Unused",
-            "Unknown 3",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["tornado.bca", "tornado.bmd", "tornado.btk"]
+    "Object Parameters": [
+        "Unknown 1",
+        "Unused",
+        "Unknown 3",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "tornado.bca",
+        "tornado.bmd",
+        "tornado.btk"
+    ],
+    "RouteInfo": "Individual",
+    "DefaultValues": [
+        20,
+        7,
+        70,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }
