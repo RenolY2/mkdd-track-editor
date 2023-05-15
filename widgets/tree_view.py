@@ -1,6 +1,6 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from lib.libbol import BOL, get_full_name, AREA_TYPES
+from lib.libbol import BOL, get_full_name, AREA_TYPES, KART_START_POINTS_PLAYER_IDS
 
 
 class BaseTreeWidgetItem(QtWidgets.QTreeWidgetItem):
@@ -173,13 +173,15 @@ class ObjectEntry(NamedItem):
 
 
 class KartpointEntry(NamedItem):
+
+    def __init__(self, parent, name, bound_to):
+        super().__init__(parent, name, bound_to)
+
+        bound_to.widget = self
+
     def update_name(self):
         playerid = self.bound_to.playerid
-        if playerid == 0xFF:
-            result = "All"
-        else:
-            result = "ID:{0}".format(playerid)
-        self.setText(0, "Kart Start Point {0}".format(result))
+        self.setText(0, f'Kart Start Point ({KART_START_POINTS_PLAYER_IDS[playerid]})')
 
 
 class AreaEntry(NamedItem):

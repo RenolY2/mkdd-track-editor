@@ -760,6 +760,8 @@ class KartStartPoint(object):
 
         self.unknown = 0
 
+        self.widget = None
+
     @classmethod
     def new(cls):
         return cls(Vector3(0.0, 0.0, 0.0))
@@ -1395,6 +1397,22 @@ SWERVE_IDS = {
 REVERSE_SWERVE_IDS = OrderedDict()
 for key in sorted(SWERVE_IDS.keys()):
     REVERSE_SWERVE_IDS[SWERVE_IDS[key]] = key
+
+KART_START_POINTS_PLAYER_IDS = {
+    255: 'All Players',
+    0: 'Player 1',
+    1: 'Player 2',
+    2: 'Player 3',
+    3: 'Player 4',
+    4: 'Player 5',
+    5: 'Player 6',
+    6: 'Player 7',
+    7: 'Player 8',
+}
+REVERSE_KART_START_POINTS_PLAYER_IDS = OrderedDict()
+for key in KART_START_POINTS_PLAYER_IDS.keys():
+    REVERSE_KART_START_POINTS_PLAYER_IDS[KART_START_POINTS_PLAYER_IDS[key]] = key
+
 
 def get_full_name(id):
     if id not in OBJECTNAMES:
