@@ -1,0 +1,34 @@
+{
+    "Object Parameters": [
+        "Height Offset",
+        "ItemBox Type",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [],
+    "Tooltips": [
+        "How high off the ground the itembox will be. Itembox must be grounded and this set to 135.",
+        "Whether itembox is single or double:\n0 = both\n1 = single only\n3 = double only",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        2,
+        -6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
+}

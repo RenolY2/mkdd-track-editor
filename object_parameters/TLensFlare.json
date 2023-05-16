@@ -1,12 +1,29 @@
 {
-  "Object Parameters":
-          ["Unknown 1",
-            "Unknown 2",
-            "Unknown 3",
-            "Unknown 4",
-            "Unknown 5",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["mk_lensfx01.bti", "mk_lensfx02.bti", "mk_lensfx03.bti", "mk_lensfx04.bti"]
+    "Object Parameters": [
+        "Unknown 1",
+        "Unknown 2",
+        "Unknown 3",
+        "Unknown 4",
+        "Unknown 5",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "mk_lensfx01.bti",
+        "mk_lensfx02.bti",
+        "mk_lensfx03.bti",
+        "mk_lensfx04.bti"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        22,
+        169,
+        167,
+        160,
+        53,
+        0,
+        0,
+        0
+    ]
 }

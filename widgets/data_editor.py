@@ -9,7 +9,8 @@ from math import inf
 from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint, Route, RoutePoint,
                         MapObject, KartStartPoint, Area, Camera, BOL, JugemPoint, MapObject,
                         LightParam, MGEntry, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS,
-                        SWERVE_IDS, REVERSE_SWERVE_IDS, REVERSE_AREA_TYPES)
+                        SWERVE_IDS, REVERSE_SWERVE_IDS, REVERSE_AREA_TYPES,
+                        KART_START_POINTS_PLAYER_IDS, REVERSE_KART_START_POINTS_PLAYER_IDS)
 from lib.vectors import Vector3
 from lib.model_rendering import Minimap
 
@@ -298,6 +299,19 @@ class DataEditor(QtWidgets.QWidget):
         self.vbox.addLayout(layout)
 
         return combobox
+
+    def add_button_input(self, labeltext, text, function):
+        button = QtWidgets.QPushButton(self)
+        button.setText(text)
+        button.clicked.connect(function)
+
+        policy = button.sizePolicy()
+        policy.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
+        button.setSizePolicy(policy)
+
+        layout = self.create_labeled_widget(self, labeltext, button)
+        self.vbox.addLayout(layout)
+        return button
 
     def add_color_input(self, text, attribute, with_alpha=False):
         line_edits = []
@@ -876,6 +890,8 @@ class ObjectEdit(DataEditor):
         self.unk_2f = self.add_integer_input("Unknown 0x2F", "unk_2f",
                                              MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
 
+        self.objdatalabel = self.add_button_input(
+            "Object-Specific Settings", "Reset to Default", self.fill_default_values)
         self.userdata = []
         for i in range(8):
             self.userdata.append(
@@ -966,6 +982,16 @@ class ObjectEdit(DataEditor):
         for i in range(8):
             self.userdata[i][1].setText(str(obj.userdata[i]))
 
+    def fill_default_values(self):
+        obj = self.bound_to
+        defaults = obj.default_values()
+        if defaults is None:
+            return
+        obj.userdata = defaults.copy()
+
+        for i, (_label_widget, value_widget) in enumerate(self.userdata):
+            value_widget.setText(str(defaults[i]))
+
 
 class KartStartPointEdit(DataEditor):
     def setup_widgets(self):
@@ -980,10 +1006,12 @@ class KartStartPointEdit(DataEditor):
         options["Right"] = 1
         self.poleposition = self.add_dropdown_input("Pole Position", "poleposition",
                                                     options)
-        self.playerid = self.add_integer_input("Player ID", "playerid",
-                                               MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.playerid = self.add_dropdown_input("Players", "playerid",
+                                                REVERSE_KART_START_POINTS_PLAYER_IDS)
         self.unknown = self.add_integer_input("Unknown", "unknown",
                                               MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+
+        self.playerid.currentTextChanged.connect(lambda _index: self.update_name())
 
     def update_data(self):
         obj: KartStartPoint = self.bound_to
@@ -998,8 +1026,21 @@ class KartStartPointEdit(DataEditor):
         self.scale[2].setText(str(obj.scale.z))
 
         self.poleposition.setCurrentIndex(obj.poleposition)
-        self.playerid.setText(str(obj.playerid))
+
+        if obj.playerid in KART_START_POINTS_PLAYER_IDS:
+            name = KART_START_POINTS_PLAYER_IDS[obj.playerid]
+        else:
+            name = KART_START_POINTS_PLAYER_IDS[0]
+        index = self.playerid.findText(name)
+        self.playerid.setCurrentIndex(index)
+        self.playerid.setToolTip(ttl.kartstartpoints['Players'])
+
         self.unknown.setText(str(obj.unknown))
+
+    def update_name(self):
+        if self.bound_to.widget is None:
+            return
+        self.bound_to.widget.update_name()
 
 AREA_SHAPE = {
     "Box": 0,

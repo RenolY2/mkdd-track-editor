@@ -6,6 +6,7 @@ from .vectors import Vector3
 from collections import OrderedDict
 from io import BytesIO
 from copy import deepcopy
+import os
 
 def read_uint8(f):
     return unpack(">B", f.read(1))[0]
@@ -701,6 +702,24 @@ class MapObject(object):
             f.write(pack(">h", self.userdata[i]))
         #assert f.tell() - start == self._size
 
+    def read_json_file(self):
+        if not self.objectid in OBJECTNAMES:
+            return None
+        name = OBJECTNAMES[self.objectid]
+        filename = os.path.join("object_parameters", name + ".json")
+        if not os.path.isfile(filename):
+            return None
+        with open(filename, "r", encoding='utf-8') as f:
+            json_data = json.load(f)
+        return json_data
+
+    def route_info(self):
+        json_data = self.read_json_file()
+        return json_data.get("RouteInfo") if json_data is not None else None
+
+    def default_values(self):
+        json_data = self.read_json_file()
+        return json_data.get("DefaultValues") if json_data is not None else None
 
 class MapObjects(object):
     def __init__(self):
@@ -739,6 +758,8 @@ class KartStartPoint(object):
         self.playerid = 0xFF
 
         self.unknown = 0
+
+        self.widget = None
 
     @classmethod
     def new(cls):
@@ -1375,6 +1396,22 @@ SWERVE_IDS = {
 REVERSE_SWERVE_IDS = OrderedDict()
 for key in sorted(SWERVE_IDS.keys()):
     REVERSE_SWERVE_IDS[SWERVE_IDS[key]] = key
+
+KART_START_POINTS_PLAYER_IDS = {
+    255: 'All Players',
+    0: 'Player 1',
+    1: 'Player 2',
+    2: 'Player 3',
+    3: 'Player 4',
+    4: 'Player 5',
+    5: 'Player 6',
+    6: 'Player 7',
+    7: 'Player 8',
+}
+REVERSE_KART_START_POINTS_PLAYER_IDS = OrderedDict()
+for key in KART_START_POINTS_PLAYER_IDS.keys():
+    REVERSE_KART_START_POINTS_PLAYER_IDS[KART_START_POINTS_PLAYER_IDS[key]] = key
+
 
 def get_full_name(id):
     if id not in OBJECTNAMES:

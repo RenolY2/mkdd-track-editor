@@ -1,12 +1,28 @@
 {
-  "Object Parameters":
-          ["Number of Fire Balls",
-            "Unknown 2",
-            "Unknown 3",
-            "Unknown 4",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["firebar1fire.bmd", "firebar1fire.btk", "firebar1.bmd"]
+    "Object Parameters": [
+        "Number of Fire Balls",
+        "Unknown 2",
+        "Unknown 3",
+        "Unknown 4",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "firebar1fire.bmd",
+        "firebar1fire.btk",
+        "firebar1.bmd"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        10,
+        10,
+        323,
+        3,
+        0,
+        0,
+        0,
+        0
+    ]
 }

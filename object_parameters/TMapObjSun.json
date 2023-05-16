@@ -1,12 +1,27 @@
 {
-  "Object Parameters":
-          ["Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["sun.bmd", "sun.btk"]
+    "Object Parameters": [
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "sun.bmd",
+        "sun.btk"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

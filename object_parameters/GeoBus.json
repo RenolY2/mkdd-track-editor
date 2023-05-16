@@ -1,22 +1,38 @@
 {
-  "Object Parameters":
-          ["Speed",
-            "Unknown 2",
-            "Unknown 3",
-            "Unknown 4",
-            "Unknown 5",
-            "Unknown 6",
-            "Unknown 7",
-            "Unknown 8"],
-  "Assets": ["car_bus1.bmd", "car_bus1.btk", "car_bus1.btp"],
-  "Tooltips": [
-    "Vehicle speed",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    ""
-  ]
+    "Object Parameters": [
+        "Speed",
+        "Unknown 2",
+        "Unknown 3",
+        "Unknown 4",
+        "Unknown 5",
+        "Unknown 6",
+        "Unknown 7",
+        "Unknown 8"
+    ],
+    "Assets": [
+        "car_bus1.bmd",
+        "car_bus1.btk",
+        "car_bus1.btp"
+    ],
+    "Tooltips": [
+        "Vehicle speed",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+    ],
+    "RouteInfo": "Shared",
+    "DefaultValues": [
+        27,
+        10,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

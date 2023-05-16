@@ -1,12 +1,28 @@
 {
-  "Object Parameters":
-          ["Number of Butterflies",
-             "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["butterfly1.bca", "butterfly1.bmd", "butterfly1.btp"]
+    "Object Parameters": [
+        "Number of Butterflies",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "butterfly1.bca",
+        "butterfly1.bmd",
+        "butterfly1.btp"
+    ],
+    "RouteInfo": "Individual",
+    "DefaultValues": [
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ]
 }

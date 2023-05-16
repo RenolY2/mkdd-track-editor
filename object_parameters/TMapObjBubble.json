@@ -1,12 +1,27 @@
 {
-  "Object Parameters":
-          ["Unknown 1",
-            "Cycle",
-            "Unknown 3",
-            "Vertical Distance",
-            "Forward Distance",
-            "Unused",
-            "Unused",
-            "Unused"],
-  "Assets": ["bubble1.bmd", "bubble1.btk"]
+    "Object Parameters": [
+        "Unknown 1",
+        "Cycle",
+        "Unknown 3",
+        "Vertical Distance",
+        "Forward Distance",
+        "Unused",
+        "Unused",
+        "Unused"
+    ],
+    "Assets": [
+        "bubble1.bmd",
+        "bubble1.btk"
+    ],
+    "RouteInfo": "None",
+    "DefaultValues": [
+        1,
+        70,
+        0,
+        3,
+        0,
+        0,
+        0,
+        0
+    ]
 }
