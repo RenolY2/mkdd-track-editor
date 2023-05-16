@@ -108,3 +108,10 @@ lightparam = {
     "Position": "3D Light Source Position",
     "Ambient": "RGBA Ambient Color",
 }
+
+kartstartpoints = {
+    "Players":
+    "The players that will start from this position. In racing courses, only a single start point "
+    "set to **All Players** is expected. In battle courses, eight start points are expected, each "
+    "set to a distinct player."
+}
