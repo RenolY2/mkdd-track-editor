@@ -933,9 +933,6 @@ class ObjectEdit(DataEditor):
         self.pathid.setToolTip(ttl.objectdata['Route ID'])
         self.pathid.editingFinished.connect(self.catch_text_update)
 
-        self.unk_28 = self.add_integer_input("Unknown 0x28", "unk_28",
-                                             MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-
         self.unk_2a = self.add_integer_input("Route Point ID", "unk_2a",
                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.unk_2a.setToolTip(ttl.objectdata['Route Point ID'])
@@ -959,9 +956,6 @@ class ObjectEdit(DataEditor):
         self.flag = self.add_checkbox("Collision", "unk_flag",
                                       off_value=0, on_value=1)
         self.flag.setToolTip(ttl.objectdata['Collision'])
-
-        self.unk_2f = self.add_integer_input("Unknown 0x2F", "unk_2f",
-                                             MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
 
         self.objdatalabel = self.add_button_input(
             "Object-Specific Settings", "Reset to Default", self.fill_default_values)
@@ -1046,9 +1040,7 @@ class ObjectEdit(DataEditor):
         self.objectid.setCurrentIndex(index)
 
         self.pathid.setText(str(obj.pathid))
-        self.unk_28.setText(str(obj.unk_28))
         self.unk_2a.setText(str(obj.unk_2a))
-        self.unk_2f.setText(str(obj.unk_2f))
         self.presence_filter.set_value(obj.presence_filter)
         self.presence.set_value(obj.presence)
         self.flag.setChecked(obj.unk_flag != 0)
