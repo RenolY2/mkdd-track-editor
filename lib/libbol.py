@@ -652,7 +652,7 @@ class MapObject(object):
         self.pathid = -1
         self.unk_28 = 0
         self.unk_2a = 0
-        self.presence_filter = 255
+        self.presence_filter = 143
         self.presence = 0x3
         self.unk_flag = 0
         self.unk_2f = 0
