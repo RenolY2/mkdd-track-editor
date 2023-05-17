@@ -731,11 +731,14 @@ class CheckpointEdit(DataEditor):
                                       0, 1)
         self.unk3 = self.add_checkbox("Double-sided", "unk3",
                                            0, 1)
-        self.unk4 = self.add_checkbox("Lap Checkpoint", "unk4",
+        self.unk4 = self.add_checkbox("Lap Checkpoint(*)", "unk4",
                                            0, 1)
+        self.unk4.toggled.connect(self.catch_text_update)
+
         self.unk1.setToolTip(ttl.checkpoints["Shortcut Point ID"])
+        self.unk2.setToolTip(ttl.checkpoints["Unknown Flag"])
         self.unk3.setToolTip(ttl.checkpoints["Double-sided"])
-        self.unk4.setToolTip(ttl.checkpoints["Lap Checkpoint"])
+        self.unk4.setToolTip(ttl.checkpoints["Lap Checkpoint(*)"])
 
     def update_data(self):
         obj: Checkpoint = self.bound_to
