@@ -685,6 +685,10 @@ class MapObject(object):
         obj.unk_flag = read_uint8(f)
         obj.unk_2f = read_uint8(f)
 
+        assert obj.unk_28 == 0
+        assert obj.unk_2f == 0
+        assert obj.presence in (0, 1, 2, 3)
+
         for i in range(8):
             obj.userdata[i] = read_int16(f)
         obj._size = f.tell() - start
