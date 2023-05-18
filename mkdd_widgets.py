@@ -1158,6 +1158,14 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                                 glLineWidth(1.0)
 
             if vismenu.checkpoints.is_visible():
+                checkpoint_indexes_to_highlight = set()
+                for respawn_point in self.level_file.respawnpoints:
+                    if respawn_point not in select_optimize:
+                        continue
+                    preceding_checkpoint_index = respawn_point.unk3
+                    if preceding_checkpoint_index != -1:
+                        checkpoint_indexes_to_highlight.add(preceding_checkpoint_index)
+
                 checkpoints_to_highlight = set()
                 section_points = set()
                 count = 0
@@ -1174,7 +1182,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                                                                     end_point_selected,
                                                                     "checkpointright")
 
-                        if start_point_selected or end_point_selected:
+                        if (start_point_selected or end_point_selected
+                                or count in checkpoint_indexes_to_highlight):
                             checkpoints_to_highlight.add(checkpoint)
 
                         if is_sectionpoint:
@@ -1210,15 +1219,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                         prev = checkpoint
 
                     glEnd()
-
-                for respawn_point in self.level_file.respawnpoints:
-                    if respawn_point not in select_optimize:
-                        continue
-                    preceding_checkpoint_index = respawn_point.unk3
-                    if preceding_checkpoint_index != -1:
-                        checkpoints_to_highlight.add(preceding_checkpoint_index)
-                    # What about unk2? In Daisy Cruiser, a respawn point has its unk2 set instead.
-                    # Was that an oversight by the original maker?
 
                 if checkpoints_to_highlight:
                     glLineWidth(4.0)
