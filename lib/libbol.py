@@ -520,6 +520,7 @@ class Checkpoint(object):
         unk1, unk2, unk3, unk4 = unpack(">BBBB", f.read(4))
         assert unk2 == 0 or unk2 == 1
         assert unk3 == 0 or unk3 == 1
+        assert unk4 == 0 or unk4 == 1
         return cls(start, end, unk1, unk2, unk3, unk4)
 
     def write(self, f):
