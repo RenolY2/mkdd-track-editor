@@ -88,6 +88,7 @@ camdata = {
 respawn = {
     "Respawn ID": "Determines which water/OoB collision will make the player use this respawn point, e.g. Roadtype_0x0A03, where 3 is the Respawn ID.",
     "Next Enemy Point": "The enemy point that a CPU will drive towards after respawning",
+    "Camera Index": "Index of a camera. Remnant that is not used in the game.",
     "Previous Checkpoint": "The ID of the checkpoint right behind the respawn point. Can be left as -1.",
 }
 
