@@ -727,8 +727,6 @@ class CheckpointEdit(DataEditor):
 
         self.unk1 = self.add_integer_input("Shortcut Point ID", "unk1",
                                            MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.unk2 = self.add_checkbox("Unknown Flag", "unk2",
-                                      0, 1)
         self.unk3 = self.add_checkbox("Double-sided", "unk3",
                                            0, 1)
         self.unk4 = self.add_checkbox("Lap Checkpoint(*)", "unk4",
@@ -736,7 +734,6 @@ class CheckpointEdit(DataEditor):
         self.unk4.toggled.connect(self.catch_text_update)
 
         self.unk1.setToolTip(ttl.checkpoints["Shortcut Point ID"])
-        self.unk2.setToolTip(ttl.checkpoints["Unknown Flag"])
         self.unk3.setToolTip(ttl.checkpoints["Double-sided"])
         self.unk4.setToolTip(ttl.checkpoints["Lap Checkpoint(*)"])
 
@@ -751,7 +748,6 @@ class CheckpointEdit(DataEditor):
         self.end[2].setText(str(round(obj.end.z, 3)))
 
         self.unk1.setText(str(obj.unk1))
-        self.unk2.setChecked(obj.unk2 != 0)
         self.unk3.setChecked(obj.unk3 != 0)
         self.unk4.setChecked(obj.unk4 != 0)
 
