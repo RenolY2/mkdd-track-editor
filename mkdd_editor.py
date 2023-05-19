@@ -2875,7 +2875,7 @@ if __name__ == "__main__":
                         "(collision file).")
 
     args = parser.parse_args()
-    
+
     os.environ['QT_ENABLE_HIGHDPI_SCALING'] = '0'
     app = Application(sys.argv)
 
