@@ -36,7 +36,23 @@ def load_parameter_names(objectname):
 
     except Exception as err:
         print(err)
-        return None, None, None
+        return (
+            tuple(f'Obj Data {i + 1}' for i in range(8)),
+            tuple(),
+            tuple([''] * 8),
+            tuple([None] * 8),
+        )
+
+
+def clear_layout(layout):
+    while layout.count():
+        child = layout.itemAt(0)
+        if child.widget():
+            child.widget().deleteLater()
+        if child.layout():
+            clear_layout(child.layout())
+            child.layout().deleteLater()
+        layout.takeAt(0)
 
 
 class PythonIntValidator(QtGui.QValidator):
@@ -286,24 +302,6 @@ class DataEditor(QtWidgets.QWidget):
         print("created for", text, attribute)
         return line_edit
 
-    def add_integer_input_index(self, text, attribute, index, min_val, max_val):
-        line_edit = QtWidgets.QLineEdit(self)
-        layout = self.create_labeled_widget(self, text, line_edit)
-
-        line_edit.setValidator(QtGui.QIntValidator(min_val, max_val, self))
-
-        def input_edited():
-            text = line_edit.text()
-            print("input:", text)
-            mainattr = getattr(self.bound_to, attribute)
-            mainattr[index] = int(text)
-
-        line_edit.editingFinished.connect(input_edited)
-        label = layout.itemAt(0).widget()
-        self.vbox.addLayout(layout)
-
-        return label, line_edit
-
     def add_decimal_input(self, text, attribute, min_val, max_val):
         line_edit = QtWidgets.QLineEdit(self)
         layout = self.create_labeled_widget(self, text, line_edit)
@@ -487,6 +485,36 @@ class DataEditor(QtWidgets.QWidget):
         self.vbox.addLayout(layout)
 
         return line_edits
+
+    def add_types_widget_index(self, layout, text, attribute, index, widget_type):
+        # Certain widget types will be accompanied with arguments.
+        if isinstance(widget_type, (list, tuple)):
+            widget_type, *widget_type_args = widget_type
+
+        def set_value(value, index=index):
+            getattr(self.bound_to, attribute)[index] = value
+
+        if widget_type == "checkbox":
+            widget = QtWidgets.QCheckBox()
+            widget.stateChanged.connect(lambda state: set_value(int(bool(state))))
+        elif widget_type == "combobox":
+            widget = QtWidgets.QComboBox()
+            policy = widget.sizePolicy()
+            policy.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
+            widget.setSizePolicy(policy)
+            widget.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+            for key, value in widget_type_args[0].items():
+                widget.addItem(key, value)
+            widget.currentIndexChanged.connect(
+                lambda index: set_value(widget.itemData(index)))
+        else:
+            widget = QtWidgets.QLineEdit()
+            widget.setValidator(QtGui.QIntValidator(MIN_SIGNED_SHORT, MAX_SIGNED_SHORT))
+            widget.textChanged.connect(lambda text: set_value(int(text)))
+
+        layout.addLayout(self.create_labeled_widget(None, text, widget))
+
+        return widget
 
     def update_rotation(self, forwardedits, upedits, leftedits):
         rotation = self.bound_to.rotation
@@ -962,19 +990,18 @@ class ObjectEdit(DataEditor):
 
         self.objdatalabel = self.add_button_input(
             "Object-Specific Settings", "Reset to Default", self.fill_default_values)
-        self.userdata = []
-        for i in range(8):
-            self.userdata.append(
-                self.add_integer_input_index("Obj Data {0}".format(i+1), "userdata", i,
-                                             MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
-            )
+
+        self.userdata = [None] * 8
+        self.userdata_layout = QtWidgets.QVBoxLayout()
+        self.vbox.addLayout(self.userdata_layout)
 
         self.objectid.currentTextChanged.connect(self.update_name)
 
         for widget in self.position:
             widget.editingFinished.connect(self.catch_text_update)
 
-        self.objectid.currentTextChanged.connect(self.rename_object_parameters)
+        self.objectid.currentTextChanged.connect(self.rebuild_object_parameters_widgets)
+        self.objectid.currentText
 
         self.assets = self.add_label("Required Assets: Unknown")
         self.assets.setWordWrap(True)
@@ -982,35 +1009,33 @@ class ObjectEdit(DataEditor):
         hint.setVerticalPolicy(QtWidgets.QSizePolicy.Minimum)
         self.assets.setSizePolicy(hint)
 
-    def rename_object_parameters(self, current):
-        parameter_names, assets, tooltips, widget_types = load_parameter_names(current)
+    def rebuild_object_parameters_widgets(self, objectname):
+        for i in range(8):
+            self.userdata[i] = None
+        clear_layout(self.userdata_layout)
 
-        if parameter_names is None:
-            for i in range(8):
-                self.userdata[i][0].setText("Obj Data {0}".format(i+1))
-                self.userdata[i][0].setVisible(True)
-                self.userdata[i][1].setVisible(True)
-                self.userdata[i][1].setToolTip('')
-            self.assets.setText("Required Assets: Unknown")
+        parameter_names, assets, tooltips, widget_types = load_parameter_names(objectname)
+        tuples = zip(parameter_names, tooltips, widget_types)
+        for i, (parameter_name, tooltip, widget_type) in enumerate(tuples):
+            if parameter_name == "Unused":
+                if self.bound_to.userdata[i] != 0:
+                    Warning(f"Parameter with index {i} in object {objectname} is marked as Unused "
+                            f"but has value {self.bound_to.userdata[i]}")
+                continue
+
+            widget = self.add_types_widget_index(self.userdata_layout, parameter_name, 'userdata',
+                                                 i, widget_type)
+
+            widget.setToolTip(tooltips[i])
+
+            self.userdata[i] = widget
+
+        self.update_userdata_widgets(self.bound_to)
+
+        if not assets:
+            self.assets.setText("Required Assets: None")
         else:
-            for i in range(8):
-                if parameter_names[i] == "Unused":
-                    self.userdata[i][0].setVisible(False)
-                    self.userdata[i][1].setVisible(False)
-                    if self.bound_to.userdata[i] != 0:
-                        Warning("Parameter with index {0} in object {1} is marked as Unused but has value {2}".format(
-                            i, current, self.bound_to.userdata[i]
-                        ))
-                else:
-                    self.userdata[i][0].setVisible(True)
-                    self.userdata[i][1].setVisible(True)
-                    self.userdata[i][0].setText(parameter_names[i])
-                    self.userdata[i][1].setToolTip('')
-                    self.userdata[i][1].setToolTip(tooltips[i])
-            if len(assets) == 0:
-                self.assets.setText("Required Assets: None")
-            else:
-                self.assets.setText("Required Assets: {0}".format(", ".join(assets)))
+            self.assets.setText("Required Assets: {0}".format(", ".join(assets)))
 
     def update_name(self):
         if self.bound_to.widget is None:
@@ -1036,15 +1061,16 @@ class ObjectEdit(DataEditor):
         else:
             name = OBJECTNAMES[obj.objectid]
         index = self.objectid.findText(name)
-        self.objectid.setCurrentIndex(index)
+        with QtCore.QSignalBlocker(self.objectid):
+            self.objectid.setCurrentIndex(index)
 
         self.pathid.setText(str(obj.pathid))
         self.unk_2a.setText(str(obj.unk_2a))
         self.presence_filter.set_value(obj.presence_filter)
         self.presence.set_value(obj.presence)
         self.flag.setChecked(obj.unk_flag != 0)
-        for i in range(8):
-            self.userdata[i][1].setText(str(obj.userdata[i]))
+
+        self.rebuild_object_parameters_widgets(name)
 
     def fill_default_values(self):
         obj = self.bound_to
@@ -1052,9 +1078,21 @@ class ObjectEdit(DataEditor):
         if defaults is None:
             return
         obj.userdata = defaults.copy()
+        self.update_userdata_widgets(obj)
 
-        for i, (_label_widget, value_widget) in enumerate(self.userdata):
-            value_widget.setText(str(defaults[i]))
+    def update_userdata_widgets(self, obj):
+        for i, widget in enumerate(self.userdata):
+            if widget is None:
+                continue
+
+            with QtCore.QSignalBlocker(widget):
+                if isinstance(widget, QtWidgets.QCheckBox):
+                    widget.setChecked(bool(obj.userdata[i]))
+                elif isinstance(widget, QtWidgets.QComboBox):
+                    index = widget.findData(obj.userdata[i])
+                    widget.setCurrentIndex(index if index != -1 else 0)
+                elif isinstance(widget, QtWidgets.QLineEdit):
+                    widget.setText(str(obj.userdata[i]))
 
 
 class KartStartPointEdit(DataEditor):
