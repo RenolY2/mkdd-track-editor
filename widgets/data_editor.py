@@ -1,5 +1,3 @@
-import os
-import json
 import widgets.tooltip_list as ttl
 
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -10,30 +8,32 @@ from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint
                         MapObject, KartStartPoint, Area, Camera, BOL, JugemPoint, MapObject,
                         LightParam, MGEntry, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS,
                         SWERVE_IDS, REVERSE_SWERVE_IDS, REVERSE_AREA_TYPES,
-                        KART_START_POINTS_PLAYER_IDS, REVERSE_KART_START_POINTS_PLAYER_IDS)
+                        KART_START_POINTS_PLAYER_IDS, REVERSE_KART_START_POINTS_PLAYER_IDS,
+                        read_object_parameters)
 from lib.vectors import Vector3
 from lib.model_rendering import Minimap
 
 
 def load_parameter_names(objectname):
     try:
-        with open(os.path.join("object_parameters", objectname+".json"), "r") as f:
-            data = json.load(f)
-            parameter_names = data["Object Parameters"]
-            assets = data["Assets"]
-            if "Tooltips" in data:
-                tooltips = data["Tooltips"]
-            else:
-                tooltips = ""
-            if len(parameter_names) != 8:
-                raise RuntimeError("Not enough or too many parameters: {0} (should be 8)".format(len(parameter_names)))
-            if tooltips != "":
-                return parameter_names, assets, tooltips
-            else:
-                return parameter_names, assets
+        data = read_object_parameters(objectname)
+
+        parameter_names = data["Object Parameters"]
+
+        if len(parameter_names) != 8:
+            raise RuntimeError("Not enough or too many parameters: {0} (should be 8)".format(
+                len(parameter_names)))
+
+        assets = data["Assets"]
+
+        tooltips = data.get("Tooltips", [])
+        tooltips += [''] * (8 - len(tooltips))
+
+        return tuple(parameter_names), tuple(assets), tuple(tooltips)
+
     except Exception as err:
         print(err)
-        return None, None
+        return None, None, None
 
 
 class PythonIntValidator(QtGui.QValidator):
@@ -980,11 +980,8 @@ class ObjectEdit(DataEditor):
         self.assets.setSizePolicy(hint)
 
     def rename_object_parameters(self, current):
+        parameter_names, assets, tooltips = load_parameter_names(current)
 
-        if len(load_parameter_names(current)) == 2:
-            parameter_names, assets = load_parameter_names(current)
-        else:
-            parameter_names, assets, tooltips = load_parameter_names(current)
         if parameter_names is None:
             for i in range(8):
                 self.userdata[i][0].setText("Obj Data {0}".format(i+1))
@@ -1006,8 +1003,7 @@ class ObjectEdit(DataEditor):
                     self.userdata[i][1].setVisible(True)
                     self.userdata[i][0].setText(parameter_names[i])
                     self.userdata[i][1].setToolTip('')
-                    if len(load_parameter_names(current)) == 3:
-                        self.userdata[i][1].setToolTip(tooltips[i])
+                    self.userdata[i][1].setToolTip(tooltips[i])
             if len(assets) == 0:
                 self.assets.setText("Required Assets: None")
             else:
