@@ -167,7 +167,7 @@ class Gizmo2DMoveX(ClickDragAction):
     def just_released(self, editor, buttons, event):
         super().just_released(editor, buttons, event)
         editor.gizmo.reset_axis()
-        editor.gizmo.move_to_average(editor.selected_positions)
+        editor.gizmo.move_to_average(editor.selected_positions, editor.selected_rotations)
 
 
 class Gizmo2DMoveXZ(Gizmo2DMoveX):
@@ -212,7 +212,6 @@ class Gizmo2DRotateY(Gizmo2DMoveX):
     def just_released(self, editor, buttons, event):
         super().just_released(editor, buttons, event)
         editor.gizmo.reset_axis()
-        #editor.gizmo.move_to_average(editor.selected)
 
 
 class AddObjectTopDown(ClickAction):
