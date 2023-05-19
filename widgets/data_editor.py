@@ -29,7 +29,10 @@ def load_parameter_names(objectname):
         tooltips = data.get("Tooltips", [])
         tooltips += [''] * (8 - len(tooltips))
 
-        return tuple(parameter_names), tuple(assets), tuple(tooltips)
+        widget_types = data.get("Widgets", [])
+        widget_types += [None] * (8 - len(widget_types))
+
+        return tuple(parameter_names), tuple(assets), tuple(tooltips), tuple(widget_types)
 
     except Exception as err:
         print(err)
@@ -980,7 +983,7 @@ class ObjectEdit(DataEditor):
         self.assets.setSizePolicy(hint)
 
     def rename_object_parameters(self, current):
-        parameter_names, assets, tooltips = load_parameter_names(current)
+        parameter_names, assets, tooltips, widget_types = load_parameter_names(current)
 
         if parameter_names is None:
             for i in range(8):
