@@ -60,6 +60,65 @@ class PythonIntValidator(QtGui.QValidator):
         pass
 
 
+class MaskBoxMenu(QtWidgets.QMenu):
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
+        action = self.activeAction()
+        if action is not None and action.isEnabled():
+            action.trigger()
+            event.accept()
+            return
+
+        super().mouseReleaseEvent(event)
+
+
+class MaskBox(QtWidgets.QPushButton):
+
+    value_changed = QtCore.Signal(int)
+
+    def __init__(self, entries: 'dict[int, (str, str)]'):
+        super().__init__()
+
+        policy = self.sizePolicy()
+        policy.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
+        self.setSizePolicy(policy)
+
+        self.entries = entries
+        self.actions = {}
+
+        self.menu = MaskBoxMenu()
+        for field, (char, label) in entries.items():
+            action = self.menu.addAction(f'{char} {label}')
+            action.setCheckable(True)
+            action.toggled.connect(self._on_action_toggled)
+            self.actions[field] = action
+
+        self.setMenu(self.menu)
+
+    def set_value(self, value: int):
+        for field, action in self.actions.items():
+            with QtCore.QSignalBlocker(action):
+                action.setChecked(bool(field & value))
+
+        button_label = ''
+        for field, (char, _label) in self.entries.items():
+            if field & value:
+                if button_label:
+                    button_label += ' '
+                button_label += char
+        self.setText(button_label)
+
+    def _on_action_toggled(self, checked: bool):
+        _ = checked
+        value = 0
+        for field, action in self.actions.items():
+            if action.isChecked():
+                value |= field
+
+        self.set_value(value)
+        self.value_changed.emit(value)
+
+
 class ClickableLabel(QtWidgets.QLabel):
 
     clicked = QtCore.Signal()
@@ -192,6 +251,18 @@ class DataEditor(QtWidgets.QWidget):
         self.vbox.addLayout(layout)
 
         return checkbox
+
+    def add_maskbox(self, text, attribute, entries):
+        maskbox = MaskBox(entries)
+        layout = self.create_labeled_widget(self, text, maskbox)
+
+        def on_value_changed(value: int):
+            setattr(self.bound_to, attribute, value)
+
+        maskbox.value_changed.connect(on_value_changed)
+        self.vbox.addLayout(layout)
+
+        return maskbox
 
     def add_integer_input(self, text, attribute, min_val, max_val):
         line_edit = QtWidgets.QLineEdit(self)
@@ -862,27 +933,29 @@ class ObjectEdit(DataEditor):
         self.pathid.setToolTip(ttl.objectdata['Route ID'])
         self.pathid.editingFinished.connect(self.catch_text_update)
 
-        self.unk_28 = self.add_integer_input("Unknown 0x28", "unk_28",
-                                             MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
-
         self.unk_2a = self.add_integer_input("Route Point ID", "unk_2a",
                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         self.unk_2a.setToolTip(ttl.objectdata['Route Point ID'])
 
-        self.presence_filter = self.add_integer_input("Presence Mask", "presence_filter",
-                                                      MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.presence_filter.setToolTip(ttl.objectdata['Presence Mask'])
+        self.presence_filter = self.add_maskbox(
+            "Game Mode Presence", "presence_filter", {
+                0b00000001: ('🎈', 'Balloon Battle'),
+                0b00000010: ('🥷', 'Robbery (Yanked)'),
+                0b00000100: ('💣', 'Bob-omb Blast'),
+                0b00001000: ('🌟', 'Shine Thief'),
+                0b10000000: ('⏱️', 'Time Trials'),
+            })
+        self.presence_filter.setToolTip(ttl.objectdata['Game Mode Presence'])
 
-        self.presence = self.add_integer_input("Presence", "presence",
-                                               MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.presence.setToolTip(ttl.objectdata['Presence'])
+        self.presence = self.add_maskbox("Player Mode Presence", "presence", {
+            0b01: ('👤', 'Single Player'),
+            0b10: ('👥', 'Multi Player'),
+        })
+        self.presence.setToolTip(ttl.objectdata['Player Mode Presence'])
 
         self.flag = self.add_checkbox("Collision", "unk_flag",
                                       off_value=0, on_value=1)
         self.flag.setToolTip(ttl.objectdata['Collision'])
-
-        self.unk_2f = self.add_integer_input("Unknown 0x2F", "unk_2f",
-                                             MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
 
         self.objdatalabel = self.add_button_input(
             "Object-Specific Settings", "Reset to Default", self.fill_default_values)
@@ -967,11 +1040,9 @@ class ObjectEdit(DataEditor):
         self.objectid.setCurrentIndex(index)
 
         self.pathid.setText(str(obj.pathid))
-        self.unk_28.setText(str(obj.unk_28))
         self.unk_2a.setText(str(obj.unk_2a))
-        self.unk_2f.setText(str(obj.unk_2f))
-        self.presence_filter.setText(str(obj.presence_filter))
-        self.presence.setText(str(obj.presence))
+        self.presence_filter.set_value(obj.presence_filter)
+        self.presence.set_value(obj.presence)
         self.flag.setChecked(obj.unk_flag != 0)
         for i in range(8):
             self.userdata[i][1].setText(str(obj.userdata[i]))

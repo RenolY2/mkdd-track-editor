@@ -1,8 +1,10 @@
 objectdata = {
     "Route ID": "The ID of the Route Group this object will follow (if supported by the object)",
     "Route Point ID": "The ID of the Route Point this object will start from (if supported by the object)",
-    "Presence Mask": "255 = will show up in time trial and other modes.\n15 = won't show up in time trial.",
-    "Presence": "1 = only single screen modes.\n2 = only split screen modes.\n3 = both modes.",
+    "Game Mode Presence": "Whether the object is present in Battle modes or Time Trials mode.",
+    "Player Mode Presence":
+    "Whether the object is present in Single Player or Multi Player mode. To hide the object, "
+    "uncheck both.",
     "Collision": "Whether the object can be physically interacted with or not (check vanilla courses for your desired object's effect)",
 }
 
