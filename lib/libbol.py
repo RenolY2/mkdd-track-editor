@@ -1,6 +1,6 @@
 import json
 from struct import unpack, pack
-from numpy import ndarray, array
+from numpy import ndarray, array, argmin
 from math import cos, sin
 from .vectors import Vector3
 from collections import OrderedDict
@@ -183,6 +183,15 @@ class Rotation(object):
                      int(round(up.y * 10000)),
                      int(round(up.z * 10000))
                      ))
+
+    @classmethod
+    def from_points_2D(cls, start: Vector3, end: Vector3):
+        forward = end - start
+        forward.y = 0
+        forward.normalize()
+        up = Vector3(0, 1, 0)
+        left = forward.cross(up) * -1
+        return cls(forward, up, left)
 
 
 class ObjectContainer(list):
@@ -367,6 +376,10 @@ class EnemyPointGroup(object):
     def get_index_of_point(self, point: EnemyPoint):
         return self.points.index(point)
 
+    def find_closest_point(self, point: Vector3):
+        distances = array([x.position.distance2(point) for x in self.points])
+        return min(distances), self.points[argmin(distances)]
+
 class EnemyPointGroups(object):
     def __init__(self):
         self.groups = []
@@ -428,6 +441,14 @@ class EnemyPointGroups(object):
         new_enemy_group = EnemyPointGroup()
         new_enemy_group.id = self.new_group_id()
         self.groups.append(new_enemy_group)
+
+    def fit_on_path(self, position: Vector3):
+        #tuples of distance, point obj
+        min_points = [group.find_closest_point(position) for group in self.groups if group.points]
+        closest_point_idx = argmin(array(distance for distance, _point in min_points))
+        _distance, closest_point = min_points[closest_point_idx]
+        points = tuple(self.points())
+        return points.index(closest_point), closest_point
 # Enemy/Item Route Code End
 
 
@@ -1087,7 +1108,7 @@ class BOL(object):
         self.kartpoints = KartStartPoints()
         self.areas = Areas()
         self.cameras = ObjectContainer()
-        self.respawnpoints = ObjectContainer()
+        self.respawnpoints = ObjectContainer(object_type=JugemPoint)
         self.lightparams = ObjectContainer()
         self.mgentries = ObjectContainer()
 
@@ -1361,6 +1382,20 @@ class BOL(object):
         f = BytesIO()
         self.write(f)
         return f.getvalue()
+
+    def add_respawn(self, rsp: JugemPoint):
+        new_id = 0
+        used_ids = [x.respawn_id for x in self.respawnpoints]
+        while new_id in used_ids:
+            new_id += 1
+        rsp.respawn_id = new_id
+
+        if self.enemypointgroups.groups:
+            position, point = self.enemypointgroups.fit_on_path(rsp.position)
+            rsp.unk1 = position
+            rsp.rotation = Rotation.from_points_2D(rsp.position, point.position)
+
+        self.respawnpoints.append(rsp)
 
 
 with open("lib/mkddobjects.json", "r") as f:

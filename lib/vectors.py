@@ -80,6 +80,13 @@ class Vector3(object):
     def __str__(self):
         return str((self.x, self.y, self.z))
 
+    def distance(self, other):
+        return sqrt(self.distance2(other))
+
+    def distance2(self, other):
+        diff = other - self
+        return diff.x**2 + diff.y**2 + diff.z**2
+
 
 class Vector4(Vector3):
     def __init__(self, x, y, z, w):

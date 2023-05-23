@@ -21,6 +21,7 @@ class MoreButtons(QtWidgets.QWidget):
         self.add_button('Add Route Points', 'add_routepoints')
         self.add_button('Add Starting Point', 'add_startpoint')
         self.add_button('Add Route for Object', 'route_object')
+        self.add_button('Add Respawn Points', 'add_respawn')
 
     def add_button(self, text, optionstring):
         new_button = QtWidgets.QPushButton(self)
@@ -35,33 +36,35 @@ class MoreButtons(QtWidgets.QWidget):
 
     def add_buttons(self, option = None):
         self._target_obj = obj = option.bound_to if hasattr(option, 'bound_to') else None
-        optionstring = None
+        optionstrings = []
 
         if isinstance(obj, EnemyPointGroups):
-            optionstring = "add_enemypath"
+            optionstrings.append("add_enemypath")
         elif isinstance(obj, (EnemyPointGroup, EnemyPoint)):
-            optionstring = "add_enemypoints"
+            optionstrings.append("add_enemypoints")
         elif isinstance(obj, (CheckpointGroups)):
-            optionstring = "add_checkpointgroup"
+            optionstrings.append("add_checkpointgroup")
         elif isinstance(obj, (CheckpointGroup, Checkpoint)):
-            optionstring = "add_checkpoints"
+            optionstrings.append("add_checkpoints")
         elif isinstance(obj, ObjectContainer):
             if obj.object_type is Route:
-                optionstring = "add_route"
+                optionstrings.append("add_route")
+            elif obj.object_type is JugemPoint:
+                optionstrings.append("add_respawn")
         elif isinstance(obj, (Route, RoutePoint)):
-            optionstring = "add_routepoints"
+            optionstrings.append("add_routepoints")
         elif isinstance(obj, KartStartPoints):
             #if len(obj.positions) == 0:
             #^ this check should be performed when/if separate battle mode support is added
             #or, someone needs to look into multiple starting points for regular courses
             #i suspect that it's useless to add more than 1 point
-            optionstring = "add_startpoint"
+            optionstrings.append("add_startpoint")
         elif isinstance(obj, MapObject):
             if obj.route_info() == "Individual" and obj.pathid == -1:
-                optionstring = "route_object"
+                optionstrings.append("route_object")
 
         for name, button in self._buttons.items():
-            button.setVisible(name == optionstring)
+            button.setVisible(name in optionstrings)
 
     def _on_button_clicked(self):
         if self._target_obj is None:
