@@ -933,7 +933,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
                 self.select_update.emit()
 
-                self.gizmo.move_to_average(self.selected_positions)
+                self.gizmo.move_to_average(self.selected_positions, self.selected_rotations)
                 if len(selected) == 0:
                     #print("Select did register")
                     self.gizmo.hidden = True

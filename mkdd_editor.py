@@ -536,7 +536,8 @@ class GenEditor(QtWidgets.QMainWindow):
 
         self.pik_control.set_buttons(item)
 
-        self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
+                                              self.level_view.selected_rotations)
         self.level_view.do_redraw()
         self.level_view.select_update.emit()
 
@@ -2294,7 +2295,8 @@ class GenEditor(QtWidgets.QMainWindow):
             pos.y += deltay
             pos.z += deltaz
 
-        self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
+                                              self.level_view.selected_rotations)
 
         #if len(self.pikmin_gen_view.selected) == 1:
         #    obj = self.pikmin_gen_view.selected[0]
@@ -2433,7 +2435,8 @@ class GenEditor(QtWidgets.QMainWindow):
                 pos.y = height
 
         self.pik_control.update_info()
-        self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
+                                              self.level_view.selected_rotations)
         self.set_has_unsaved_changes(True)
         self.level_view.do_redraw()
 
@@ -2655,7 +2658,8 @@ class GenEditor(QtWidgets.QMainWindow):
         self.update_3d()
 
     def update_3d(self):
-        self.level_view.gizmo.move_to_average(self.level_view.selected_positions)
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
+                                              self.level_view.selected_rotations)
         self.level_view.do_redraw()
 
     def select_from_3d_to_treeview(self):
@@ -2875,7 +2879,7 @@ if __name__ == "__main__":
                         "(collision file).")
 
     args = parser.parse_args()
-    
+
     os.environ['QT_ENABLE_HIGHDPI_SCALING'] = '0'
     app = Application(sys.argv)
 

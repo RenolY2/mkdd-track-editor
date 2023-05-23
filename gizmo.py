@@ -31,6 +31,7 @@ class Gizmo(Model):
 
         self.position = Vector3(0.0, 0.0, 0.0)
         self.hidden = True
+        self.with_rotation = True
 
         self.callbacks = {}
 
@@ -50,11 +51,13 @@ class Gizmo(Model):
     def reset_axis(self):
         self.render_axis = None
 
-    def move_to_average(self, positions):
+    def move_to_average(self, positions, rotations):
         if len(positions) == 0:
             self.hidden = True
             return
         self.hidden = False
+
+        self.with_rotation = len(positions) > 1 or rotations
 
         avgx = None
         avgy = None
@@ -86,9 +89,10 @@ class Gizmo(Model):
             named_meshes["gizmo_x"].render_colorid(0x1)
             if is3d: named_meshes["gizmo_y"].render_colorid(0x2)
             named_meshes["gizmo_z"].render_colorid(0x3)
-            if is3d: named_meshes["rotation_x"].render_colorid(0x4)
-            named_meshes["rotation_y"].render_colorid(0x5)
-            if is3d: named_meshes["rotation_z"].render_colorid(0x6)
+            if self.with_rotation:
+                if is3d: named_meshes["rotation_x"].render_colorid(0x4)
+                named_meshes["rotation_y"].render_colorid(0x5)
+                if is3d: named_meshes["rotation_z"].render_colorid(0x6)
             if not is3d: named_meshes["middle"].render_colorid(0x7)
             glPopMatrix()
 
@@ -137,15 +141,16 @@ class Gizmo(Model):
             glColor4f(*Z_COLOR if hover_id != 0x3 else HOVER_COLOR)
             self.named_meshes["gizmo_z"].render()
 
-        if is3d and (not handle_hit or self.was_hit["rotation_x"]):
-            glColor4f(*X_COLOR if hover_id != 0x4 else HOVER_COLOR)
-            self.named_meshes["rotation_x"].render()
-        if not handle_hit or self.was_hit["rotation_y"]:
-            glColor4f(*Y_COLOR if hover_id != 0x5 else HOVER_COLOR)
-            self.named_meshes["rotation_y"].render()
-        if is3d and (not handle_hit or self.was_hit["rotation_z"]):
-            glColor4f(*Z_COLOR if hover_id != 0x6 else HOVER_COLOR)
-            self.named_meshes["rotation_z"].render()
+        if self.with_rotation:
+            if is3d and (not handle_hit or self.was_hit["rotation_x"]):
+                glColor4f(*X_COLOR if hover_id != 0x4 else HOVER_COLOR)
+                self.named_meshes["rotation_x"].render()
+            if not handle_hit or self.was_hit["rotation_y"]:
+                glColor4f(*Y_COLOR if hover_id != 0x5 else HOVER_COLOR)
+                self.named_meshes["rotation_y"].render()
+            if is3d and (not handle_hit or self.was_hit["rotation_z"]):
+                glColor4f(*Z_COLOR if hover_id != 0x6 else HOVER_COLOR)
+                self.named_meshes["rotation_z"].render()
 
         if not is3d and (not handle_hit or self.was_hit["middle"]):
             glColor4f(*MIDDLE_COLOR if hover_id != 0x7 else HOVER_COLOR)
