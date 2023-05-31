@@ -2180,7 +2180,10 @@ class GenEditor(QtWidgets.QMainWindow):
             elif isinstance(object, libbol.KartStartPoint):
                 self.level_file.kartpoints.positions.append(placeobject)
             elif isinstance(object, libbol.JugemPoint):
-                self.level_file.respawnpoints.append(placeobject)
+                if group == -1:
+                    self.level_file.add_respawn(placeobject)
+                else:
+                    self.level_file.respawnpoints.append(placeobject)
             elif isinstance(object, libbol.Area):
                 self.level_file.areas.areas.append(placeobject)
             elif isinstance(object, libbol.Camera):
@@ -2266,6 +2269,11 @@ class GenEditor(QtWidgets.QMainWindow):
 
             self.level_file.routes.append(new_route)
             obj.pathid = len(self.level_file.routes) - 1
+        elif option == "add_respawn":
+            self.object_to_be_added = [libbol.JugemPoint.new(), -1, 0]
+            self.pik_control.button_add_object.setChecked(True)
+            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
+
 
         self.leveldatatreeview.set_objects(self.level_file)
 
