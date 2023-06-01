@@ -1090,31 +1090,31 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
                         if point_index in enemypoints_to_highlight:
                             glColor3f(1.0, 1.0, 0.0)
-                            self.models.draw_sphere(point.position, 300)
+                            self.models.draw_sphere(point.position, 600)
 
                         self.models.render_generic_position_colored(point.position, point in select_optimize, "enemypoint")
 
                         if point.itemsonly:
                             glColor3f(1.0, 0.5, 0.1)
-                            self.models.draw_cylinder(point.position, 800, 800)
+                            self.models.draw_cylinder(point.position, 1600, 1600)
                         if point.driftdirection:
                             glColor3f(0.9, 0.0, 0.1)
-                            self.models.draw_cylinder(point.position, 700, 700)
+                            self.models.draw_cylinder(point.position, 1400, 1400)
                         if point.driftacuteness:
                             glColor3f(0.1, 0.1, 1.0)
-                            self.models.draw_cylinder(point.position, 600, 600)
+                            self.models.draw_cylinder(point.position, 1200, 1200)
                         if point.driftduration:
                             glColor3f(0.9, 0.9, 0.1)
-                            self.models.draw_cylinder(point.position, 500, 500)
+                            self.models.draw_cylinder(point.position, 1000, 1000)
                         if point.swerve:
                             glColor3f(0.1, 0.9, 0.2)
-                            self.models.draw_cylinder(point.position, 400, 400)
+                            self.models.draw_cylinder(point.position, 800, 800)
                         if point.driftsupplement:
                             glColor3f(0.9, 0.0, 0.9)
-                            self.models.draw_cylinder(point.position, 300, 300)
+                            self.models.draw_cylinder(point.position, 600, 600)
                         if point.nomushroomzone:
                             glColor3f(0.1, 0.8, 1.0)
-                            self.models.draw_cylinder(point.position, 900, 900)
+                            self.models.draw_cylinder(point.position, 1800, 1800)
 
                         point_index += 1
 
@@ -1289,9 +1289,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
                     if object in select_optimize:
                         glColor3f(0.0, 1.0, 0.0)
-                        self.models.draw_sphere(object.position3, 300)
+                        self.models.draw_sphere(object.position3, 600)
                         glColor3f(1.0, 0.0, 0.0)
-                        self.models.draw_sphere(object.position2, 300)
+                        self.models.draw_sphere(object.position2, 600)
 
 
             if vismenu.respawnpoints.is_visible():
@@ -1322,10 +1322,10 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             glEnd()
 
             if p1i not in rendered:
-                self.models.draw_sphere(p1.position, p1.radius/2)
+                self.models.draw_sphere(p1.position, p1.radius)
                 rendered[p1i] = True
             if p2i not in rendered:
-                self.models.draw_sphere(p2.position, p2.radius/2)
+                self.models.draw_sphere(p2.position, p2.radius)
                 rendered[p2i] = True
         glColor4f(0.0, 1.0, 1.0, 1.0)
         """for points in self.paths.wide_paths:
