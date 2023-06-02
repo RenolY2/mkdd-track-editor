@@ -1,3 +1,4 @@
+import functools
 import json
 from struct import unpack, pack
 from numpy import ndarray, array, argmin
@@ -67,6 +68,15 @@ def write_padding(f, multiple):
     for i in range(diff):
         pos = i % len(PADDING)
         f.write(PADDING[pos:pos + 1])
+
+
+@functools.lru_cache
+def read_object_parameters(name: str) -> dict:
+    filepath = os.path.join('object_parameters', f'{name}.json')
+    if not os.path.isfile(filepath):
+        return None
+    with open(filepath, "r", encoding='utf-8') as f:
+        return json.load(f)
 
 
 class Rotation(object):
@@ -729,15 +739,9 @@ class MapObject(object):
         #assert f.tell() - start == self._size
 
     def read_json_file(self):
-        if not self.objectid in OBJECTNAMES:
+        if self.objectid not in OBJECTNAMES:
             return None
-        name = OBJECTNAMES[self.objectid]
-        filename = os.path.join("object_parameters", name + ".json")
-        if not os.path.isfile(filename):
-            return None
-        with open(filename, "r", encoding='utf-8') as f:
-            json_data = json.load(f)
-        return json_data
+        return read_object_parameters(OBJECTNAMES[self.objectid])
 
     def route_info(self):
         json_data = self.read_json_file()

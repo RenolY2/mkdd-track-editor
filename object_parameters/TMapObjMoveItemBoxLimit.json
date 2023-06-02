@@ -1,19 +1,19 @@
 {
     "Object Parameters": [
-        "Unknown 1",
-        "Unknown 2",
-        "Unknown 3",
-        "Unknown 4",
-        "Unknown 5",
-        "Unknown 6",
-        "Unknown 7",
-        "Unknown 8"
+        "Height Offset",
+        "Item Box Type",
+        "Always Special Item",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused",
+        "Unused"
     ],
     "Assets": [],
     "Tooltips": [
-        "",
-        "",
-        "",
+        "How high off the ground the item box will be. Usually item boxes are grounded with this field set to 135.",
+        "Whether the item box is single or double.",
+        "A special item will be always given if the item box is single, and only if the player's current position can have special items. Enabling Frantic mode, and setting the item box type to always single will ensure that a special item is always given.",
         "",
         "",
         "",
@@ -30,5 +30,15 @@
         0,
         0,
         0
+    ],
+    "Widgets": [
+        null,
+        ["combobox", {"Single or Double": 0, "Single": 1, "Double": 3}],
+        "checkbox",
+        null,
+        null,
+        null,
+        null,
+        null
     ]
 }

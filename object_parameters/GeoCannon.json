@@ -2,7 +2,7 @@
     "Object Parameters": [
         "Respawn ID",
         "Unknown 2",
-        "Invisibility",
+        "Invisible",
         "Sound Effect",
         "Unused",
         "Unused",
@@ -17,8 +17,8 @@
     "Tooltips": [
         "The Respawn ID that the cannon will shoot towards",
         "",
-        "0 = visible\n1 = invisible",
-        "0 = Lots of screaming with a longer duration.\n1 = A single scream, no landing sound.\n2 = A single scream, with landing sound.",
+        "",
+        "The sound that characters make while they are airborne.",
         "",
         "",
         "",
@@ -29,10 +29,20 @@
         0,
         0,
         0,
-        1,
+        2,
         0,
         0,
         0,
         0
+    ],
+    "Widgets": [
+        null,
+        null,
+        "checkbox",
+        ["combobox", {"Long Screaming": 0, "Single Scream (no landing sound)": 1, "Single Scream": 2}],
+        null,
+        null,
+        null,
+        null
     ]
 }
