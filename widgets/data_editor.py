@@ -1001,7 +1001,6 @@ class ObjectEdit(DataEditor):
             widget.editingFinished.connect(self.catch_text_update)
 
         self.objectid.currentTextChanged.connect(self.rebuild_object_parameters_widgets)
-        self.objectid.currentText
 
         self.assets = QtWidgets.QLineEdit()
         self.assets.setReadOnly(True)
