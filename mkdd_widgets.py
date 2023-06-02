@@ -80,6 +80,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
     height_update = QtCore.Signal(float)
     select_update = QtCore.Signal()
     move_points = QtCore.Signal(float, float, float)
+    move_points_to = QtCore.Signal(float, float, float)
     connect_update = QtCore.Signal(int, int)
     create_waypoint = QtCore.Signal(float, float)
     create_waypoint_3d = QtCore.Signal(float, float, float)
@@ -1476,6 +1477,22 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             dir.z = tmp
 
         return Line(pos, dir)
+
+    def get_3d_coordinates(self, mousex, mousey):
+        ray = self.create_ray_from_mouseclick(mousex, mousey)
+        pos = None
+
+        if self.collision is not None:
+            pos = self.collision.collide_ray(ray)
+
+        if pos is None:
+            plane = Plane.xy_aligned(Vector3(0.0, 0.0, 0.0))
+
+            collision = ray.collide_plane(plane)
+            if collision is not False:
+                pos, _ = collision
+
+        return pos
 
 
 def create_object_type_pixmap(canvas_size: int, directed: bool,
