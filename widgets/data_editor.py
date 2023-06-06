@@ -1001,13 +1001,10 @@ class ObjectEdit(DataEditor):
             widget.editingFinished.connect(self.catch_text_update)
 
         self.objectid.currentTextChanged.connect(self.rebuild_object_parameters_widgets)
-        self.objectid.currentText
 
-        self.assets = self.add_label("Required Assets: Unknown")
-        self.assets.setWordWrap(True)
-        hint = self.assets.sizePolicy()
-        hint.setVerticalPolicy(QtWidgets.QSizePolicy.Minimum)
-        self.assets.setSizePolicy(hint)
+        self.assets = QtWidgets.QLineEdit()
+        self.assets.setReadOnly(True)
+        self.vbox.addLayout(self.create_labeled_widget(self, 'Assets', self.assets))
 
     def rebuild_object_parameters_widgets(self, objectname):
         for i in range(8):
@@ -1032,10 +1029,10 @@ class ObjectEdit(DataEditor):
 
         self.update_userdata_widgets(self.bound_to)
 
-        if not assets:
-            self.assets.setText("Required Assets: None")
-        else:
-            self.assets.setText("Required Assets: {0}".format(", ".join(assets)))
+        self.assets.setText(', '.join(assets) if assets else 'None')
+        self.assets.setToolTip('Required Assets:\n\n' +
+                               '\n'.join(f'- {asset}' for asset in assets) if assets else 'None')
+        self.assets.setCursorPosition(0)
 
     def update_name(self):
         if self.bound_to.widget is None:

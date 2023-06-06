@@ -224,24 +224,26 @@ class ErrorAnalyzer(QtWidgets.QDialog):
                 for i in range(1, len(group.points)):
                     c1 = group.points[i-1]
                     c2 = group.points[i]
-
-                    lastsign = None
-
-                    for p1, mid, p3 in ((c1.start, c2.start, c2.end),
-                                        (c2.start, c2.end, c1.end),
-                                        (c2.end, c1.end, c1.start),
-                                        (c1.end, c1.start, c2.start)):
-                        side1 = p1 - mid
-                        side2 = p3 - mid
-                        prod = side1.x * side2.z - side2.x * side1.z
-                        if lastsign is None:
-                            lastsign = prod > 0
-                        else:
-                            if not (lastsign == (prod > 0)):
-                                write_line("Quad formed by checkpoints {0} and {1} in checkpoint group {2} isn't convex.".format(
+                    if not check_checkpoints(c1, c2):
+                        write_line("Quad formed by checkpoints {0} and {1} in checkpoint group {2} isn't convex.".format(
                                     i-1, i, gindex
                                 ))
-                                break
+
+
+def check_checkpoints(c1, c2):
+    lastsign = None
+    for p1, mid, p3 in ((c1.start, c2.start, c2.end),
+                        (c2.start, c2.end, c1.end),
+                        (c2.end, c1.end, c1.start),
+                        (c1.end, c1.start, c2.start)):
+        side1 = p1 - mid
+        side2 = p3 - mid
+        prod = side1.x * side2.z - side2.x * side1.z
+        if lastsign is None:
+            lastsign = prod > 0
+        elif not (lastsign == (prod > 0)):
+            return False
+    return True
 
 
 class ErrorAnalyzerButton(QtWidgets.QPushButton):

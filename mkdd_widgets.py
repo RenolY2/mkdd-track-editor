@@ -15,7 +15,7 @@ from PySide6 import QtCore, QtGui, QtOpenGLWidgets, QtWidgets
 from helper_functions import calc_zoom_in_factor, calc_zoom_out_factor
 from lib.libgen import GeneratorObject
 from lib.collision import Collision
-from widgets.editor_widgets import catch_exception, catch_exception_with_dialog
+from widgets.editor_widgets import catch_exception, catch_exception_with_dialog, check_checkpoints
 from opengltext import draw_collision
 from lib.vectors import Matrix4x4, Vector3, Line, Plane, Triangle
 from lib.model_rendering import TexturedPlane, Model, Grid, GenericObject, Material, Minimap
@@ -79,6 +79,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
     position_update = QtCore.Signal(QtGui.QMouseEvent, tuple)
     select_update = QtCore.Signal()
     move_points = QtCore.Signal(float, float, float)
+    move_points_to = QtCore.Signal(float, float, float)
     connect_update = QtCore.Signal(int, int)
     create_waypoint = QtCore.Signal(float, float)
     create_waypoint_3d = QtCore.Signal(float, float, float)
@@ -1148,8 +1149,28 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             if vismenu.checkpoints.is_visible():
                 checkpoints_to_highlight = set()
                 count = 0
+
+                # Get all concave checkpoints
+                concave_checkpoints = set()
+                checkpoint_groups = self.level_file.checkpoints.groups
+                for group in self.level_file.checkpoints.groups:
+                    if not group.points:
+                        continue
+                    for c1, c2 in zip(group.points, group.points[1:]):
+                        if not check_checkpoints(c1, c2):
+                            concave_checkpoints.add(c1)
+                            concave_checkpoints.add(c2)
+                    next_groups = [checkpoint_groups[next] for next in group.nextgroup if 0 <= next < len(checkpoint_groups)]
+                    next_points = [next_group.points[0] for next_group in next_groups if next_group.points]
+                    c1 = group.points[-1]
+                    for c2 in next_points:
+                        if not check_checkpoints(c1, c2):
+                            concave_checkpoints.add(c1)
+                            concave_checkpoints.add(c2)
+
                 for i, group in enumerate(self.level_file.checkpoints.groups):
                     prev = None
+                    # Draw the endpoints
                     for checkpoint in group.points:
                         start_point_selected = checkpoint.start in positions
                         end_point_selected = checkpoint.end in positions
@@ -1164,10 +1185,14 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                             checkpoints_to_highlight.add(count)
                         count += 1
 
-                    glColor3f(*colors[i % 4])
-
+                    # Draw the lines between the points
                     glBegin(GL_LINES)
                     for checkpoint in group.points:
+                        if checkpoint in concave_checkpoints:
+                            glColor3f(1.0, 0.0, 0.0)
+                        else:
+                            glColor3f(*colors[i % 4])
+
                         pos1 = checkpoint.start
                         pos2 = checkpoint.end
 
@@ -1179,6 +1204,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                         #glColor3f(0.0, 0.0, 0.0)
 
                         if prev is not None:
+                            if prev not in concave_checkpoints:
+                                glColor3f(*colors[i % 4])
                             pos3 = prev.start
                             pos4 = prev.end
 
@@ -1204,9 +1231,13 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     glLineWidth(4.0)
                     point_index = 0
                     for i, group in enumerate(self.level_file.checkpoints.groups):
-                        glColor3f(*colors[i % 4])
                         for checkpoint in group.points:
                             if point_index in checkpoints_to_highlight:
+                                if checkpoint in concave_checkpoints:
+                                    glColor3f(1.0, 0.0, 0.0)
+                                else:
+                                    glColor3f(*colors[i % 4])
+
                                 pos1 = checkpoint.start
                                 pos2 = checkpoint.end
                                 glBegin(GL_LINES)
@@ -1465,6 +1496,22 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             dir.z = tmp
 
         return Line(pos, dir)
+
+    def get_3d_coordinates(self, mousex, mousey):
+        ray = self.create_ray_from_mouseclick(mousex, mousey)
+        pos = None
+
+        if self.collision is not None:
+            pos = self.collision.collide_ray(ray)
+
+        if pos is None:
+            plane = Plane.xy_aligned(Vector3(0.0, 0.0, 0.0))
+
+            collision = ray.collide_plane(plane)
+            if collision is not False:
+                pos, _ = collision
+
+        return pos
 
 
 def create_object_type_pixmap(canvas_size: int, directed: bool,

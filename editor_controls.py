@@ -418,6 +418,16 @@ class Gizmo3DMoveZ(Gizmo3DMoveX):
         return 0, 0, delta
 
 
+class Gizmo3DMove(Gizmo3DMoveX):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.axis_name = "middle"
+
+    def move(self, editor, buttons, event):
+        if editor.gizmo.was_hit["middle"]:
+            coords = editor.get_3d_coordinates(event.x(), event.y())
+            editor.move_points_to.emit(coords.x, coords.y, coords.z)
+
 class Gizmo3DRotateY(Gizmo2DRotateY):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -537,6 +547,7 @@ class UserControl(object):
         self.add_action3d(Gizmo3DMoveX("Gizmo3DMoveX", "Left"))
         self.add_action3d(Gizmo3DMoveY("Gizmo3DMoveY", "Left"))
         self.add_action3d(Gizmo3DMoveZ("Gizmo3DMoveZ", "Left"))
+        self.add_action3d(Gizmo3DMove("Gizmo3DMove", "Left"))
         self.add_action3d(Gizmo3DRotateX("Gizmo3DRotateX", "Left"))
         self.add_action3d(Gizmo3DRotateY("Gizmo3DRotateY", "Left"))
         self.add_action3d(Gizmo3DRotateZ("Gizmo3DRotateZ", "Left"))
@@ -641,6 +652,10 @@ class UserControl(object):
 
     def handle_move_3d(self, event):
         editor = self._editor_widget
+
+        place_at = editor.get_3d_coordinates(event.x(), event.y())
+        if place_at is not None:
+            editor.position_update.emit(event, (round(place_at.x, 2), round(place_at.z, 2), round(-place_at.y, 2)))
 
         for key in key_enums.keys():
             if self.buttons.is_held(event, key):

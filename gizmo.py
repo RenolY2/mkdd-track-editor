@@ -93,7 +93,7 @@ class Gizmo(Model):
                 if is3d: named_meshes["rotation_x"].render_colorid(0x4)
                 named_meshes["rotation_y"].render_colorid(0x5)
                 if is3d: named_meshes["rotation_z"].render_colorid(0x6)
-            if not is3d: named_meshes["middle"].render_colorid(0x7)
+            named_meshes["middle"].render_colorid(0x7)
             glPopMatrix()
 
     def register_callback(self, gizmopart, func):
@@ -152,7 +152,7 @@ class Gizmo(Model):
                 glColor4f(*Z_COLOR if hover_id != 0x6 else HOVER_COLOR)
                 self.named_meshes["rotation_z"].render()
 
-        if not is3d and (not handle_hit or self.was_hit["middle"]):
+        if not handle_hit or self.was_hit["middle"]:
             glColor4f(*MIDDLE_COLOR if hover_id != 0x7 else HOVER_COLOR)
             self.named_meshes["middle"].render()
 
