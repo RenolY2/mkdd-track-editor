@@ -341,15 +341,6 @@ class DataEditor(QtWidgets.QWidget):
         for val in keyval_dict:
             combobox.addItem(val)
 
-        tt_dict = getattr(ttl, attribute, None)
-        try:
-            defaultitem = list(tt_dict)[0]
-        except TypeError:
-            pass
-        else:
-            if tt_dict is not None and combobox.currentText() == defaultitem:
-                combobox.setToolTip(tt_dict[defaultitem])
-
         policy = combobox.sizePolicy()
         policy.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
         combobox.setSizePolicy(policy)
@@ -359,13 +350,10 @@ class DataEditor(QtWidgets.QWidget):
 
         def item_selected(item):
             val = keyval_dict[item]
-            print("selected", item)
             setattr(self.bound_to, attribute, val)
 
-            if tt_dict is not None and item in tt_dict:
-                combobox.setToolTip(tt_dict[item])
-            else:
-                combobox.setToolTip('')
+            tt_dict = getattr(ttl, attribute, {})
+            combobox.setToolTip(tt_dict.get(item, ''))
 
         combobox.currentTextChanged.connect(item_selected)
         self.vbox.addLayout(layout)
