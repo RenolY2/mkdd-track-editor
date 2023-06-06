@@ -13,7 +13,6 @@ from OpenGL.GLU import *
 from PySide6 import QtCore, QtGui, QtOpenGLWidgets, QtWidgets
 
 from helper_functions import calc_zoom_in_factor, calc_zoom_out_factor
-from lib.libgen import GeneratorObject
 from lib.collision import Collision
 from widgets.editor_widgets import catch_exception, catch_exception_with_dialog, check_checkpoints
 from opengltext import draw_collision
@@ -22,7 +21,6 @@ from lib.model_rendering import TexturedPlane, Model, Grid, GenericObject, Mater
 from gizmo import Gizmo
 from lib.object_models import ObjectModels
 from editor_controls import UserControl
-from lib.libpath import Paths
 from lib.libbol import BOL
 import numpy
 
@@ -224,7 +222,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         self.last_position_update = 0
         self.move_collision_plane = Plane(Vector3(0.0, 0.0, 0.0), Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0))
 
-        self.paths = Paths()
         self.usercontrol = UserControl(self)
 
         # Initialize some models
@@ -1326,34 +1323,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                 self.models.render_generic_position_colored(self.minimap.corner2,
                                                             self.minimap.corner2 in positions,
                                                             'minimap')
-            #glDisable(GL_TEXTURE_2D)
-
-        glColor3f(0.0, 0.0, 0.0)
-        glDisable(GL_TEXTURE_2D)
-        glColor4f(0.0, 1.0, 0.0, 1.0)
-        rendered = {}
-        for p1i, p2i in self.paths.unique_paths:
-            p1 = self.paths.waypoints[p1i]
-            p2 = self.paths.waypoints[p2i]
-
-            glBegin(GL_LINES)
-            glVertex3f(p1.position.x, -p1.position.z, p1.position.y+5)
-            glVertex3f(p2.position.x, -p2.position.z, p2.position.y+5)
-            glEnd()
-
-            if p1i not in rendered:
-                self.models.draw_sphere(p1.position, p1.radius)
-                rendered[p1i] = True
-            if p2i not in rendered:
-                self.models.draw_sphere(p2.position, p2.radius)
-                rendered[p2i] = True
-        glColor4f(0.0, 1.0, 1.0, 1.0)
-        """for points in self.paths.wide_paths:
-            glBegin(GL_LINE_LOOP)
-            for p in points:
-                glVertex3f(p.x, -p.z, p.y + 5)
-
-            glEnd()"""
 
         self.gizmo.render_scaled(gizmo_scale, is3d=self.mode == MODE_3D, hover_id=gizmo_hover_id)
 
