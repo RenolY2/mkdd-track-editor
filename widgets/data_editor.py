@@ -34,8 +34,7 @@ def load_parameter_names(objectname):
 
         return tuple(parameter_names), tuple(assets), tuple(tooltips), tuple(widget_types)
 
-    except Exception as err:
-        print(err)
+    except Exception:
         return (
             tuple(f'Obj Data {i + 1}' for i in range(8)),
             tuple(),
@@ -290,16 +289,13 @@ class DataEditor(QtWidgets.QWidget):
         line_edit.setValidator(PythonIntValidator(min_val, max_val, line_edit))
 
         def input_edited():
-            print("Hmmmm")
             text = line_edit.text()
-            print("input:", text)
 
             setattr(self.bound_to, attribute, int(text))
 
         line_edit.editingFinished.connect(input_edited)
 
         self.vbox.addLayout(layout)
-        print("created for", text, attribute)
         return line_edit
 
     def add_decimal_input(self, text, attribute, min_val, max_val):
@@ -310,7 +306,6 @@ class DataEditor(QtWidgets.QWidget):
 
         def input_edited():
             text = line_edit.text()
-            print("input:", text)
             self.catch_text_update()
             setattr(self.bound_to, attribute, float(text))
 
@@ -580,7 +575,6 @@ class DataEditor(QtWidgets.QWidget):
             self.update_rotation(forward_edits, up_edits, left_edits)
 
         def change_up():
-            print("finally changing up")
             forward, up, left = rotation.get_vectors()
             newup = Vector3(*[float(v.text()) for v in up_edits])
             if newup.norm() == 0.0:
