@@ -958,6 +958,7 @@ class ObjectEdit(DataEditor):
                                                     -inf, +inf)
         self.rotation = self.add_rotation_input()
         self.objectid = self.add_dropdown_input("Object Type", "objectid", REVERSEOBJECTNAMES)
+        self.prev_objectname = None
 
         self.pathid = self.add_integer_input("Route ID", "pathid",
                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
@@ -1007,6 +1008,10 @@ class ObjectEdit(DataEditor):
         self.vbox.addLayout(self.create_labeled_widget(self, 'Assets', self.assets))
 
     def rebuild_object_parameters_widgets(self, objectname):
+        if self.prev_objectname == objectname:
+            return
+        self.prev_objectname = objectname
+
         for i in range(8):
             self.userdata[i] = None
         clear_layout(self.userdata_layout)
@@ -1058,8 +1063,7 @@ class ObjectEdit(DataEditor):
         else:
             name = OBJECTNAMES[obj.objectid]
         index = self.objectid.findText(name)
-        with QtCore.QSignalBlocker(self.objectid):
-            self.objectid.setCurrentIndex(index)
+        self.objectid.setCurrentIndex(index)
 
         self.pathid.setText(str(obj.pathid))
         self.unk_2a.setText(str(obj.unk_2a))
