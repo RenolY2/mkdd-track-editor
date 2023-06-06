@@ -77,7 +77,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
     mouse_released = QtCore.Signal(QtGui.QMouseEvent)
     mouse_wheel = QtCore.Signal(QtGui.QWheelEvent)
     position_update = QtCore.Signal(QtGui.QMouseEvent, tuple)
-    height_update = QtCore.Signal(float)
     select_update = QtCore.Signal()
     move_points = QtCore.Signal(float, float, float)
     move_points_to = QtCore.Signal(float, float, float)
@@ -492,8 +491,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             self.offset_z = 0
             self._zoom_factor = 80
 
-        self.pikmin_generators = None
-
         self.mousemode = MOUSE_MODE_NONE
         self.spawnpoint = None
         self.rotation_is_pressed = False
@@ -707,11 +704,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             glClearColor(1.0, 1.0, 1.0, 1.0)
 
             if self.level_file is not None and hit == 0xFF and not do_gizmo:
-                #objects = self.pikmin_generators.generators
                 glDisable(GL_TEXTURE_2D)
-                #for i, pikminobject in enumerate(objects):
-                #    self.models.render_object_coloredid(pikminobject, i)
-
                 id = 0x100000
 
                 objlist = []
@@ -1011,10 +1004,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             positions = self.selected_positions
 
             select_optimize = {x:True for x in selected}
-            #objects = self.pikmin_generators.generators
-
-            #for pikminobject in objects:
-            #    self.models.render_object(pikminobject, pikminobject in selected)
 
             visible_objectroutes = vismenu.objectroutes.is_visible()
             visible_cameraroutes = vismenu.cameraroutes.is_visible()

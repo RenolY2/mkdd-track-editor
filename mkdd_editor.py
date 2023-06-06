@@ -35,9 +35,6 @@ from lib.dolreader import DolFile, read_float, write_float, read_load_immediate_
 from widgets.file_select import FileSelect
 from lib.bmd_render import clear_temp_folder, load_textured_bmd
 from lib.game_visualizer import Game
-from lib.vectors import Vector3
-PIKMIN2GEN = "Generator files (defaultgen.txt;initgen.txt;plantsgen.txt;*.txt)"
-
 
 def detect_dol_region(dol):
     try:
@@ -133,8 +130,6 @@ class GenEditor(QtWidgets.QMainWindow):
         self.add_object_window.setWindowIcon(self.windowIcon())
         self.object_to_be_added = None
 
-        self.edit_spawn_window = None
-
         self._window_title = ""
         self._user_made_change = False
         self._justupdatingselectedobject = False
@@ -225,10 +220,6 @@ class GenEditor(QtWidgets.QMainWindow):
             val.destroy()
 
         self.editing_windows = {}
-
-        if self.edit_spawn_window is not None:
-            self.edit_spawn_window.destroy()
-            self.edit_spawn_window = None
 
         self.current_gen_path = None
         self.pik_control.reset_info()
@@ -737,9 +728,6 @@ class GenEditor(QtWidgets.QMainWindow):
         # Misc
         self.misc_menu = QtWidgets.QMenu(self.menubar)
         self.misc_menu.setTitle("Misc")
-        #self.spawnpoint_action = QtGui.QAction("Set startPos/Dir", self)
-        #self.spawnpoint_action.triggered.connect(self.action_open_rotationedit_window)
-        #self.misc_menu.addAction(self.spawnpoint_action)
         self.rotation_mode = QtGui.QAction("Rotate Positions around Pivot", self)
         self.rotation_mode.setCheckable(True)
         self.rotation_mode.setChecked(True)
@@ -1318,8 +1306,6 @@ class GenEditor(QtWidgets.QMainWindow):
             lambda _checked: self.button_open_add_item_window())
         #self.pik_control.button_move_object.pressed.connect(self.button_move_objects)
         self.level_view.move_points.connect(self.action_move_objects)
-        self.level_view.move_points_to.connect(self.action_move_objects_to)
-        self.level_view.height_update.connect(self.action_change_object_heights)
         self.level_view.create_waypoint.connect(self.action_add_object)
         self.level_view.create_waypoint_3d.connect(self.action_add_object_3d)
         self.pik_control.button_ground_object.clicked.connect(
@@ -1428,18 +1414,6 @@ class GenEditor(QtWidgets.QMainWindow):
             else:
                 self.level_view.selected_positions.append(point.position)
         self.update_3d()
-
-    def action_open_rotationedit_window(self):
-        if self.edit_spawn_window is None:
-            self.edit_spawn_window = mkdd_widgets.SpawnpointEditor()
-            self.edit_spawn_window.position.setText("{0}, {1}, {2}".format(
-                self.pikmin_gen_file.startpos_x, self.pikmin_gen_file.startpos_y, self.pikmin_gen_file.startpos_z
-            ))
-            self.edit_spawn_window.rotation.setText(str(self.pikmin_gen_file.startdir))
-            self.edit_spawn_window.closing.connect(self.action_close_edit_startpos_window)
-            self.edit_spawn_window.button_savetext.clicked.connect(
-                lambda _checked: self.action_save_startpos())
-            self.edit_spawn_window.show()
 
     def update_recent_files_list(self, filepath):
         filepath = os.path.abspath(os.path.normpath(filepath))
@@ -1772,7 +1746,6 @@ class GenEditor(QtWidgets.QMainWindow):
     def setup_bol_file(self, bol_file, filepath, update_config=True):
         self.level_file = bol_file
         self.level_view.level_file = self.level_file
-        # self.pikmin_gen_view.update()
         self.level_view.do_redraw()
 
         self.on_document_potentially_changed(update_unsaved_changes=False)
@@ -1982,22 +1955,6 @@ class GenEditor(QtWidgets.QMainWindow):
         alternative_mesh.hidden_collision_type_groups = \
             set(int(t) for t in editor_config.get("hidden_collision_type_groups", "").split(",") if t)
         save_cfg(self.configuration)
-
-    def action_close_edit_startpos_window(self):
-        self.edit_spawn_window.destroy()
-        self.edit_spawn_window = None
-
-    @catch_exception_with_dialog
-    def action_save_startpos(self):
-        pos, direction = self.edit_spawn_window.get_pos_dir()
-        self.pikmin_gen_file.startpos_x = pos[0]
-        self.pikmin_gen_file.startpos_y = pos[1]
-        self.pikmin_gen_file.startpos_z = pos[2]
-        self.pikmin_gen_file.startdir = direction
-
-        #self.pikmin_gen_view.update()
-        self.pikmin_gen_view.do_redraw()
-        self.set_has_unsaved_changes(True)
 
     def button_open_add_item_window(self):
         self.add_object_window.update_label()
@@ -2308,47 +2265,8 @@ class GenEditor(QtWidgets.QMainWindow):
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
                                               self.level_view.selected_rotations)
 
-        #if len(self.pikmin_gen_view.selected) == 1:
-        #    obj = self.pikmin_gen_view.selected[0]
-        #    self.pik_control.set_info(obj, obj.position, obj.rotation)
-
-        #self.pikmin_gen_view.update()
         self.level_view.do_redraw()
         self.pik_control.update_info()
-        self.set_has_unsaved_changes(True)
-
-    @catch_exception
-    def action_move_objects_to(self, posx, posy, posz):
-        self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
-                                              self.level_view.selected_rotations)
-        orig_avg = self.level_view.gizmo.position.copy()
-        new_avg = Vector3(posx, posz, -posy)
-        diff = new_avg - orig_avg
-        for pos in self.level_view.selected_positions:
-            pos.x = pos.x + diff.x
-            pos.y = pos.y + diff.y
-            pos.z = pos.z + diff.z
-
-            self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
-                                                  self.level_view.selected_rotations)
-        self.level_view.do_redraw()
-        self.pik_control.update_info()
-        self.set_has_unsaved_changes(True)
-
-    @catch_exception
-    def action_change_object_heights(self, deltay):
-        for obj in self.pikmin_gen_view.selected:
-            obj.y += deltay
-            obj.y = round(obj.y, 6)
-            obj.position_y = obj.y
-            obj.offset_y = 0
-
-        if len(self.pikmin_gen_view.selected) == 1:
-            obj = self.pikmin_gen_view.selected[0]
-            self.pik_control.set_info(obj, (obj.x, obj.y, obj.z), obj.get_rotation())
-
-        #self.pikmin_gen_view.update()
-        self.pikmin_gen_view.do_redraw()
         self.set_has_unsaved_changes(True)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent):
@@ -2442,12 +2360,6 @@ class GenEditor(QtWidgets.QMainWindow):
                     position.x = middle.x + length * sin(angle)
                     position.z = middle.z + length * cos(angle)
 
-        """
-        if len(self.pikmin_gen_view.selected) == 1:
-            obj = self.pikmin_gen_view.selected[0]
-            self.pik_control.set_info(obj, obj.position, obj.rotation)
-        """
-        #self.pikmin_gen_view.update()
         self.level_view.do_redraw()
         self.set_has_unsaved_changes(True)
         self.pik_control.update_info()
@@ -2515,7 +2427,6 @@ class GenEditor(QtWidgets.QMainWindow):
         self.pik_control.reset_info()
         self.leveldatatreeview.set_objects(self.level_file)
         self.level_view.gizmo.hidden = True
-        #self.pikmin_gen_view.update()
         self.level_view.do_redraw()
         self.set_has_unsaved_changes(True)
 
