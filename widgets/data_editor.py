@@ -29,6 +29,11 @@ def load_parameter_names(objectname):
         tooltips = data.get("Tooltips", [])
         tooltips += [''] * (8 - len(tooltips))
 
+        tooltips = [
+            ttl.markdown_to_html(parameter_name, tool_tip)
+            for parameter_name, tool_tip in zip(parameter_names, tooltips) if tool_tip
+        ]
+
         widget_types = data.get("Widgets", [])
         widget_types += [None] * (8 - len(widget_types))
 
@@ -1017,8 +1022,9 @@ class ObjectEdit(DataEditor):
         self.update_userdata_widgets(self.bound_to)
 
         self.assets.setText(', '.join(assets) if assets else 'None')
-        self.assets.setToolTip('Required Assets:\n\n' +
-                               '\n'.join(f'- {asset}' for asset in assets) if assets else 'None')
+        self.assets.setToolTip(
+            ttl.markdown_to_html('Required Assets',
+                                 '\n'.join(f'- {asset}' for asset in assets) if assets else 'None'))
         self.assets.setCursorPosition(0)
 
     def update_name(self):
