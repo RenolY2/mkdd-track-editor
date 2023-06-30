@@ -2162,11 +2162,11 @@ class GenEditor(QtWidgets.QMainWindow):
         self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
         self.object_to_be_added = None
 
+        object_to_select = None
+
         if option == "add_enemypath":
             self.level_file.enemypointgroups.add_group()
-            self.level_view.selected = [self.level_file.enemypointgroups.groups[-1]]
-            self.level_view.selected_positions = []
-            self.level_view.selected_rotations = []
+            object_to_select = self.level_file.enemypointgroups.groups[-1]
         elif option == "add_enemypoints":
             if isinstance(obj, libbol.EnemyPointGroup):
                 group_id = obj.id
@@ -2181,9 +2181,7 @@ class GenEditor(QtWidgets.QMainWindow):
 
         elif option == "add_checkpointgroup":
             self.level_file.checkpoints.add_group()
-            self.level_view.selected = [self.level_file.checkpoints.groups[-1]]
-            self.level_view.selected_positions = []
-            self.level_view.selected_rotations = []
+            object_to_select = self.level_file.checkpoints.groups[-1]
         elif option == "add_checkpoints":
             if isinstance(obj, libbol.CheckpointGroup):
                 group_id = obj.grouplink
@@ -2195,6 +2193,7 @@ class GenEditor(QtWidgets.QMainWindow):
             self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
         elif option == "add_route":
             self.level_file.routes.append(libbol.Route.new())
+            object_to_select = self.level_file.routes[-1]
         elif option == "add_routepoints":
             if isinstance(obj, libbol.Route):
                 group_id = self.level_file.routes.index(obj)
@@ -2235,6 +2234,9 @@ class GenEditor(QtWidgets.QMainWindow):
 
 
         self.leveldatatreeview.set_objects(self.level_file)
+
+        if object_to_select is not None:
+            self.select_tree_item_bound_to(object_to_select)
 
     @catch_exception
     def action_move_objects(self, deltax, deltay, deltaz):
