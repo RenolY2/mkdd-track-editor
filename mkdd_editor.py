@@ -2074,15 +2074,17 @@ class GenEditor(QtWidgets.QMainWindow):
                     self.level_file.checkpoints.groups.append(libbol.CheckpointGroup.new())
                 insertion_index = position
                 # If a selection exists, use it as reference for the insertion point.
-                selected_items = self.leveldatatreeview.selectedItems()
-                if selected_items:
-                    selected_item = selected_items[-1]
+                for selected_item in reversed(self.leveldatatreeview.selectedItems()):
+                    if not hasattr(selected_item, 'bound_to'):
+                        continue
                     if isinstance(selected_item.bound_to, libbol.Checkpoint):
                         group = selected_item.parent().get_index_in_parent()
                         insertion_index = selected_item.get_index_in_parent() + 1
-                    elif isinstance(selected_item.bound_to, libbol.CheckpointGroup):
+                        break
+                    if isinstance(selected_item.bound_to, libbol.CheckpointGroup):
                         group = selected_item.get_index_in_parent()
                         insertion_index = 0
+                        break
 
                 self.level_file.checkpoints.groups[group].points.insert(
                     insertion_index, placeobject)
@@ -2107,15 +2109,17 @@ class GenEditor(QtWidgets.QMainWindow):
                 placeobject.group = group
                 insertion_index = position
                 # If a selection exists, use it as reference for the insertion point.
-                selected_items = self.leveldatatreeview.selectedItems()
-                if selected_items:
-                    selected_item = selected_items[-1]
+                for selected_item in reversed(self.leveldatatreeview.selectedItems()):
+                    if not hasattr(selected_item, 'bound_to'):
+                        continue
                     if isinstance(selected_item.bound_to, libbol.EnemyPoint):
                         placeobject.group = selected_item.parent().get_index_in_parent()
                         insertion_index = selected_item.get_index_in_parent() + 1
-                    elif isinstance(selected_item.bound_to, libbol.EnemyPointGroup):
+                        break
+                    if isinstance(selected_item.bound_to, libbol.EnemyPointGroup):
                         placeobject.group = selected_item.get_index_in_parent()
                         insertion_index = 0
+                        break
                 self.level_file.enemypointgroups.groups[placeobject.group].points.insert(
                     insertion_index, placeobject)
             elif isinstance(object, libbol.RoutePoint):
@@ -2124,15 +2128,17 @@ class GenEditor(QtWidgets.QMainWindow):
                     self.level_file.routes.append(libbol.Route.new())
                 insertion_index = position
                 # If a selection exists, use it as reference for the insertion point.
-                selected_items = self.leveldatatreeview.selectedItems()
-                if selected_items:
-                    selected_item = selected_items[-1]
+                for selected_item in reversed(self.leveldatatreeview.selectedItems()):
+                    if not hasattr(selected_item, 'bound_to'):
+                        continue
                     if isinstance(selected_item.bound_to, libbol.RoutePoint):
                         group = selected_item.parent().get_index_in_parent()
                         insertion_index = selected_item.get_index_in_parent() + 1
-                    elif isinstance(selected_item.bound_to, libbol.Route):
+                        break
+                    if isinstance(selected_item.bound_to, libbol.Route):
                         group = selected_item.get_index_in_parent()
                         insertion_index = 0
+                        break
                 self.level_file.routes[group].points.insert(insertion_index, placeobject)
             elif isinstance(object, libbol.MapObject):
                 self.level_file.objects.objects.append(placeobject)
