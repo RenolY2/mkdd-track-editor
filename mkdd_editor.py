@@ -107,7 +107,6 @@ class GenEditor(QtWidgets.QMainWindow):
 
         try:
             self.configuration = read_config()
-            print("Config file loaded")
         except FileNotFoundError as e:
             print("No config file found, creating default config...")
             self.configuration = make_default_config()
@@ -501,7 +500,6 @@ class GenEditor(QtWidgets.QMainWindow):
             #self._dontselectfromtree = False
             return"""
 
-        print("Selected:", item)
         self.level_view.selected = []
         self.level_view.selected_positions = []
         self.level_view.selected_rotations = []
@@ -789,7 +787,6 @@ class GenEditor(QtWidgets.QMainWindow):
 
         def make_func(i):
             def action_follow_player():
-                print("Now Following", i)
                 self.dolphin.stay_focused_on_player = i
             return action_follow_player
 
@@ -1459,10 +1456,7 @@ class GenEditor(QtWidgets.QMainWindow):
         if filepath:
             if chosentype is not None:
                 self.last_chosen_type = chosentype
-            print("Resetting editor")
             self.reset()
-            print("Reset done")
-            print("Chosen file type:", chosentype)
             if chosentype == "Archived files (*.arc)" or filepath.endswith(".arc"):
                 with open(filepath, "rb") as f:
                     try:
@@ -1750,7 +1744,6 @@ class GenEditor(QtWidgets.QMainWindow):
 
         self.on_document_potentially_changed(update_unsaved_changes=False)
 
-        print("File loaded")
         # self.bw_map_screen.update()
         # path_parts = path.split(filepath)
         self.set_base_window_title(filepath)
@@ -2870,7 +2863,6 @@ if __name__ == "__main__":
     with open("log.txt", "w") as f:
         #sys.stdout = f
         #sys.stderr = f
-        print("Python version: ", sys.version)
         editor_gui = GenEditor()
         editor_gui.setWindowIcon(QtGui.QIcon('resources/icon.ico'))
 

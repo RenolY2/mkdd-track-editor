@@ -683,7 +683,6 @@ class Minimap(object):
         self.corner1 = corner1
         self.corner2 = corner2
         self.orientation = orientation
-        print("fully initialized")
 
     def is_available(self):
         return True

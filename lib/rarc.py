@@ -320,7 +320,7 @@ class Archive(object):
     @classmethod
     def from_file(cls, f):
         newarc = cls()
-        print("ok")
+
         header = f.read(4)
 
         if header == b"Yaz0":
@@ -356,8 +356,6 @@ class Archive(object):
         stringtable_offset = read_uint32(f) + 0x20
         f.read(8) # Unknown
         nodes = []
-
-        print("Archive has", node_count, " total directories")
 
                 
         

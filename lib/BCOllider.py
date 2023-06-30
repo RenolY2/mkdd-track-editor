@@ -80,7 +80,6 @@ class RacetrackCollision(object):
 
         # Parse triangles
         trianglescount = (self.verticesoffset-self.trianglesoffset) // 0x24
-        print((self.verticesoffset-self.trianglesoffset)%0x24)
 
         for i in range(trianglescount):
             v1 = read_int32(data, self.trianglesoffset+i*0x24 + 0x00)
@@ -92,7 +91,6 @@ class RacetrackCollision(object):
 
         # Parse vertices
         vertcount = (self.unknownoffset-self.verticesoffset) // 0xC
-        print((self.unknownoffset-self.verticesoffset) % 0xC)
 
         biggestx = biggestz = -99999999
         smallestx = smallestz = 99999999
@@ -112,8 +110,7 @@ class RacetrackCollision(object):
                 biggestz = z
             if z < smallestz:
                 smallestz = z
-            #print(x,y,z)
-        print("smallest/biggest vertex coordinates:",smallestx, smallestz, biggestx, biggestz)
+
         f.seek(self.unknownoffset)
         self.matentries = []
 
@@ -138,7 +135,6 @@ def get_grid_entries(data, index, offset, limit, f, indent, gottem):
     if nextindex != 0:
         for i in range(4):
             offset = 0x2C + (nextindex+i)*8
-            print(nextindex, offset, limit)
             assert offset < limit
             gottem[nextindex+i] = True
             get_grid_entries(data, nextindex+i, offset, limit, f, indent+1, gottem)

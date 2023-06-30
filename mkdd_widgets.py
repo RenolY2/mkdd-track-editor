@@ -824,7 +824,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     assert isinstance(entry, ObjectSelectionEntry)
 
                 assert len(objlist)*4 < id
-                print("We queued up", len(objlist))
                 pixels = glReadPixels(click_x, click_y, clickwidth, clickheight, GL_RGB, GL_UNSIGNED_BYTE)
                 #print(pixels, click_x, click_y, clickwidth, clickheight)
                 selected = {}
