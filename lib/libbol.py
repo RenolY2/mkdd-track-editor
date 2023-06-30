@@ -1,7 +1,8 @@
 import functools
 import json
+import math
 from struct import unpack, pack
-from numpy import ndarray, array, argmin
+from numpy import ndarray, array
 from math import cos, sin
 from .vectors import Vector3
 from collections import OrderedDict
@@ -386,9 +387,6 @@ class EnemyPointGroup(object):
     def get_index_of_point(self, point: EnemyPoint):
         return self.points.index(point)
 
-    def find_closest_point(self, point: Vector3):
-        distances = array([x.position.distance2(point) for x in self.points])
-        return min(distances), self.points[argmin(distances)]
 
 class EnemyPointGroups(object):
     def __init__(self):
@@ -452,13 +450,71 @@ class EnemyPointGroups(object):
         new_enemy_group.id = self.new_group_id()
         self.groups.append(new_enemy_group)
 
-    def fit_on_path(self, position: Vector3):
-        #tuples of distance, point obj
-        min_points = [group.find_closest_point(position) for group in self.groups if group.points]
-        closest_point_idx = argmin(array(distance for distance, _point in min_points))
-        _distance, closest_point = min_points[closest_point_idx]
+    def find_next_point(self,
+                        point: EnemyPoint,
+                        position: Vector3,
+                        previous: bool = False) -> Vector3:
+        """
+        Finds the next (or previous) enemy point to the given point.
+
+        If the point is at the end (or start) of a group, it attempts to follow the group link to
+        find the next (or previous) group.
+
+        A position is provided as reference for selecting the closest point when multiple groups
+        with the same link are available.
+        """
+        next_point = None
+        for group in self.groups:
+            if point not in group.points:
+                continue
+            index = group.points.index(point)
+            inc = -1 if previous else 1
+            if 0 <= index + inc < len(group.points):
+                # In the middle of the group: return next (or previous) point in the group.
+                next_point = group.points[index + inc]
+            else:
+                # At the end of group: try to find the first (or last) point of one of its next
+                # groups.
+                if point.link != -1:
+                    linked_points = []
+                    for group in self.groups:
+                        if not group.points:
+                            continue
+                        first_or_last_point = group.points[-1 if previous else 0]
+                        if point.link == first_or_last_point.link:
+                            linked_points.append(first_or_last_point)
+                    if linked_points:
+                        sorted_linked_points = sorted(
+                            (position.distance2(p.position), p) for p in linked_points)
+                        _distance2, next_point = sorted_linked_points[0]
+            break
+        return next_point
+
+    def find_closest_forward_point(self, position: Vector3):
         points = tuple(self.points())
-        return points.index(closest_point), closest_point
+        if not points:
+            raise ValueError('Enemy path does not have any point')
+
+        # 1. Find the closest enemy point (B) to the given position (P).
+        sorted_points = sorted(
+            (point.position.distance2(position), i, point) for i, point in enumerate(points))
+        _distance2, pointB_index, pointB = sorted_points[0]
+
+        # 2. Find the previous and the next enemy points (A and C respectively).
+        pointA = self.find_next_point(pointB, position, previous=True)
+        pointC = self.find_next_point(pointB, position)
+
+        if pointA is None or pointC is None:
+            # Settle down with the closest point if a direction cannot be inferred.
+            return pointB_index, pointB
+
+        # 3. If the angle between BA and BP is less than 90 degrees, return B; or else return C.
+        angle = math.acos((pointB.position - pointA.position).cos_angle(pointB.position - position))
+        if angle < math.pi / 180:
+            return pointB_index, pointB
+        pointC_index = points.index(pointC)
+        return pointC_index, pointC
+
 # Enemy/Item Route Code End
 
 
@@ -1387,19 +1443,23 @@ class BOL(object):
         self.write(f)
         return f.getvalue()
 
-    def add_respawn(self, rsp: JugemPoint):
+    def add_respawn(self, respawn_point: JugemPoint):
         new_id = 0
-        used_ids = [x.respawn_id for x in self.respawnpoints]
+        used_ids = set(rsp.respawn_id for rsp in self.respawnpoints)
         while new_id in used_ids:
             new_id += 1
-        rsp.respawn_id = new_id
+        respawn_point.respawn_id = new_id
 
-        if self.enemypointgroups.groups:
-            position, point = self.enemypointgroups.fit_on_path(rsp.position)
-            rsp.unk1 = position
-            rsp.rotation = Rotation.from_points_2D(rsp.position, point.position)
+        try:
+            point_index, enemy_point = self.enemypointgroups.find_closest_forward_point(
+                respawn_point.position)
+            respawn_point.unk1 = point_index
+            respawn_point.rotation = Rotation.from_points_2D(respawn_point.position,
+                                                             enemy_point.position)
+        except ValueError:
+            pass
 
-        self.respawnpoints.append(rsp)
+        self.respawnpoints.append(respawn_point)
 
 
 with open("lib/mkddobjects.json", "r") as f:
