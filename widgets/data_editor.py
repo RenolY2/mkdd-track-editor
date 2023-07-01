@@ -1,3 +1,5 @@
+import re
+
 import widgets.tooltip_list as ttl
 
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -30,8 +32,8 @@ def load_parameter_names(objectname):
         tooltips += [''] * (8 - len(tooltips))
 
         tooltips = [
-            ttl.markdown_to_html(parameter_name, tool_tip) if tool_tip else ''
-            for parameter_name, tool_tip in zip(parameter_names, tooltips)
+            ttl.markdown_to_html(re.sub(r'[^\x00-\x7f]', r'', parameter_name).strip(), tool_tip)
+            if tool_tip else '' for parameter_name, tool_tip in zip(parameter_names, tooltips)
         ]
 
         widget_types = data.get("Widgets", [])
