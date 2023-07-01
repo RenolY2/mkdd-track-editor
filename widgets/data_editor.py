@@ -29,13 +29,17 @@ def load_parameter_names(objectname):
         tooltips = data.get("Tooltips", [])
         tooltips += [''] * (8 - len(tooltips))
 
+        tooltips = [
+            ttl.markdown_to_html(parameter_name, tool_tip)
+            for parameter_name, tool_tip in zip(parameter_names, tooltips) if tool_tip
+        ]
+
         widget_types = data.get("Widgets", [])
         widget_types += [None] * (8 - len(widget_types))
 
         return tuple(parameter_names), tuple(assets), tuple(tooltips), tuple(widget_types)
 
-    except Exception as err:
-        print(err)
+    except Exception:
         return (
             tuple(f'Obj Data {i + 1}' for i in range(8)),
             tuple(),
@@ -290,16 +294,13 @@ class DataEditor(QtWidgets.QWidget):
         line_edit.setValidator(PythonIntValidator(min_val, max_val, line_edit))
 
         def input_edited():
-            print("Hmmmm")
             text = line_edit.text()
-            print("input:", text)
 
             setattr(self.bound_to, attribute, int(text))
 
         line_edit.editingFinished.connect(input_edited)
 
         self.vbox.addLayout(layout)
-        print("created for", text, attribute)
         return line_edit
 
     def add_decimal_input(self, text, attribute, min_val, max_val):
@@ -310,7 +311,6 @@ class DataEditor(QtWidgets.QWidget):
 
         def input_edited():
             text = line_edit.text()
-            print("input:", text)
             self.catch_text_update()
             setattr(self.bound_to, attribute, float(text))
 
@@ -341,15 +341,6 @@ class DataEditor(QtWidgets.QWidget):
         for val in keyval_dict:
             combobox.addItem(val)
 
-        tt_dict = getattr(ttl, attribute, None)
-        try:
-            defaultitem = list(tt_dict)[0]
-        except TypeError:
-            pass
-        else:
-            if tt_dict is not None and combobox.currentText() == defaultitem:
-                combobox.setToolTip(tt_dict[defaultitem])
-
         policy = combobox.sizePolicy()
         policy.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
         combobox.setSizePolicy(policy)
@@ -359,13 +350,10 @@ class DataEditor(QtWidgets.QWidget):
 
         def item_selected(item):
             val = keyval_dict[item]
-            print("selected", item)
             setattr(self.bound_to, attribute, val)
 
-            if tt_dict is not None and item in tt_dict:
-                combobox.setToolTip(tt_dict[item])
-            else:
-                combobox.setToolTip('')
+            tt_dict = getattr(ttl, attribute, {})
+            combobox.setToolTip(tt_dict.get(item, ''))
 
         combobox.currentTextChanged.connect(item_selected)
         self.vbox.addLayout(layout)
@@ -592,7 +580,6 @@ class DataEditor(QtWidgets.QWidget):
             self.update_rotation(forward_edits, up_edits, left_edits)
 
         def change_up():
-            print("finally changing up")
             forward, up, left = rotation.get_vectors()
             newup = Vector3(*[float(v.text()) for v in up_edits])
             if newup.norm() == 0.0:
@@ -958,6 +945,7 @@ class ObjectEdit(DataEditor):
                                                     -inf, +inf)
         self.rotation = self.add_rotation_input()
         self.objectid = self.add_dropdown_input("Object Type", "objectid", REVERSEOBJECTNAMES)
+        self.prev_objectname = None
 
         self.pathid = self.add_integer_input("Route ID", "pathid",
                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
@@ -1007,6 +995,10 @@ class ObjectEdit(DataEditor):
         self.vbox.addLayout(self.create_labeled_widget(self, 'Assets', self.assets))
 
     def rebuild_object_parameters_widgets(self, objectname):
+        if self.prev_objectname == objectname:
+            return
+        self.prev_objectname = objectname
+
         for i in range(8):
             self.userdata[i] = None
         clear_layout(self.userdata_layout)
@@ -1030,8 +1022,9 @@ class ObjectEdit(DataEditor):
         self.update_userdata_widgets(self.bound_to)
 
         self.assets.setText(', '.join(assets) if assets else 'None')
-        self.assets.setToolTip('Required Assets:\n\n' +
-                               '\n'.join(f'- {asset}' for asset in assets) if assets else 'None')
+        self.assets.setToolTip(
+            ttl.markdown_to_html('Required Assets',
+                                 '\n'.join(f'- {asset}' for asset in assets) if assets else 'None'))
         self.assets.setCursorPosition(0)
 
     def update_name(self):
@@ -1058,8 +1051,7 @@ class ObjectEdit(DataEditor):
         else:
             name = OBJECTNAMES[obj.objectid]
         index = self.objectid.findText(name)
-        with QtCore.QSignalBlocker(self.objectid):
-            self.objectid.setCurrentIndex(index)
+        self.objectid.setCurrentIndex(index)
 
         self.pathid.setText(str(obj.pathid))
         self.unk_2a.setText(str(obj.unk_2a))
