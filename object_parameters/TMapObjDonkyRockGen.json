@@ -1,9 +1,9 @@
 {
     "Object Parameters": [
-        "Unknown 1",
-        "Unknown 2",
-        "Unknown 3",
-        "Unknown 4",
+        "Number of Rocks",
+        "Delay",
+        "Launch Speed",
+        "Angle",
         "Unused",
         "Unused",
         "Unused",
@@ -12,6 +12,16 @@
     "Assets": [
         "donkyrock1.bmd",
         "donkyrock1shadow.bmd"
+    ],
+    "Tooltips": [
+        "How many rocks get generated at the start of each cycle.",
+        "Delay (in frames) until a new cycle is started.",
+        "Speed at which the rocks are launched when generated. The game may ignore extremely high values.",
+        "Angle at which the rocks are launched when generated.",
+        "",
+        "",
+        "",
+        ""
     ],
     "RouteInfo": "Individual",
     "DefaultValues": [
