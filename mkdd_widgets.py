@@ -75,7 +75,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
     mouse_released = QtCore.Signal(QtGui.QMouseEvent)
     mouse_wheel = QtCore.Signal(QtGui.QWheelEvent)
     position_update = QtCore.Signal(QtGui.QMouseEvent, tuple)
-    select_update = QtCore.Signal()
     move_points = QtCore.Signal(float, float, float)
     move_points_to = QtCore.Signal(float, float, float)
     connect_update = QtCore.Signal(int, int)
@@ -921,7 +920,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     if obj in selected_set:
                         self.selected.append(obj)
 
-                self.select_update.emit()
+                self.editor.select_from_3d_to_treeview()
 
                 self.gizmo.move_to_average(self.selected_positions, self.selected_rotations)
                 if len(selected) == 0:

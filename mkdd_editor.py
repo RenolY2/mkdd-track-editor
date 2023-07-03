@@ -529,7 +529,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
                                               self.level_view.selected_rotations)
         self.level_view.do_redraw()
-        self.level_view.select_update.emit()
+        self.action_update_info()
 
     def setup_ui(self):
         self.resize(1000, 800)
@@ -1285,8 +1285,6 @@ class GenEditor(QtWidgets.QMainWindow):
         pass
 
     def connect_actions(self):
-        self.level_view.select_update.connect(self.action_update_info)
-        self.level_view.select_update.connect(self.select_from_3d_to_treeview)
         #self.pik_control.lineedit_coordinatex.textChanged.connect(self.create_field_edit_action("coordinatex"))
         #self.pik_control.lineedit_coordinatey.textChanged.connect(self.create_field_edit_action("coordinatey"))
         #self.pik_control.lineedit_coordinatez.textChanged.connect(self.create_field_edit_action("coordinatez"))
@@ -2603,10 +2601,10 @@ class GenEditor(QtWidgets.QMainWindow):
 
     def select_from_3d_to_treeview(self):
         if self.level_file is not None:
+            item = None
             selected = self.level_view.selected
             if len(selected) == 1:
                 currentobj = selected[0]
-                item = None
                 if isinstance(currentobj, libbol.EnemyPoint):
                     for i in range(self.leveldatatreeview.enemyroutes.childCount()):
                         child = self.leveldatatreeview.enemyroutes.child(i)
@@ -2656,6 +2654,11 @@ class GenEditor(QtWidgets.QMainWindow):
 
                 if suppress_signal:
                     self.leveldatatreeview.blockSignals(False)
+
+            if item is None:
+                # If no item was selected, no tree item will be selected, and the data editor needs
+                # to be updated manually.
+                self.action_update_info()
 
             #if nothing is selected and the currentitem is something that can be selected
             #clear out the buttons
