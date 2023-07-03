@@ -62,7 +62,7 @@ objectid = tool_tips_markdown_to_html({
     "TLensFlare": "Lens flare effect. Always in the same spot as TMapObjSun.",
     "TMapObjWlArrow": "The bouncing arrows with eyes from Waluigi Stadium",
     "TMapObjDinoTree": "Dancing trees in Dino Dino Jungle. Their animation (.bck) is only used in single-screen modes.",
-    "TMapObjDonkyRockGen": "The giant boulders from DK Mountain",
+    "TMapObjDonkyRockGen": "Generates the boulders used in DK Mountain. The rocks get destroyed once they reach the end of the route or fall out of the course, and then a new cycle starts. If a rock gets stuck and does not get destroyed, no new cycles will start.",
     "TMapObjFireCircle": "The fire circle obstacles from Wario Colosseum & Waluigi Stadium",
     "TMapObjFireBar": "The rotating fire bars from Bowser's Castle",
     "TMapObjFerrisWheel": "The ferris wheel in Baby Park",
