@@ -64,7 +64,6 @@ def draw_collision(verts, faces):
     if scaleheight == 0:
         scaleheight = 1
 
-    print(len(COLORS))
     lightvec = Vector3(0, 1, -1)
 
     glBegin(GL_TRIANGLES)
@@ -177,7 +176,6 @@ class GLPlotWidget(QtOpenGLWidgets.QOpenGLWidget):
         glLoadIdentity()
         draw_collision(self.verts, self.faces)
         glFinish()
-        print("drawn")
 
     def resizeGL(self, width, height):
         # Called upon window resizing: reinitialize the viewport.

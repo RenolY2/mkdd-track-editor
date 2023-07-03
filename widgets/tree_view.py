@@ -139,7 +139,6 @@ class Checkpoint(NamedItem):
             if other_group_item == group_item:
                 break
             else:
-                print("Hmmm,",other_group_item.text(0), len(other_group_item.bound_to.points), offset)
                 group_object = other_group_item.bound_to
                 offset += len(group_object.points)
 

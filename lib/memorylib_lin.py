@@ -295,7 +295,6 @@ class DolphinServer:
 
                 elif command_type == COMMAND_READ_RAM:
                     offset, size = struct.unpack('>QQ', input_data[5 + 0:])
-                    print(f'read_ram({offset}, {size})')
 
                     ok, buffer_ = self.dolphin_proxy.read_ram(offset, size)
                     if ok:
@@ -307,7 +306,6 @@ class DolphinServer:
                 elif command_type == COMMAND_WRITE_RAM:
                     offset = struct.unpack('>Q', input_data[5 + 0:5 + 8])[0]
                     data = input_data[5 + 8:]
-                    print(f'write_ram({offset}, {len(data)})')
 
                     ok = self.dolphin_proxy.write_ram(offset, data)
                     if not ok:
@@ -316,7 +314,6 @@ class DolphinServer:
 
                 elif command_type == COMMAND_READ_UINT32:
                     addr = struct.unpack('>Q', input_data[5 + 0:])[0]
-                    print(f'read_uint32({addr})')
 
                     value = self.dolphin_proxy.read_uint32(addr)
                     if value is not None:
@@ -327,7 +324,6 @@ class DolphinServer:
 
                 elif command_type == COMMAND_WRITE_UINT32:
                     addr, value = struct.unpack('>QI', input_data[5 + 0:])
-                    print(f'write_uint32({addr}, {value})')
 
                     ok = self.dolphin_proxy.write_uint32(addr, value)
                     if not ok:
@@ -336,7 +332,6 @@ class DolphinServer:
 
                 elif command_type == COMMAND_READ_FLOAT:
                     addr = struct.unpack('>Q', input_data[5 + 0:])[0]
-                    print(f'read_float({addr})')
 
                     value = self.dolphin_proxy.read_float(addr)
                     if value is not None:
@@ -347,7 +342,6 @@ class DolphinServer:
 
                 elif command_type == COMMAND_WRITE_FLOAT:
                     addr, value = struct.unpack('>Qf', input_data[5 + 0:])
-                    print(f'write_float({addr}, {value})')
 
                     ok = self.dolphin_proxy.write_float(addr, value)
                     if not ok:

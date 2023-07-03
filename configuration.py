@@ -2,11 +2,9 @@ import configparser
 
 
 def read_config():
-    print("reading")
     cfg = configparser.ConfigParser()
     with open("editor_config.ini", "r") as f:
         cfg.read_file(f)
-    print("read")
     return cfg
 
 

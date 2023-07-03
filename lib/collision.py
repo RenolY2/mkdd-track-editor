@@ -132,7 +132,6 @@ class Collision(object):
         smallest_z = -MAX_Z#max(-6000.0, smallest_z)
         biggest_x = MAX_X#min(6000.0, biggest_x)
         biggest_z = MAX_Z#min(6000.0, biggest_z)
-        print("dimensions are changed to", smallest_x, smallest_z, biggest_x, biggest_z)
         start_x = math.floor(smallest_x / box_size_x) * box_size_x
         start_z = math.floor(smallest_z / box_size_z) * box_size_z
         end_x = math.ceil(biggest_x / box_size_x) * box_size_x
@@ -145,8 +144,6 @@ class Collision(object):
         self.grid = {}
         triangles = [(i, face) for i, face in enumerate(faces)]
         subdivide_grid(start_x, start_z, 0, grid_size_x, 0, grid_size_z, self.cell_size, triangles, self.verts, self.grid)
-        print("finished generating triangles")
-        print(grid_size_x, grid_size_z)
 
     def collide_ray_downwards(self, x, z, y=99999999):
         grid_x = int((x+MAX_X) // self.cell_size)
