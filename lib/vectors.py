@@ -188,7 +188,7 @@ class Line(object):
         if normal.is_zero():
             return False
 
-        if tri.normal.dot(self.direction) == 0:
+        if normal.dot(self.direction) == 0:
             return False
 
         d = ((tri.origin - self.origin).dot(normal)) / normal.dot(self.direction)
@@ -201,14 +201,14 @@ class Line(object):
         # return intersection_point
         C0 = intersection_point - tri.origin
 
-        if tri.normal.dot(tri.p1_to_p2.cross(C0)) > 0:
+        if normal.dot(tri.p1_to_p2.cross(C0)) > 0:
             p2_to_p3 = tri.p3 - tri.p2
             C1 = intersection_point - tri.p2
 
-            if tri.normal.dot(p2_to_p3.cross(C1)) > 0:
+            if normal.dot(p2_to_p3.cross(C1)) > 0:
                 p3_to_p1 = tri.origin - tri.p3
                 C2 = intersection_point - tri.p3
-                if tri.normal.dot(p3_to_p1.cross(C2)) > 0:
+                if normal.dot(p3_to_p1.cross(C2)) > 0:
                     return intersection_point, d
                 else:
                     return False
