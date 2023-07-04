@@ -167,6 +167,8 @@ class Triangle(object):
         self.p3 = p3
         self.p1_to_p2 = p2 - p1
         self.p1_to_p3 = p3 - p1
+        self.p2_to_p3 = p3 - p2
+        self.p3_to_p1 = p1 - p3
 
         self.normal = self.p1_to_p2.cross(self.p1_to_p3)
 
@@ -186,27 +188,23 @@ class Line(object):
     def collide(self, tri: Triangle):
         normal = tri.normal
 
-        if normal.dot(self.direction) == 0:
+        dot = normal.dot(self.direction)
+        if dot == 0.0:
             return False
 
-        d = ((tri.origin - self.origin).dot(normal)) / normal.dot(self.direction)
+        d = (tri.origin - self.origin).dot(normal) / dot
 
         if d < 0:
             return False
 
         intersection_point = self.origin + self.direction * d
 
-        # return intersection_point
         C0 = intersection_point - tri.origin
-
         if normal.dot(tri.p1_to_p2.cross(C0)) > 0:
-            p2_to_p3 = tri.p3 - tri.p2
             C1 = intersection_point - tri.p2
-
-            if normal.dot(p2_to_p3.cross(C1)) > 0:
-                p3_to_p1 = tri.origin - tri.p3
+            if normal.dot(tri.p2_to_p3.cross(C1)) > 0:
                 C2 = intersection_point - tri.p3
-                if normal.dot(p3_to_p1.cross(C2)) > 0:
+                if normal.dot(tri.p3_to_p1.cross(C2)) > 0:
                     return intersection_point, d
 
         return False
