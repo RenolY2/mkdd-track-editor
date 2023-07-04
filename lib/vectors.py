@@ -185,8 +185,6 @@ class Line(object):
 
     def collide(self, tri: Triangle):
         normal = tri.normal
-        if normal.is_zero():
-            return False
 
         if normal.dot(self.direction) == 0:
             return False

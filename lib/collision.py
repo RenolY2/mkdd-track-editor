@@ -121,7 +121,9 @@ class Collision(object):
             x, y, z = verts[v3i[0]-1]
             v3 = Vector3(x, -z, y)
 
-            self.triangles.append(Triangle(v1,v2,v3))
+            triangle = Triangle(v1, v2, v3)
+            if not triangle.normal.is_zero():
+                self.triangles.append(triangle)
 
         self.cell_size = 2000
 
