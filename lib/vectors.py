@@ -208,12 +208,8 @@ class Line(object):
                 C2 = intersection_point - tri.p3
                 if normal.dot(p3_to_p1.cross(C2)) > 0:
                     return intersection_point, d
-                else:
-                    return False
-            else:
-                return False
-        else:
-            return False
+
+        return False
 
     def collide_py(self, tri: Triangle):
         hit = False
