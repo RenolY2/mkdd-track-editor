@@ -651,16 +651,22 @@ class UserControl(object):
                         action.just_released(editor, self.buttons, event)
 
     def handle_move_3d(self, event):
-        editor = self._editor_widget
+        event_processed = False
 
-        place_at = editor.get_3d_coordinates(event.x(), event.y())
-        if place_at is not None:
-            editor.position_update.emit(event, (round(place_at.x, 2), round(place_at.z, 2), round(-place_at.y, 2)))
+        editor = self._editor_widget
 
         for key in key_enums.keys():
             if self.buttons.is_held(event, key):
                 for action in self.clickdragactions3d[key]:
                     if action.condition(editor, self.buttons, event):
                         action.move(editor, self.buttons, event)
+                        event_processed = True
 
-
+        # TODO(CA): get_3d_coordinates() can be expensive; it will be called only if the event was
+        # not processed by any action to guarantee that the inevitable framerate drops do not affect
+        # tumbling or object rotation.
+        if not event_processed:
+            place_at = editor.get_3d_coordinates(event.x(), event.y())
+            if place_at is not None:
+                editor.position_update.emit(
+                    event, (round(place_at.x, 2), round(place_at.z, 2), round(-place_at.y, 2)))
