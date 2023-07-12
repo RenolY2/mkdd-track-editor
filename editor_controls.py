@@ -661,18 +661,11 @@ class UserControl(object):
                     if action.condition(editor, self.buttons, event):
                         action.move(editor, self.buttons, event)
                         event_processed = True
-        
-        # Opposing keys cancel out movement. Do not emit 3D coordinate updates
-        # if actual movement by key controls is happening to prevent visible lag.
-        is_moving = ((editor.MOVE_FORWARD - editor.MOVE_BACKWARD) 
-                    + (editor.MOVE_LEFT - editor.MOVE_RIGHT)
-                    + (editor.MOVE_UP - editor.MOVE_DOWN)) != 0
 
-        
         # TODO(CA): get_3d_coordinates() can be expensive; it will be called only if the event was
         # not processed by any action to guarantee that the inevitable framerate drops do not affect
         # tumbling or object rotation.
-        if not event_processed and not is_moving:
+        if not event_processed:
             place_at = editor.get_3d_coordinates(event.x(), event.y())
             if place_at is not None:
                 editor.position_update.emit(
