@@ -60,7 +60,7 @@ class MoreButtons(QtWidgets.QWidget):
             #i suspect that it's useless to add more than 1 point
             optionstrings.append("add_startpoint")
         elif isinstance(obj, MapObject):
-            if obj.route_info() == "Individual" and obj.pathid == -1:
+            if obj.route_info() == "Individual" and obj.route is None:
                 optionstrings.append("route_object")
 
         for name, button in self._buttons.items():

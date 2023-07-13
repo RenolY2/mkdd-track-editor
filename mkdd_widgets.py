@@ -744,14 +744,14 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
                 if selectable_objectroutes or selectable_cameraroutes or selectable_unassignedroutes:
                     camera_routes = set(camera.route for camera in self.level_file.cameras)
-                    object_routes = set(obj.pathid for obj in self.level_file.objects.objects)
+                    object_routes = set(obj.route for obj in self.level_file.objects.objects)
                     assigned_routes = camera_routes.union(object_routes)
                     i = 0
-                    for idx, route in enumerate(self.level_file.routes):
+                    for route in self.level_file.routes:
                         for obj in route.points:
-                            if (not ((idx in object_routes and selectable_objectroutes) or
-                                     (idx in camera_routes and selectable_cameraroutes) or
-                                     (idx not in assigned_routes and selectable_unassignedroutes))):
+                            if (not ((route in object_routes and selectable_objectroutes) or
+                                     (route in camera_routes and selectable_cameraroutes) or
+                                     (route not in assigned_routes and selectable_unassignedroutes))):
                                 continue
                             objlist.append(
                                 ObjectSelectionEntry(obj=obj,
@@ -1010,31 +1010,31 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                 object_routes = set()
 
                 for camera in self.level_file.cameras:
-                    if camera.route >= 0 and camera in select_optimize:
+                    if camera.route is not None and camera in select_optimize:
                         routes_to_highlight.add(camera.route)
                     camera_routes.add(camera.route)
 
                 for obj in self.level_file.objects.objects:
-                    if obj.pathid >= 0 and obj in select_optimize:
-                        routes_to_highlight.add(obj.pathid)
-                    object_routes.add(obj.pathid)
+                    if obj.route is not None and obj in select_optimize:
+                        routes_to_highlight.add(obj.route)
+                    object_routes.add(obj.route)
 
                 assigned_routes = camera_routes.union(object_routes)
                 shared_routes = camera_routes.intersection(object_routes)
 
-                for i, route in enumerate(self.level_file.routes):
-                    if (not ((i in object_routes and visible_objectroutes) or
-                             (i in camera_routes and visible_cameraroutes) or
-                             (i not in assigned_routes and visible_unassignedroutes))):
+                for route in self.level_file.routes:
+                    if (not ((route in object_routes and visible_objectroutes) or
+                             (route in camera_routes and visible_cameraroutes) or
+                             (route not in assigned_routes and visible_unassignedroutes))):
                         continue
 
-                    selected = i in routes_to_highlight
+                    selected = route in routes_to_highlight
                     route_color = "unassignedroute"
-                    if i in shared_routes:
+                    if route in shared_routes:
                         route_color = "sharedroute"
-                    elif i in object_routes:
+                    elif route in object_routes:
                         route_color = "objectroute"
-                    elif i in camera_routes:
+                    elif route in camera_routes:
                         route_color = "cameraroute"
                     for point in route.points:
                         point_selected = point in select_optimize

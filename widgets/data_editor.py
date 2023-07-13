@@ -237,9 +237,10 @@ class ColorPicker(ClickableLabel):
 class DataEditor(QtWidgets.QWidget):
     emit_3d_update = QtCore.Signal()
 
-    def __init__(self, parent, bound_to):
+    def __init__(self, parent, bol, bound_to):
         super().__init__(parent)
 
+        self.bol = bol
         self.bound_to = bound_to
         self.vbox = QtWidgets.QVBoxLayout(self)
         self.vbox.setContentsMargins(0, 0, 0, 0)
@@ -980,10 +981,18 @@ class ObjectEdit(DataEditor):
         self.objectid = self.add_dropdown_input("Object Type", "objectid", REVERSEOBJECTNAMES)
         self.prev_objectname = None
 
-        self.pathid = self.add_integer_input("Route ID", "pathid",
-                                             MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
-        set_tool_tip(self.pathid, ttl.objectdata['Route ID'])
-        self.pathid.editingFinished.connect(self.catch_text_update)
+        #self.pathid = self.add_integer_input("Route ID", "pathid",
+        #                                     MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+        #set_tool_tip(self.pathid, ttl.objectdata['Route ID'])
+        #self.pathid.editingFinished.connect(self.catch_text_update)
+
+        routes = OrderedDict()
+        routes["None"] = None
+        for i, route in enumerate(self.bol.routes):
+            routes["Route {0}".format(i)] = route
+
+        self.route = self.add_dropdown_input("Route", "route", routes)
+        set_tool_tip(self.route, ttl.objectdata['Route ID'])
 
         self.unk_2a = self.add_integer_input("Route Point ID", "unk_2a",
                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
@@ -1086,7 +1095,18 @@ class ObjectEdit(DataEditor):
         index = self.objectid.findText(name)
         self.objectid.setCurrentIndex(index)
 
-        self.pathid.setText(str(obj.pathid))
+        #self.pathid.setText(str(obj.pathid))
+
+        try:
+            routeindex = self.bol.routes.index(obj.route)
+        except ValueError:
+            routeindex = -1
+        if routeindex == -1:
+            self.route.setCurrentIndex(0)
+        else:
+            self.route.setCurrentText("Route {0}".format(routeindex))
+
+
         self.unk_2a.setText(str(obj.unk_2a))
         self.presence_filter.set_value(obj.presence_filter)
         self.presence.set_value(obj.presence)
@@ -1181,9 +1201,14 @@ class AreaEdit(DataEditor):
         self.rotation = self.add_rotation_input()
         self.shape = self.add_dropdown_input("Shape", "shape", AREA_SHAPE)
         self.area_type = self.add_dropdown_input("Area Type", "area_type", REVERSE_AREA_TYPES)
-        self.camera_index = self.add_integer_input("Camera Index", "camera_index",
-                                                   MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
-        set_tool_tip(self.camera_index, ttl.areadata["Camera Index"])
+
+        cameras = OrderedDict()
+        cameras["None"] = None
+        for i, camera in enumerate(self.bol.cameras):
+            cameras["Camera {0}".format(i)] = camera
+        self.camera = self.add_dropdown_input("Camera", "camera", cameras)
+
+        set_tool_tip(self.camera, ttl.areadata["Camera Index"])
         self.feather = self.add_multiple_integer_input("Feather", "feather", ["i0", "i1"],
                                                        MIN_UNSIGNED_INT, MAX_SIGNED_INT)
         for i in self.feather:
@@ -1214,7 +1239,16 @@ class AreaEdit(DataEditor):
 
         self.shape.setCurrentIndex(obj.shape)
         self.area_type.setCurrentIndex(obj.area_type)
-        self.camera_index.setText(str(obj.camera_index))
+
+        try:
+            camindex = self.bol.cameras.index(obj.camera)
+        except ValueError:
+            camindex = -1
+        if camindex == -1:
+            self.camera.setCurrentIndex(0)
+        else:
+            self.camera.setCurrentText("Camera {0}".format(camindex))
+
         self.feather[0].setText(str(obj.feather.i0))
         self.feather[1].setText(str(obj.feather.i1))
         self.unkfixedpoint.setText(str(obj.unkfixedpoint))
@@ -1261,14 +1295,26 @@ class CameraEdit(DataEditor):
         set_tool_tip(self.camduration, ttl.camdata['Camera Duration'])
         self.startcamera = self.add_checkbox("Start Camera", "startcamera", off_value=0, on_value=1)
         set_tool_tip(self.startcamera, ttl.camdata['Start Camera'])
-        self.nextcam = self.add_integer_input("Next Cam", "nextcam",
-                                              MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+
+        cameras = OrderedDict()
+        cameras["None"] = None
+        for i, camera in enumerate(self.bol.cameras):
+            cameras["Camera {0}".format(i)] = camera
+
+        self.nextcam = self.add_dropdown_input("Next Cam", "nextcam", cameras)
+
         set_tool_tip(self.nextcam, ttl.camdata['Next Cam'])
         self.shimmer = self.add_multiple_integer_input("Shimmer", "shimmer", ["z0", "z1"], 0, 4095)
-        self.route = self.add_integer_input("Route ID", "route",
-                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+
+        routes = OrderedDict()
+        routes["None"] = None
+        for i, route in enumerate(self.bol.routes):
+            routes["Route {0}".format(i)] = route
+
+        self.route = self.add_dropdown_input("Route", "route", routes)
         set_tool_tip(self.route, ttl.camdata['Route ID'])
-        self.route.editingFinished.connect(self.catch_text_update)
+
+        self.route.currentIndexChanged.connect(self.catch_text_update)
         self.routespeed = self.add_integer_input("Route Speed", "routespeed",
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         set_tool_tip(self.routespeed, ttl.camdata['Route Speed'])
@@ -1300,9 +1346,27 @@ class CameraEdit(DataEditor):
         self.startcamera.setChecked(obj.startcamera != 0)
         self.shimmer[0].setText(str(obj.shimmer.z0))
         self.shimmer[1].setText(str(obj.shimmer.z1))
-        self.route.setText(str(obj.route))
+
+        try:
+            routeindex = self.bol.routes.index(obj.route)
+        except ValueError:
+            routeindex = -1
+        if routeindex == -1:
+            self.route.setCurrentIndex(0)
+        else:
+            self.route.setCurrentText("Route {0}".format(routeindex))
+
         self.routespeed.setText(str(obj.routespeed))
-        self.nextcam.setText(str(obj.nextcam))
+
+        try:
+            camindex = self.bol.cameras.index(obj.nextcam)
+        except ValueError:
+            camindex = -1
+        if camindex == -1:
+            self.nextcam.setCurrentIndex(0)
+        else:
+            self.nextcam.setCurrentText("Camera {0}".format(camindex))
+
         self.name.setText(obj.name)
 
     def update_name(self):
@@ -1350,6 +1414,7 @@ class RespawnPointEdit(DataEditor):
         if self.bound_to.widget is None:
             return
         self.bound_to.widget.update_name()
+
 
 class LightParamEdit(DataEditor):
     def setup_widgets(self):

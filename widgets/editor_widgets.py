@@ -155,11 +155,11 @@ class ErrorAnalyzer(QtWidgets.QDialog):
                         ))
 
         # Validate path id in objects
-        for object in bol.objects.objects:
-            if object.pathid < -1 or object.pathid + 1 > len(bol.routes):
-                write_line("Map object {0} uses path id {1} that does not exist".format(
-                    get_full_name(object.objectid), object.pathid
-                ))
+        #for object in bol.objects.objects:
+        #    if object.pathid < -1 or object.pathid + 1 > len(bol.routes):
+        #        write_line("Map object {0} uses path id {1} that does not exist".format(
+        #            get_full_name(object.objectid), object.pathid
+        #        ))
 
         # Validate Kart start positions
         if len(bol.kartpoints.positions) == 0:
@@ -183,19 +183,16 @@ class ErrorAnalyzer(QtWidgets.QDialog):
                     exist[kartstartpos.playerid] = True
 
         # Check camera indices in areas
-        for i, area in enumerate(bol.areas.areas):
-            if area.camera_index < -1 or area.camera_index + 1 > len(bol.cameras):
-                write_line("Area {0} uses invalid camera index {1}".format(i, area.camera_index))
+        #for i, area in enumerate(bol.areas.areas):
+        #    if area.camera_index < -1 or area.camera_index + 1 > len(bol.cameras):
+        #        write_line("Area {0} uses invalid camera index {1}".format(i, area.camera_index))
 
         # Check cameras
-        for i, camera in enumerate(bol.cameras):
-            if camera.nextcam < -1 or camera.nextcam + 1 > len(bol.cameras):
-                write_line("Camera {0} uses invalid nextcam (next camera) index {1}".format(
-                    i, camera.nextcam
-                ))
-            if camera.route < -1 or camera.route + 1 > len(bol.routes):
-                write_line("Camera {0} uses invalid path id {1}".format(i,
-                                                                        camera.route))
+        #for i, camera in enumerate(bol.cameras):
+        #    if camera.nextcam < -1 or camera.nextcam + 1 > len(bol.cameras):
+        #        write_line("Camera {0} uses invalid nextcam (next camera) index {1}".format(
+        #            i, camera.nextcam
+        #        ))
 
         # Check respawn points have unique IDs.
         respawn_point_ids = {}
@@ -292,7 +289,6 @@ class AddPikObjectWindow(QtWidgets.QDialog):
         font.setStyleHint(QtGui.QFont.Monospace)
         font.setFixedPitch(True)
         font.setPointSize(10)
-
 
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
         self.verticalLayout.setAlignment(QtCore.Qt.AlignTop)
@@ -483,7 +479,8 @@ class AddPikObjectWindow(QtWidgets.QDialog):
 
             data_editor = choose_data_editor(self.created_object)
             if data_editor is not None:
-                self.editor_widget = data_editor(self, self.created_object)
+                bol = self.parent().level_file
+                self.editor_widget = data_editor(self, bol, self.created_object)
                 self.editor_widget.layout().addStretch()
                 margin = self.fontMetrics().averageCharWidth()
                 self.editor_widget.setContentsMargins(margin, margin, margin, margin)

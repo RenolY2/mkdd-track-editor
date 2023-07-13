@@ -6,8 +6,10 @@ from widgets.more_buttons import MoreButtons
 
 class PikminSideWidget(QtWidgets.QWidget):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, editor, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.boleditor = editor
 
         # Top bottoms.
         self.button_add_object = QtWidgets.QPushButton()
@@ -102,7 +104,8 @@ class PikminSideWidget(QtWidgets.QWidget):
 
         editor = choose_data_editor(obj)
         if editor is not None:
-            self.object_data_edit = editor(self, obj)
+            bol = self.boleditor.level_file
+            self.object_data_edit = editor(self, bol, obj)
             self.scroll_area_frame_layout.addWidget(self.object_data_edit)
             self.object_data_edit.emit_3d_update.connect(update3d)
 

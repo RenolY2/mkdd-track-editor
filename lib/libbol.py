@@ -211,12 +211,12 @@ class ObjectContainer(list):
         self.object_type = object_type
 
     @classmethod
-    def from_file(cls, f, count, objcls):
+    def from_file(cls, f, count, objcls, *args):
         container = cls()
         container.object_type = objcls
 
         for i in range(count):
-            obj = objcls.from_file(f)
+            obj = objcls.from_file(f, *args)
             container.append(obj)
 
         return container
@@ -736,7 +736,7 @@ class MapObject(object):
         self.scale = Vector3(1.0, 1.0, 1.0)
         self.rotation = Rotation.default()
         self.objectid = objectid
-        self.pathid = -1
+        self.route = None
         self.unk_28 = 0
         self.unk_2a = -1
         self.presence_filter = 143
@@ -752,7 +752,7 @@ class MapObject(object):
         return cls(Vector3(0.0, 0.0, 0.0), 1)
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, routes: ObjectContainer):
         start = f.tell()
         position = Vector3(*unpack(">fff", f.read(12)))
         scale = Vector3(*unpack(">fff", f.read(12)))
@@ -764,7 +764,17 @@ class MapObject(object):
         obj = MapObject(position, objectid)
         obj.scale = scale
         obj.rotation = Rotation.from_mkdd_rotation(fx, fy, fz, ux, uy, uz)
-        obj.pathid = read_int16(f)
+        pathid = read_int16(f)
+
+        if pathid < 0:
+            obj.route = None
+        else:
+            try:
+                obj.route = routes[pathid]
+            except IndexError:
+                print("Object", objectid, "had an invalid route id")
+                obj.route = None
+
         obj.unk_28 = read_uint16(f)
         obj.unk_2a = read_int16(f)
         obj.presence_filter = read_uint8(f)
@@ -781,13 +791,21 @@ class MapObject(object):
         obj._size = f.tell() - start
         return obj
 
-    def write(self, f):
+    def write(self, f, routes: ObjectContainer):
         start = f.tell()
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         f.write(pack(">fff", self.scale.x, self.scale.y, self.scale.z))
         self.rotation.write(f)
 
-        f.write(pack(">hhHh", self.objectid, self.pathid, self.unk_28, self.unk_2a))
+        if self.route is None:
+            routeid = -1
+        else:
+            try:
+                routeid = routes.index(self.route)
+            except ValueError:
+                routeid = -1
+
+        f.write(pack(">hhHh", self.objectid, routeid, self.unk_28, self.unk_2a))
         f.write(pack(">BBBB", self.presence_filter, self.presence, self.unk_flag, self.unk_2f))
 
         for i in range(8):
@@ -807,6 +825,7 @@ class MapObject(object):
         json_data = self.read_json_file()
         return json_data.get("DefaultValues") if json_data is not None else None
 
+
 class MapObjects(object):
     def __init__(self):
         self.objects = []
@@ -816,11 +835,11 @@ class MapObjects(object):
         self.objects = []
 
     @classmethod
-    def from_file(cls, f, objectcount):
+    def from_file(cls, f, objectcount, routes: ObjectContainer):
         mapobjs = cls()
 
         for i in range(objectcount):
-            obj = MapObject.from_file(f)
+            obj = MapObject.from_file(f, routes)
             mapobjs.objects.append(obj)
 
         return mapobjs
@@ -916,7 +935,8 @@ class Area(object):
         self.rotation = Rotation.default()
         self.shape = 0
         self.area_type = 0
-        self.camera_index = -1
+        self.camera = None
+        self._cameraindex = -1
         self.feather = Feather()
         self.unkfixedpoint = 0
         self.unkshort = 0
@@ -938,7 +958,8 @@ class Area(object):
         area.rotation = Rotation.from_file(f)
         area.shape = read_uint8(f)
         area.area_type = read_uint8(f)
-        area.camera_index = read_int16(f)
+        area._cameraindex = read_int16(f)
+
         area.feather.i0 = read_uint32(f)
         area.feather.i1 = read_uint32(f)
         area.unkfixedpoint = read_int16(f)
@@ -951,11 +972,29 @@ class Area(object):
 
         return area
 
-    def write(self, f):
+    def setcam(self, cameras: ObjectContainer):
+        if self._cameraindex < 0:
+            self.camera = None
+        else:
+            try:
+                self.camera = cameras[self._cameraindex]
+            except ValueError:
+                self.camera = None
+
+    def write(self, f, cameras: ObjectContainer):
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         f.write(pack(">fff", self.scale.x, self.scale.y, self.scale.z))
         self.rotation.write(f)
-        f.write(pack(">BBh", self.shape, self.area_type, self.camera_index))
+
+        if self.camera is None:
+            camera_index = -1
+        else:
+            try:
+                camera_index = cameras.index(self.camera)
+            except ValueError:
+                camera_index = -1
+
+        f.write(pack(">BBh", self.shape, self.area_type, camera_index))
         f.write(pack(">II", self.feather.i0, self.feather.i1))
         f.write(pack(">hhhh", self.unkfixedpoint, self.unkshort, self.shadow_id, self.lightparam_index))
 
@@ -999,9 +1038,10 @@ class Camera(object):
         self.camduration = 0
         self.startcamera = 0
         self.shimmer = Shimmer()
-        self.route = -1
+        self.route = None
         self.routespeed = 0
-        self.nextcam = -1
+        self.nextcam = None
+        self._nextcam = -1
         self.name = "null"
 
         self.widget = None
@@ -1011,7 +1051,7 @@ class Camera(object):
         return cls(Vector3(0.0, 0.0, 0.0))
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, routes: ObjectContainer):
         position = Vector3(*unpack(">fff", f.read(12)))
 
         cam = cls(position)
@@ -1024,23 +1064,60 @@ class Camera(object):
         cam.startcamera = read_uint16(f)
         cam.shimmer.z0 = read_uint16(f)
         cam.shimmer.z1 = read_uint16(f)
-        cam.route = read_int16(f)
+
+        pathid = read_int16(f)
+
+        if pathid < 0:
+            cam.route = None
+        else:
+            try:
+                cam.route = routes[pathid]
+            except IndexError:
+                print("Camera had an invalid route id")
+                cam.route = None
+
         cam.routespeed = read_uint16(f)
         cam.fov.end = read_uint16(f)
-        cam.nextcam = read_int16(f)
+        cam._nextcam = read_int16(f)
         cam.name = str(f.read(4), encoding="ascii")
 
         return cam
 
-    def write(self, f):
+    def setnextcam(self, cameras: ObjectContainer):
+        if self._nextcam < 0:
+            self.nextcam = None
+        else:
+            try:
+                self.nextcam = cameras[self._nextcam]
+            except ValueError:
+                self.nextcam = None
+
+    def write(self, f, routes: ObjectContainer, cameras: ObjectContainer):
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         self.rotation.write(f)
         f.write(pack(">fff", self.position2.x, self.position2.y, self.position2.z))
         f.write(pack(">fff", self.position3.x, self.position3.y, self.position3.z))
         f.write(pack(">HHHH", self.camtype, self.fov.start, self.camduration, self.startcamera))
+
+        if self.route is None:
+            routeid = -1
+        else:
+            try:
+                routeid = routes.index(self.route)
+            except ValueError:
+                routeid = -1
+
+        if self.nextcam is None:
+            nextcamid = -1
+        else:
+            try:
+                nextcamid = cameras.index(self.nextcam)
+            except ValueError:
+                nextcamid = -1
+
         f.write(pack(">HHhHHh",
-                     self.shimmer.z0, self.shimmer.z1, self.route,
-                     self.routespeed, self.fov.end, self.nextcam))
+                     self.shimmer.z0, self.shimmer.z1, routeid,
+                     self.routespeed, self.fov.end, nextcamid))
         assert len(self.name) == 4
         f.write(bytes(self.name, encoding="ascii"))
 
@@ -1307,7 +1384,7 @@ class BOL(object):
             route.add_routepoints(routepoints)
 
         f.seek(sectionoffsets[OBJECTS])
-        bol.objects = MapObjects.from_file(f, sectioncounts[OBJECTS])
+        bol.objects = MapObjects.from_file(f, sectioncounts[OBJECTS], bol.routes)
 
         f.seek(sectionoffsets[KARTPOINT])
         bol.kartpoints = KartStartPoints.from_file(f, (sectionoffsets[AREA] - sectionoffsets[KARTPOINT])//0x28)
@@ -1325,7 +1402,12 @@ class BOL(object):
         bol.areas = Areas.from_file(f, sectioncounts[AREA])
 
         f.seek(sectionoffsets[CAMERA])
-        bol.cameras = ObjectContainer.from_file(f, sectioncounts[CAMERA], Camera)
+        bol.cameras = ObjectContainer.from_file(f, sectioncounts[CAMERA], Camera, bol.routes)
+        for camera in bol.cameras:
+            camera.setnextcam(bol.cameras)
+
+        for area in bol.areas.areas:
+            area.setcam(bol.cameras)
 
         f.seek(sectionoffsets[RESPAWNPOINT])
         bol.respawnpoints = ObjectContainer.from_file(f, sectioncounts[RESPAWNPOINT], JugemPoint)
@@ -1408,7 +1490,7 @@ class BOL(object):
 
         offsets.append(f.tell())
         for object in self.objects.objects:
-            object.write(f)
+            object.write(f, self.routes)
 
         offsets.append(f.tell())
         for startpoint in self.kartpoints.positions:
@@ -1416,11 +1498,11 @@ class BOL(object):
 
         offsets.append(f.tell())
         for area in self.areas.areas:
-            area.write(f)
+            area.write(f, self.cameras)
 
         offsets.append(f.tell())
         for camera in self.cameras:
-            camera.write(f)
+            camera.write(f, self.routes, self.cameras)
 
         offsets.append(f.tell())
         for respawnpoint in self.respawnpoints:

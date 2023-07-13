@@ -2677,7 +2677,7 @@ class GenEditor(QtWidgets.QMainWindow):
                     objects = []
                     index = self.level_file.routes.index(currentobj)
                     for object in self.level_file.objects.objects:
-                        if object.pathid == index:
+                        if object.route == currentobj:
                             objects.append(get_full_name(object.objectid))
                     for i, camera in enumerate(self.level_file.cameras):
                         if camera.route == index:
