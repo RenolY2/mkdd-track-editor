@@ -30,8 +30,8 @@ def load_parameter_names(objectname):
         tooltips += [''] * (8 - len(tooltips))
 
         tooltips = [
-            ttl.markdown_to_html(parameter_name, tool_tip)
-            for parameter_name, tool_tip in zip(parameter_names, tooltips) if tool_tip
+            ttl.markdown_to_html(parameter_name, tool_tip) if tool_tip else ''
+            for parameter_name, tool_tip in zip(parameter_names, tooltips)
         ]
 
         widget_types = data.get("Widgets", [])
