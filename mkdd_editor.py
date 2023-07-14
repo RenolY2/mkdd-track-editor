@@ -2237,11 +2237,6 @@ class GenEditor(QtWidgets.QMainWindow):
 
     @catch_exception
     def action_move_objects(self, deltax, deltay, deltaz):
-        for i in range(len(self.level_view.selected_positions)):
-            for j in range(len(self.level_view.selected_positions)):
-                pos = self.level_view.selected_positions
-                if i != j and pos[i] == pos[j]:
-                    print("What the fuck")
         for pos in self.level_view.selected_positions:
             """obj.x += deltax
             obj.z += deltaz
