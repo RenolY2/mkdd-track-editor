@@ -16,7 +16,7 @@ from helper_functions import calc_zoom_in_factor, calc_zoom_out_factor
 from lib.collision import Collision
 from widgets.editor_widgets import catch_exception, catch_exception_with_dialog, check_checkpoints
 from opengltext import draw_collision
-from lib.vectors import Matrix4x4, Vector3, Line, Plane, Triangle
+from lib.vectors import Vector3, Line, Plane, Triangle
 from lib.model_rendering import TexturedPlane, Model, Grid, GenericObject, Material, Minimap
 from gizmo import Gizmo
 from lib.object_models import ObjectModels
@@ -565,13 +565,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         res = (topleft_x + relx*camera_width, topleft_y - rely*camera_height)
 
         return res
-
-    def mouse_coord_to_world_coord_transform(self, mouse_x, mouse_y):
-        mat4x4 = Matrix4x4.from_opengl_matrix(*glGetFloatv(GL_PROJECTION_MATRIX))
-        width, height = self.canvas_width, self.canvas_height
-        result = mat4x4.multiply_vec4(mouse_x-width/2, mouse_y-height/2, 0, 1)
-
-        return result
 
     #@catch_exception_with_dialog
     #@catch_exception
