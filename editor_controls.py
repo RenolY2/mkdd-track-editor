@@ -4,7 +4,7 @@ import abc
 
 from PySide6 import QtCore
 
-from lib.vectors import Vector3, Plane, Vector2
+from lib.vectors import Vector3, Plane
 from gizmo import AXIS_X, AXIS_Y, AXIS_Z
 import numpy
 MOUSE_MODE_NONE = 0
@@ -80,7 +80,7 @@ class ClickDragAction(MouseAction):
         self.first_click = None
 
     def just_clicked(self, editor, buttons, event):
-        self.first_click = Vector2(event.x(), event.y())
+        self.first_click = event.pos()
 
     def move(self, editor, buttons, event):
 
@@ -93,7 +93,7 @@ class ClickDragAction(MouseAction):
 class TopdownScroll(ClickDragAction):
     def move(self, editor, buttons, event):
         x, y = event.x(), event.y()
-        d_x, d_y = event.x() - self.first_click.x, event.y() - self.first_click.y
+        d_x, d_y = event.x() - self.first_click.x(), event.y() - self.first_click.y()
 
         if editor.zoom_factor > 1.0:
             adjusted_dx = d_x * editor.zoom_factor  # (1.0 + (self.zoom_factor - 1.0))
@@ -105,8 +105,7 @@ class TopdownScroll(ClickDragAction):
         editor.offset_x += adjusted_dx
         editor.offset_z += adjusted_dz
         editor.do_redraw()
-        self.first_click.x = event.x()
-        self.first_click.y = event.y()
+        self.first_click = event.pos()
 
 
 class TopdownSelect(ClickDragAction):
@@ -115,7 +114,7 @@ class TopdownSelect(ClickDragAction):
 
     def just_clicked(self, editor, buttons, event):
         super().just_clicked(editor, buttons, event)
-        x, y = self.first_click.x, self.first_click.y
+        x, y = self.first_click.x(), self.first_click.y()
 
         selectstartx, selectstartz = editor.mouse_coord_to_world_coord(x, y)
 
@@ -133,7 +132,7 @@ class TopdownSelect(ClickDragAction):
         editor.do_redraw()
 
     def just_released(self, editor, buttons, event):
-        selectstartx, selectstartz = self.first_click.x, self.first_click.y
+        selectstartx, selectstartz = self.first_click.x(), self.first_click.y()
         selectendx, selectendz = event.x(), event.y()
 
         startx = min(selectstartx, selectendx)
@@ -160,8 +159,8 @@ class Gizmo2DMoveX(ClickDragAction):
     def move(self, editor, buttons, event):
         if editor.gizmo.was_hit["gizmo_x"]:
             editor.gizmo.set_render_axis(AXIS_X)
-            delta_x = event.x() - self.first_click.x
-            self.first_click = Vector2(event.x(), event.y())
+            delta_x = event.x() - self.first_click.x()
+            self.first_click = event.pos()
             editor.move_points.emit(delta_x*editor.zoom_factor, 0, 0)
 
     def just_released(self, editor, buttons, event):
@@ -174,9 +173,9 @@ class Gizmo2DMoveXZ(Gizmo2DMoveX):
     def move(self, editor, buttons, event):
         if editor.gizmo.was_hit["middle"]:
             #editor.gizmo.set_render_axis(AXIS_X)
-            delta_x = event.x() - self.first_click.x
-            delta_z = event.y() - self.first_click.y
-            self.first_click = Vector2(event.x(), event.y())
+            delta_x = event.x() - self.first_click.x()
+            delta_z = event.y() - self.first_click.y()
+            self.first_click = event.pos()
             editor.move_points.emit(delta_x*editor.zoom_factor, 0, delta_z*editor.zoom_factor)
 
 
@@ -184,8 +183,8 @@ class Gizmo2DMoveZ(Gizmo2DMoveX):
     def move(self, editor, buttons, event):
         if editor.gizmo.was_hit["gizmo_z"]:
             editor.gizmo.set_render_axis(AXIS_Z)
-            delta_z = event.y() - self.first_click.y
-            self.first_click = Vector2(event.x(), event.y())
+            delta_z = event.y() - self.first_click.y()
+            self.first_click = event.pos()
             editor.move_points.emit(0, 0, delta_z*editor.zoom_factor)
 
 
@@ -197,7 +196,7 @@ class Gizmo2DRotateY(Gizmo2DMoveX):
         if editor.gizmo.was_hit["rotation_y"]:
             #editor.gizmo.set_render_axis(AXIS_Z)
 
-            x, y = editor.mouse_coord_to_world_coord(self.first_click.x, self.first_click.y)
+            x, y = editor.mouse_coord_to_world_coord(self.first_click.x(), self.first_click.y())
             angle_start = atan2(-(y + editor.gizmo.position.z), x - editor.gizmo.position.x)
 
             x, y = editor.mouse_coord_to_world_coord(event.x(), event.y())
@@ -207,7 +206,7 @@ class Gizmo2DRotateY(Gizmo2DMoveX):
 
             editor.rotate_current.emit(Vector3(0, delta, 0))
 
-            self.first_click = Vector2(event.x(), event.y())
+            self.first_click = event.pos()
 
     def just_released(self, editor, buttons, event):
         super().just_released(editor, buttons, event)
@@ -227,7 +226,7 @@ class AddObjectTopDown(ClickAction):
 
 class View3DScroll(ClickDragAction):
     def move(self, editor, buttons, event):
-        d_x, d_y = event.x() - self.first_click.x, event.y() - self.first_click.y
+        d_x, d_y = event.x() - self.first_click.x(), event.y() - self.first_click.y()
 
         speedup = 1
         if editor.shift_is_pressed:
@@ -246,8 +245,7 @@ class View3DScroll(ClickDragAction):
         editor.offset_z += sideways_move.y * d_x
 
         editor.do_redraw()
-        self.first_click.x = event.x()
-        self.first_click.y = event.y()
+        self.first_click = event.pos()
 
 
 class RotateCamera3D(ClickDragAction):
@@ -256,12 +254,12 @@ class RotateCamera3D(ClickDragAction):
 
     def move(self, editor, buttons, event):
         curr_x, curr_y = event.x(), event.y()
-        last_x, last_y = self.first_click.x, self.first_click.y
+        last_x, last_y = self.first_click.x(), self.first_click.y()
 
         diff_x = curr_x - last_x
         diff_y = curr_y - last_y
 
-        self.first_click = Vector2(curr_x, curr_y)
+        self.first_click = QtCore.QPoint(curr_x, curr_y)
 
         editor.camera_horiz = (editor.camera_horiz - diff_x * (pi / 500)) % (2 * pi)
         editor.camera_vertical = (editor.camera_vertical - diff_y * (pi / 600))
@@ -302,9 +300,9 @@ class Select3D(ClickDragAction):
         editor.selectionbox_projected_coords = None
 
     def move(self, editor, buttons, event):
-        upleft = editor.create_ray_from_mouseclick(self.first_click.x, event.y())
+        upleft = editor.create_ray_from_mouseclick(self.first_click.x(), event.y())
         upright = editor.create_ray_from_mouseclick(event.x(), event.y())
-        downright = editor.create_ray_from_mouseclick(event.x(), self.first_click.y)
+        downright = editor.create_ray_from_mouseclick(event.x(), self.first_click.y())
 
         editor.selectionbox_projected_coords = (
             upleft.origin + upleft.direction*ufac,# * 0.1,
@@ -317,7 +315,7 @@ class Select3D(ClickDragAction):
         editor.do_redraw()
 
     def just_released(self, editor, buttons, event):
-        selectstartx, selectstartz = self.first_click.x, self.first_click.y
+        selectstartx, selectstartz = self.first_click.x(), self.first_click.y()
         selectendx, selectendz = event.x(), event.y()
 
         startx = min(selectstartx, selectendx)
@@ -383,9 +381,14 @@ class Gizmo3DMoveX(Gizmo2DMoveX):
             proj = numpy.dot(editor.modelviewmatrix, self.dir)
             proj[2] = proj[3] = 0.0
             proj = proj/numpy.linalg.norm(proj)
-            delta = numpy.array([event.x() - self.first_click.x, event.y() - self.first_click.y, 0, 0])
+            delta = numpy.array([
+                event.x() - self.first_click.x(),
+                event.y() - self.first_click.y(),
+                0.0,
+                0.0,
+            ])
             delta[1] = -delta[1]
-            self.first_click = Vector2(event.x(), event.y())
+            self.first_click = event.pos()
             delta_x = numpy.dot(delta, proj)
 
             if editor.shift_is_pressed:
