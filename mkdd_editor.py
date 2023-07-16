@@ -35,6 +35,8 @@ from lib.dolreader import DolFile, read_float, write_float, read_load_immediate_
 from widgets.file_select import FileSelect
 from lib.bmd_render import clear_temp_folder, load_textured_bmd
 from lib.game_visualizer import Game
+from lib.vectors import Vector3
+
 
 def detect_dol_region(dol):
     try:
@@ -1301,6 +1303,7 @@ class GenEditor(QtWidgets.QMainWindow):
             lambda _checked: self.button_open_add_item_window())
         #self.pik_control.button_move_object.pressed.connect(self.button_move_objects)
         self.level_view.move_points.connect(self.action_move_objects)
+        self.level_view.move_points_to.connect(self.action_move_objects_to)
         self.level_view.create_waypoint.connect(self.action_add_object)
         self.level_view.create_waypoint_3d.connect(self.action_add_object_3d)
         self.pik_control.button_ground_object.clicked.connect(
@@ -2264,6 +2267,24 @@ class GenEditor(QtWidgets.QMainWindow):
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
                                               self.level_view.selected_rotations)
 
+        self.level_view.do_redraw()
+        self.pik_control.update_info()
+        self.set_has_unsaved_changes(True)
+
+    @catch_exception
+    def action_move_objects_to(self, posx, posy, posz):
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
+                                              self.level_view.selected_rotations)
+        orig_avg = self.level_view.gizmo.position.copy()
+        new_avg = Vector3(posx, posz, -posy)
+        diff = new_avg - orig_avg
+        for pos in self.level_view.selected_positions:
+            pos.x = pos.x + diff.x
+            pos.y = pos.y + diff.y
+            pos.z = pos.z + diff.z
+
+            self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
+                                                  self.level_view.selected_rotations)
         self.level_view.do_redraw()
         self.pik_control.update_info()
         self.set_has_unsaved_changes(True)
