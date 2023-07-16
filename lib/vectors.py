@@ -88,45 +88,6 @@ class Vector3(object):
         return diff.x**2 + diff.y**2 + diff.z**2
 
 
-class Vector4(Vector3):
-    def __init__(self, x, y, z, w):
-        Vector3.__init__(self, x, y, z)
-        self.w = w
-
-    def copy(self):
-        return Vector4(self.x, self.y, self.z, self.w)
-
-    def norm(self):
-        return sqrt(self.x**2 + self.y**2 + self.z**2 + self.w**2)
-
-    def normalize(self):
-        norm = self.norm()
-        self.x /= norm
-        self.y /= norm
-        self.z /= norm
-        self.w /= norm
-
-
-class Vector2(Vector3):
-    def __init__(self, x, y):
-        super().__init__(x, y, 0)
-
-    def copy(self):
-        return Vector2(self.x, self.y)
-
-    def __truediv__(self, other):
-        return Vector2(self.x/other, self.y/other)
-
-    def __add__(self, other_vec):
-        return Vector2(self.x+other_vec.x, self.y+other_vec.y)
-
-    def __mul__(self, other):
-        return Vector2(self.x*other, self.y*other)
-
-    def __sub__(self, other_vec):
-        return Vector2(self.x-other_vec.x, self.y-other_vec.y)
-
-
 class Plane(object):
     def __init__(self, origin, vec1, vec2): # a point and two vectors defining the plane
         self.origin = origin
