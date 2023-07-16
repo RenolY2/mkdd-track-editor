@@ -209,52 +209,6 @@ class Line(object):
 
         return False
 
-    def collide_py(self, tri: Triangle):
-        hit = False
-
-        edge1 = tri.p1_to_p2
-        edge2 = tri.p1_to_p3
-
-        normal = tri.normal 
-        if normal.is_zero():
-            return False
-
-        #d = -normal.dot(self.origin)
-
-        if tri.normal.dot(self.direction) == 0:
-            return False
-
-        d = ((tri.origin - self.origin).dot(tri.normal)) / tri.normal.dot(self.direction)
-
-        #if d == 0:
-        #    return False
-
-        #t = (normal.dot(self.origin) + d) / normal.dot(self.direction)
-
-        if d < 0:
-            return False
-
-        intersection_point = self.origin + self.direction * d
-
-        #return intersection_point
-        C0 = intersection_point - tri.origin
-
-        if tri.normal.dot(tri.p1_to_p2.cross(C0)) > 0:
-            p2_to_p3 = tri.p3 - tri.p2
-            C1 = intersection_point - tri.p2
-
-            if tri.normal.dot(p2_to_p3.cross(C1)) > 0:
-                p3_to_p1 = tri.origin - tri.p3
-                C2 = intersection_point - tri.p3
-                if tri.normal.dot(p3_to_p1.cross(C2)) > 0:
-                    return intersection_point, d
-                else:
-                    return False
-            else:
-                return False
-        else:
-            return False
-
     def collide_plane(self, plane: Plane):
         pos = self.origin
         dir = self.direction
