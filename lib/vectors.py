@@ -1,6 +1,4 @@
 from math import sqrt
-from io import StringIO
-from numpy import array
 
 
 class Vector3:
