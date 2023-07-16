@@ -1,89 +1,103 @@
-from math import sqrt
+import numpy as np
 
 
 class Vector3:
     def __init__(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
+        self.array = np.array((x, y, z), dtype=float)
+
+    @property
+    def x(self):
+        return self.array[0]
+
+    @x.setter
+    def x(self, value):
+        self.array[0] = value
+
+    @property
+    def y(self):
+        return self.array[1]
+
+    @y.setter
+    def y(self, value):
+        self.array[1] = value
+
+    @property
+    def z(self):
+        return self.array[2]
+
+    @z.setter
+    def z(self, value):
+        self.array[2] = value
 
     def copy(self):
-        return Vector3(self.x, self.y, self.z)
+        return Vector3(*self.array)
 
     def norm(self):
-        return sqrt(self.x**2 + self.y**2 + self.z**2)
+        return np.linalg.norm(self.array)
 
     def normalize(self):
-        norm = self.norm()
-        self.x /= norm
-        self.y /= norm
-        self.z /= norm
+        self.array /= self.norm()
 
-    def unit(self):
-        return self/self.norm()
+    def normalized(self):
+        return Vector3(*(self.array / self.norm()))
 
     def cross(self, other_vec):
-        return Vector3(self.y*other_vec.z - self.z*other_vec.y,
-                       self.z*other_vec.x - self.x*other_vec.z,
-                       self.x*other_vec.y - self.y*other_vec.x)
+        return Vector3(*np.cross(self.array, other_vec.array))
 
     def dot(self, other_vec):
-        return self.x*other_vec.x + self.y*other_vec.y + self.z*other_vec.z
+        return np.vdot(self.array, other_vec.array)
+
+    def __hash__(self):
+        return hash(tuple(self.array))
 
     def __truediv__(self, other):
-        return Vector3(self.x/other, self.y/other, self.z/other)
+        return Vector3(*(self.array / other))
 
     def __add__(self, other_vec):
-        return Vector3(self.x+other_vec.x, self.y+other_vec.y, self.z+other_vec.z)
+        return Vector3(*(self.array + other_vec.array))
 
     def __mul__(self, other):
-        return Vector3(self.x*other, self.y*other, self.z*other)
+        return Vector3(*(self.array * other))
 
     def __sub__(self, other_vec):
-        return Vector3(self.x-other_vec.x, self.y-other_vec.y, self.z-other_vec.z)
+        return Vector3(*(self.array - other_vec.array))
 
     def cos_angle(self, other_vec):
         return self.dot(other_vec)/(self.norm()*other_vec.norm())
 
     def __iadd__(self, other_vec):
-        self.x += other_vec.x
-        self.y += other_vec.y
-        self.z += other_vec.z
+        self.array += other_vec.array
         return self
 
     def __isub__(self, other_vec):
-        self.x -= other_vec.x
-        self.y -= other_vec.y
-        self.z -= other_vec.z
+        self.array -= other_vec.array
         return self
 
     def __imul__(self, other):
-        self.x *= other
-        self.y *= other
-        self.z *= other
+        self.array *= other
         return self
 
     def __itruediv__(self, other):
-        self.x /= other
-        self.y /= other
-        self.z /= other
+        self.array /= other
         return self
 
     def is_zero(self):
-        return self.x == self.y == self.z == 0
+        return not self.array.any()
 
     def __eq__(self, other_vec):
-        return self.x == other_vec.x and self.y == other_vec.y and self.z == other_vec.z
+        return np.all(self.array == other_vec.array) if isinstance(other_vec, Vector3) else False
 
     def __str__(self):
-        return str((self.x, self.y, self.z))
+        return str(tuple(self.array))
+
+    def __repr__(self):
+        return str(tuple(self.array))
 
     def distance(self, other):
-        return sqrt(self.distance2(other))
+        return (other - self).norm()
 
     def distance2(self, other):
-        diff = other - self
-        return diff.x**2 + diff.y**2 + diff.z**2
+        return np.sum(np.square(other.array - self.array))
 
 
 class Plane:
