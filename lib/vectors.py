@@ -177,7 +177,5 @@ class Line:
             if d >= 0:
                 point = pos + (direction * d)
                 return point, d
-            else:
-                return False
-        else:
-            return False
+
+        return False
