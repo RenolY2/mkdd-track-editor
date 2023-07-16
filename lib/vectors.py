@@ -3,7 +3,7 @@ from io import StringIO
 from numpy import array
 
 
-class Vector3(object):
+class Vector3:
     def __init__(self, x, y, z):
         self.x = x
         self.y = y
@@ -88,7 +88,7 @@ class Vector3(object):
         return diff.x**2 + diff.y**2 + diff.z**2
 
 
-class Plane(object):
+class Plane:
     def __init__(self, origin, vec1, vec2): # a point and two vectors defining the plane
         self.origin = origin
         self._vec1 = vec1
@@ -121,7 +121,7 @@ class Plane(object):
         return cls(origin, Vector3(0, 1, 0), Vector3(0, 0, 1))
 
 
-class Triangle(object):
+class Triangle:
     def __init__(self, p1, p2, p3):
         self.origin = p1
         self.p2 = p2
@@ -140,7 +140,7 @@ class Triangle(object):
         return self.normal.dot(vec) == 0
 
 
-class Line(object):
+class Line:
     def __init__(self, origin, direction):
         self.origin = origin
         self.direction = direction
