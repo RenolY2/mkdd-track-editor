@@ -170,12 +170,12 @@ class Line:
 
     def collide_plane(self, plane: Plane):
         pos = self.origin
-        dir = self.direction
+        direction = self.direction
 
-        if not plane.is_parallel(dir):
-            d = ((plane.origin - pos).dot(plane.normal)) / plane.normal.dot(dir)
+        if not plane.is_parallel(direction):
+            d = ((plane.origin - pos).dot(plane.normal)) / plane.normal.dot(direction)
             if d >= 0:
-                point = pos + (dir * d)
+                point = pos + (direction * d)
                 return point, d
             else:
                 return False
