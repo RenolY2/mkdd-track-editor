@@ -1,8 +1,8 @@
 {
     "Object Parameters": [
-        "Unknown 1",
-        "Unknown 2",
-        "Unknown 3",
+        "Standing Time",
+        "Initial Wait",
+        "Crooked Time",
         "Unused",
         "Unused",
         "Unused",
@@ -17,6 +17,16 @@
         "sanbo1_fall_right.bca",
         "sanbo1_revivie.bca",
         "sanbo1_wait.bca"
+    ],
+    "Tooltips": [
+        "Time (in frames) that the Pokey will remain in a standing pose.",
+        "One-time wait (in frames) at the start of the race before the animation is put in motion.",
+        "Time (in frames) that the Pokey will remain in a crooked pose.",
+        "",
+        "",
+        "",
+        "",
+        ""
     ],
     "RouteInfo": "None",
     "DefaultValues": [
