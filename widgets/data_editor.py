@@ -992,6 +992,7 @@ class ObjectEdit(DataEditor):
             routes["Route {0}".format(i)] = route
 
         self.route = self.add_dropdown_input("Route", "route", routes)
+        self.route.currentIndexChanged.connect(self.catch_text_update)
         set_tool_tip(self.route, ttl.objectdata['Route ID'])
 
         self.unk_2a = self.add_integer_input("Route Point ID", "unk_2a",
