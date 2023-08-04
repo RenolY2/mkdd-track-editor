@@ -582,6 +582,24 @@ class Cube(SelectableModel):
         self.mesh_list[0].render()
 
 
+class Cylinder(SelectableModel):
+    def __init__(self, color=(1.0, 1.0, 1.0, 1.0)):
+        super().__init__()
+        with open("resources/cylinder.obj", "r", encoding='utf-8') as f:
+            model = Model.from_obj(f, scale=150, rotate=True)
+        self.mesh_list = model.mesh_list
+        self.named_meshes = model.mesh_list
+
+        self.color = color
+
+    def _render_outline(self):
+        self.mesh_list[0].render()
+
+    def _render_body(self):
+        glColor4f(*self.color)
+        self.mesh_list[0].render()
+
+
 class GenericObject(SelectableModel):
     def __init__(self, bodycolor=(1.0, 1.0, 1.0, 1.0)):
         super().__init__()
