@@ -1,3 +1,4 @@
+import enum
 import random
 import traceback
 import os
@@ -50,6 +51,12 @@ class SelectionQueue(list):
             if any(entry[-1] for entry in self):
                 return
         self.append((x, y, width, height, shift_pressed, do_gizmo))
+
+
+class SnappingMode(enum.Enum):
+    VERTICES = 'Vertices'
+    EDGE_CENTERS = 'Edge Centers'
+    FACE_CENTERS = 'Face Centers'
 
 
 class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
@@ -206,6 +213,11 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
         self.usercontrol = UserControl(self)
 
+        self.snapping_enabled = False
+        self.snapping_mode = SnappingMode.VERTICES
+        self.snapping_last_hash = None
+        self.snapping_display_list = None
+
         # Initialize some models
         with open("resources/gizmo.obj", "r") as f:
             self.gizmo = Gizmo.from_obj(f, rotate=True)
@@ -343,6 +355,42 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
         return (not QtWidgets.QApplication.mouseButtons()
                 and not QtWidgets.QApplication.keyboardModifiers())
+
+    def toggle_snapping(self):
+        self.snapping_enabled = not self.snapping_enabled
+        self.do_redraw()
+
+    def cycle_snapping_mode(self):
+        self.snapping_enabled = True
+        mode_names = [mode.name for mode in SnappingMode]
+        index = mode_names.index(self.snapping_mode.name)
+        next_index = (index + 1) % len(SnappingMode)
+        self.snapping_mode = SnappingMode[mode_names[next_index]]
+        self.do_redraw()
+
+    def set_snapping_mode(self, snapping_mode):
+        if isinstance(snapping_mode, SnappingMode):
+            self.snapping_mode = snapping_mode
+            self.snapping_enabled = True
+        elif snapping_mode in [mode.name for mode in SnappingMode]:
+            self.snapping_mode = SnappingMode[snapping_mode]
+            self.snapping_enabled = True
+        elif snapping_mode in [mode.value for mode in SnappingMode]:
+            for mode in SnappingMode:
+                if mode.value == snapping_mode:
+                    self.snapping_mode = mode
+                    break
+            self.snapping_enabled = True
+        else:
+            self.snapping_enabled = False
+        self.do_redraw()
+
+    def _get_snapping_points(self):
+        if self.snapping_mode == SnappingMode.EDGE_CENTERS:
+            return self.collision.edge_centers
+        if self.snapping_mode == SnappingMode.FACE_CENTERS:
+            return self.collision.face_centers
+        return self.collision.vertices
 
     def handle_arrowkey_scroll(self, timedelta):
         if self.selectionbox_projected_coords is not None:
@@ -925,6 +973,65 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     glDisable(GL_LIGHTING)
 
         glDisable(GL_TEXTURE_2D)
+
+        if self.snapping_enabled and self.collision is not None:
+            snapping_hash = hash((self.snapping_mode, self.collision.hash))
+            if self.snapping_last_hash != snapping_hash:
+                self.snapping_last_hash = snapping_hash
+
+                # Clear previous display list.
+                if self.snapping_display_list is not None:
+                    glDeleteLists(self.snapping_display_list, 1)
+                    self.snapping_display_list = None
+
+                # Create and compile the display list.
+                self.snapping_display_list = glGenLists(1)
+                glNewList(self.snapping_display_list, GL_COMPILE)
+
+                glDisable(GL_DEPTH_TEST)
+
+                glDisable(GL_ALPHA_TEST)
+                glEnable(GL_BLEND)
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+                # Draw wireframe.
+                glColor4f(0.1, 0.1, 0.1, 0.3)
+                glBegin(GL_LINES)
+                for triangle in self.collision.triangles:
+                    glVertex3f(triangle.origin.x, triangle.origin.y, triangle.origin.z)
+                    glVertex3f(triangle.p2.x, triangle.p2.y, triangle.p2.z)
+                    glVertex3f(triangle.origin.x, triangle.origin.y, triangle.origin.z)
+                    glVertex3f(triangle.p3.x, triangle.p3.y, triangle.p3.z)
+                    glVertex3f(triangle.p2.x, triangle.p2.y, triangle.p2.z)
+                    glVertex3f(triangle.p3.x, triangle.p3.y, triangle.p3.z)
+                glEnd()
+
+                glBlendFunc(GL_ONE, GL_ZERO)
+                glDisable(GL_BLEND)
+                glEnable(GL_ALPHA_TEST)
+
+                # Draw points.
+                glPointSize(5)
+                glColor3f(0.0, 0.0, 0.0)
+                glBegin(GL_POINTS)
+                points = self._get_snapping_points()
+                for point in points:
+                    glVertex3f(*point)
+                glEnd()
+                glPointSize(3)
+                glColor3f(1.0, 1.0, 1.0)
+                glBegin(GL_POINTS)
+                for point in points:
+                    glVertex3f(*point)
+                glEnd()
+                glPointSize(1)
+
+                glEnable(GL_DEPTH_TEST)
+
+                glEndList()
+
+            glCallList(self.snapping_display_list)
+
         glColor4f(1.0, 1.0, 1.0, 1.0)
         self.grid.render()
         if self.mode == MODE_TOPDOWN:
@@ -1432,6 +1539,14 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                 pos, _ = collision
 
         return pos
+
+    def get_closest_snapping_point(self, mousex, mousey, is3d=True):
+        if is3d:
+            ray = self.create_ray_from_mouseclick(mousex, mousey)
+        else:
+            mapx, mapz = self.mouse_coord_to_world_coord(mousex, mousey)
+            ray = Line(Vector3(mapx, mapz, 99999999.0), Vector3(0.0, 0.0, -1.0))
+        return self.collision.get_closest_point(ray, self._get_snapping_points())
 
 
 def create_object_type_pixmap(canvas_size: int, directed: bool,
