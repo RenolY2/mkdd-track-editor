@@ -91,6 +91,31 @@ class Collision:
 
         return Vector3(*place_at)
 
+    @staticmethod
+    def get_closest_point(ray, points):
+        distances_and_points = []
+        for point in points:
+            try:
+                distance = _distance_between_line_and_point(
+                    ray.origin.x,
+                    ray.origin.y,
+                    ray.origin.z,
+                    ray.direction.x,
+                    ray.direction.y,
+                    ray.direction.z,
+                    *point,
+                )
+            except Exception:
+                continue
+            if distance is not math.nan:
+                distances_and_points.append((distance, point))
+
+        if not distances_and_points:
+            return None
+
+        _distance, closest_point = min(distances_and_points)
+        return Vector3(*closest_point)
+
 
 @numba.jit(nopython=True, nogil=True, cache=True)
 def cross(
@@ -151,6 +176,13 @@ def subtract(
     z1: float,
 ) -> tuple[float, float, float]:
     return x0 - x1, y0 - y1, z0 - z1
+
+
+@numba.jit(nopython=True, nogil=True, cache=True)
+def _distance_between_line_and_point(x, y, z, dx, dy, dz, px, py, pz):
+    p1_to_p2 = subtract(dx + x, dy + y, dz + z, x, y, z)
+    p3_to_p1 = subtract(x, y, z, px, py, pz)
+    return length(*cross(*p1_to_p2, *p3_to_p1)) / length(*p1_to_p2)
 
 
 @numba.jit(nopython=True, nogil=True, cache=True)
