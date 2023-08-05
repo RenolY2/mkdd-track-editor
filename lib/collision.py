@@ -9,16 +9,25 @@ from .vectors import Vector3, Triangle, Line
 class Collision:
 
     def __init__(self, verts, faces):
+        self.hash = hash((tuple(verts), tuple(faces)))
+
         self.verts = verts
+        self.vertices = [(x, -z, y) for x, y, z in verts]
         self.faces = faces
+        self.face_centers = []
+        self.edge_centers = []
         self.triangles = []
+
         for v1i, v2i, v3i in self.faces:
-            x, y, z = verts[v1i[0] - 1]
-            v1 = Vector3(x, -z, y)
-            x, y, z = verts[v2i[0] - 1]
-            v2 = Vector3(x, -z, y)
-            x, y, z = verts[v3i[0] - 1]
-            v3 = Vector3(x, -z, y)
+            v1 = Vector3(*self.vertices[v1i[0] - 1])
+            v2 = Vector3(*self.vertices[v2i[0] - 1])
+            v3 = Vector3(*self.vertices[v3i[0] - 1])
+
+            face_center = (v1 + v2 + v3) / 3.0
+            self.face_centers.append((face_center.x, face_center.y, face_center.z))
+
+            for edge_center in ((v1 + v2) / 2.0, (v1 + v3) / 2.0, (v2 + v3) / 2.0):
+                self.edge_centers.append((edge_center.x, edge_center.y, edge_center.z))
 
             triangle = Triangle(v1, v2, v3)
             if not triangle.normal.is_zero():
