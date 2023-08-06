@@ -1,7 +1,7 @@
 import os
 import json
 from OpenGL.GL import *
-from .model_rendering import (GenericObject, Model, TexturedModel, Cube)
+from .model_rendering import (GenericObject, Model, TexturedModel, Cube, Cylinder)
 
 with open("lib/color_coding.json", "r") as f:
     colors = json.load(f)
@@ -11,37 +11,40 @@ class ObjectModels(object):
     def __init__(self):
         self.models = {}
         self.generic = GenericObject()
-        self.cube = Cube()
-        self.checkpointleft = Cube(colors["CheckpointLeft"])
-        self.checkpointright = Cube(colors["CheckpointRight"])
-        self.objectroute = Cube(colors["ObjectRoutes"])
-        self.cameraroute = Cube(colors["CameraRoutes"])
-        self.unassignedroute = Cube(colors["UnassignedRoutes"])
-        self.sharedroute = Cube(colors["SharedRoutes"])
-        self.enemypoint = Cube(colors["EnemyPaths"])
+        self.cylinder = Cylinder()
+        self.checkpointleft = Cylinder(colors["CheckpointLeft"])
+        self.checkpointright = Cylinder(colors["CheckpointRight"])
+        self.objectroute = Cylinder(colors["ObjectRoutes"])
+        self.cameraroute = Cylinder(colors["CameraRoutes"])
+        self.unassignedroute = Cylinder(colors["UnassignedRoutes"])
+        self.sharedroute = Cylinder(colors["SharedRoutes"])
+        self.enemypoint = Cylinder(colors["EnemyPaths"])
         self.camera = GenericObject(colors["Camera"])
         self.areas = GenericObject(colors["Areas"])
         self.objects = GenericObject(colors["Objects"])
         self.respawn = GenericObject(colors["Respawn"])
         self.startpoints = GenericObject(colors["StartPoints"])
-        self.minimap = Cube(colors["Minimap"])
+        self.minimap = Cylinder(colors["Minimap"])
         #self.purplecube = Cube((0.7, 0.7, 1.0, 1.0))
 
-        self.playercolors = [Cube(color) for color in ((1.0, 0.0, 0.0, 1.0),
-                                                       (0.0, 0.0, 1.0, 1.0),
-                                                       (1.0, 1.0, 0.0, 1.0),
-                                                       (0.0, 1.0, 1.0, 1.0),
-                                                       (1.0, 0.0, 1.0, 1.0),
-                                                       (1.0, 0.5, 0.0, 1.0),
-                                                       (0.0, 0.5, 1.0, 1.0),
-                                                       (1.0, 0.0, 0.5, 1.0))]
-
+        PLAYER_COLORS = (
+            (1.0, 0.0, 0.0, 1.0),
+            (0.0, 0.0, 1.0, 1.0),
+            (1.0, 1.0, 0.0, 1.0),
+            (0.0, 1.0, 1.0, 1.0),
+            (1.0, 0.0, 1.0, 1.0),
+            (1.0, 0.5, 0.0, 1.0),
+            (0.0, 0.5, 1.0, 1.0),
+            (1.0, 0.0, 0.5, 1.0),
+        )
+        self.playercolors = [Cube(color) for color in PLAYER_COLORS]
+        self.playercolors_cylinder = [Cylinder(color) for color in PLAYER_COLORS]
 
         with open("resources/unitsphere.obj", "r") as f:
             self.sphere = Model.from_obj(f, rotate=True)
 
         with open("resources/unitcylinder.obj", "r") as f:
-            self.cylinder = Model.from_obj(f, rotate=True)
+            self.unitcylinder = Model.from_obj(f, rotate=True)
 
         with open("resources/unitcube_wireframe.obj", "r") as f:
             self.wireframe_cube = Model.from_obj(f, rotate=True)
@@ -56,13 +59,16 @@ class ObjectModels(object):
                     filename = os.path.basename(file)
                     objectname = filename.rsplit(".", 1)[0]
                     self.models[objectname] = TexturedModel.from_obj_path(os.path.join(dirpath, file), rotate=True)
-        for cube in (self.cube, self.checkpointleft, self.checkpointright, self.objectroute, self.cameraroute,
-                     self.unassignedroute, self.sharedroute, self.enemypoint, self.objects, self.areas, self.respawn,
-                     self.startpoints, self.camera, self.minimap):
-            cube.generate_displists()
+        for model in (self.cylinder, self.checkpointleft, self.checkpointright, self.objectroute,
+                      self.cameraroute, self.unassignedroute, self.sharedroute, self.enemypoint,
+                      self.objects, self.areas, self.respawn, self.startpoints, self.camera,
+                      self.minimap):
+            model.generate_displists()
 
-        for cube in self.playercolors:
-            cube.generate_displists()
+        for model in self.playercolors:
+            model.generate_displists()
+        for model in self.playercolors_cylinder:
+            model.generate_displists()
 
         self.generic.generate_displists()
 
@@ -107,7 +113,7 @@ class ObjectModels(object):
         glTranslatef(position.x, -position.z, position.y)
         glScalef(radius, height, radius)
 
-        self.cylinder.render()
+        self.unitcylinder.render()
         glPopMatrix()
 
     def draw_wireframe_cube(self, position, rotation, scale):
@@ -125,17 +131,17 @@ class ObjectModels(object):
 
         glScalef(radius, radius, height)
 
-        self.cylinder.render()
+        self.unitcylinder.render()
         glPopMatrix()
 
     def render_generic_position(self, position, selected):
-        self._render_generic_position(self.cube, position, selected)
+        self._render_generic_position(self.cylinder, position, selected)
 
     def render_generic_position_colored(self, position, selected, cubename):
         self._render_generic_position(getattr(self, cubename), position, selected)
 
     def render_player_position_colored(self, position, selected, player):
-        self._render_generic_position(self.playercolors[player], position, selected)
+        self._render_generic_position(self.playercolors_cylinder[player], position, selected)
 
     def render_generic_position_rotation(self, position, rotation, selected):
         self._render_generic_position_rotation("generic", position, rotation, selected)
@@ -177,7 +183,7 @@ class ObjectModels(object):
     def render_generic_position_colored_id(self, position, id):
         glPushMatrix()
         glTranslatef(position.x, -position.z, position.y)
-        self.cube.render_coloredid(id)
+        self.cylinder.render_coloredid(id)
 
         glPopMatrix()
 

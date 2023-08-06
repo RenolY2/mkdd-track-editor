@@ -1478,12 +1478,13 @@ def create_object_type_pixmap(canvas_size: int, directed: bool,
         painter.setBrush(QtCore.Qt.transparent)
         painter.drawPolygon(polygon)
     else:
-        polygon = QtGui.QPolygonF((
-            QtCore.QPointF(margin, margin),
-            QtCore.QPointF(margin, margin + size),
-            QtCore.QPointF(margin + size, margin + size),
-            QtCore.QPointF(margin + size, margin),
-        ))
+        POINT_COUNT = 30
+        radius = size / 2.0 * 1.2
+        points = [(cos(2.0 * pi / POINT_COUNT * x) * radius + radius,
+                   sin(2.0 * pi / POINT_COUNT * x) * radius + radius)
+                  for x in range(0, POINT_COUNT + 1)]
+        points = [QtCore.QPointF(margin + x, margin + y) for x, y in points]
+        polygon = QtGui.QPolygonF(points)
 
         if len(colors) > 1:
             secondary_color = QtGui.QColor(colors[1][0], colors[1][1], colors[1][2])
