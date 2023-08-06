@@ -1,5 +1,5 @@
 from math import pi, tan, atan2, degrees, cos, sin
-from timeit import default_timer
+
 import abc
 
 from PySide6 import QtCore
@@ -550,8 +550,6 @@ class UserControl(object):
         self.add_action3d(Gizmo3DRotateZ("Gizmo3DRotateZ", "Left"))
         self.add_action3d(Select3D("Select3D", "Left"))
 
-        self.last_position_update = 0.0
-
     def add_action(self, action):
         self.clickdragactions[action.key].append(action)
 
@@ -577,28 +575,18 @@ class UserControl(object):
         #print("Gizmo hit status was reset!!!!", editor.gizmo.was_hit_at_all)
         editor.do_redraw()
 
+        x = event.x()
+        y = event.y()
+        QtCore.QTimer.singleShot(0, lambda: self._update_editor_position(x, y))
+
     def handle_move(self, event):
         editor = self._editor_widget
         if editor.mode == MODE_TOPDOWN:
             self.handle_move_topdown(event)
-
-            if default_timer() - self.last_position_update > 0.1:  # True:  # self.highlighttriangle is not None:
-                mapx, mapz = editor.mouse_coord_to_world_coord(event.x(), event.y())
-                self.last_position_update = default_timer()
-
-                if editor.collision is not None:
-                    height = editor.collision.collide_ray_downwards(mapx, -mapz)
-
-                    if height is not None:
-                        # self.highlighttriangle = res[1:]
-                        # self.update()
-                        editor.position_update.emit(event, (round(mapx, 2), round(height, 2), round(-mapz, 2)))
-                    else:
-                        editor.position_update.emit(event, (round(mapx, 2), None, round(-mapz, 2)))
-                else:
-                    editor.position_update.emit(event, (round(mapx, 2), None, round(-mapz, 2)))
         else:
             self.handle_move_3d(event)
+
+        self._update_editor_position(event.x(), event.y())
 
     def handle_press_topdown(self, event):
         editor = self._editor_widget
@@ -647,8 +635,6 @@ class UserControl(object):
                         action.just_released(editor, self.buttons, event)
 
     def handle_move_3d(self, event):
-        event_processed = False
-
         editor = self._editor_widget
 
         for key in key_enums.keys():
@@ -656,20 +642,24 @@ class UserControl(object):
                 for action in self.clickdragactions3d[key]:
                     if action.condition(editor, self.buttons, event):
                         action.move(editor, self.buttons, event)
-                        event_processed = True
-        
-        # Opposing keys cancel out movement. Do not emit 3D coordinate updates
-        # if actual movement by key controls is happening to prevent visible lag.
-        is_moving = ((editor.MOVE_FORWARD - editor.MOVE_BACKWARD) 
-                    + (editor.MOVE_LEFT - editor.MOVE_RIGHT)
-                    + (editor.MOVE_UP - editor.MOVE_DOWN)) != 0
 
-        
-        # TODO(CA): get_3d_coordinates() can be expensive; it will be called only if the event was
-        # not processed by any action to guarantee that the inevitable framerate drops do not affect
-        # tumbling or object rotation.
-        if not event_processed and not is_moving:
-            place_at = editor.get_3d_coordinates(event.x(), event.y())
+    def _update_editor_position(self, x, y):
+        editor = self._editor_widget
+
+        if editor.mode == MODE_TOPDOWN:
+            mapx, mapz = editor.mouse_coord_to_world_coord(x, y)
+
+            if editor.collision is not None:
+                height = editor.collision.collide_ray_downwards(mapx, -mapz)
+
+                if height is not None:
+                    editor.position_update.emit((round(mapx, 2), round(height, 2), round(-mapz, 2)))
+                else:
+                    editor.position_update.emit((round(mapx, 2), None, round(-mapz, 2)))
+            else:
+                editor.position_update.emit((round(mapx, 2), None, round(-mapz, 2)))
+        else:
+            place_at = editor.get_3d_coordinates(x, y)
             if place_at is not None:
-                editor.position_update.emit(
-                    event, (round(place_at.x, 2), round(place_at.z, 2), round(-place_at.y, 2)))
+                editor.position_update.emit((round(place_at.x, 2), round(place_at.z,
+                                                                         2), round(-place_at.y, 2)))

@@ -2776,7 +2776,7 @@ class GenEditor(QtWidgets.QMainWindow):
             QtWidgets.QApplication.clipboard().setText(", ".join(
                 str(x) for x in self.current_coordinates))
 
-    def action_update_position(self, event, pos):
+    def action_update_position(self, pos):
         self.current_coordinates = pos
 
         y_coord = f"{pos[1]:.2f}" if pos[1] is not None else "-"

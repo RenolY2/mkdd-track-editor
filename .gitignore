@@ -1,6 +1,6 @@
 *.pyc
 .idea/*
-__pycache__/*
+__pycache__
 build/*
 /piktool.ini
 object_templates/pikmin3/*
