@@ -20,13 +20,14 @@ from lib import bti
 from widgets.editor_widgets import catch_exception
 from widgets.editor_widgets import AddPikObjectWindow
 from widgets.tree_view import LevelDataTreeView
+from widgets.tooltip_list import markdown_to_html
 import widgets.tree_view as tree_view
 from configuration import read_config, make_default_config, save_cfg
 
 import mkdd_widgets # as mkddwidgets
 from widgets.side_widget import PikminSideWidget
 from widgets.editor_widgets import open_error_dialog, open_info_dialog, catch_exception_with_dialog
-from mkdd_widgets import BolMapViewer, MODE_TOPDOWN
+from mkdd_widgets import BolMapViewer, MODE_TOPDOWN, SnappingMode
 from lib.libbol import BOL, MGEntry, Route, get_full_name
 import lib.libbol as libbol
 from lib.rarc import Archive
@@ -564,6 +565,12 @@ class GenEditor(QtWidgets.QMainWindow):
         self.pik_control = PikminSideWidget(self)
         self.horizontalLayout.addWidget(self.pik_control)
 
+        snapping_toggle_shortcut = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_V), self)
+        snapping_toggle_shortcut.activated.connect(self.level_view.toggle_snapping)
+        snapping_cycle_shortcut = QtGui.QShortcut(
+            QtGui.QKeySequence(QtCore.Qt.Key_V | QtCore.Qt.SHIFT), self)
+        snapping_cycle_shortcut.activated.connect(self.level_view.cycle_snapping_mode)
+
         QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_G), self).activated.connect(self.action_ground_objects)
         #QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_A, self).activated.connect(self.shortcut_open_add_item_window)
         self.statusbar = QtWidgets.QStatusBar(self)
@@ -692,6 +699,28 @@ class GenEditor(QtWidgets.QMainWindow):
         self.clear_current_collision.triggered.connect(self.clear_collision)
         self.collision_menu.addAction(self.clear_current_collision)
 
+        self.tools_menu = QtWidgets.QMenu(self.menubar)
+        self.tools_menu.setTitle("Tools")
+
+        snapping_menu_tool_tip = markdown_to_html(
+            'Snapping',
+            'Press **V** to toggle snapping on and off. '
+            'Press **Shift+V** to cycle through snapping modes.',
+        )
+        self.snapping_menu = self.tools_menu.addMenu('Snapping\tV')
+        self.snapping_menu.setToolTipsVisible(True)
+        self.snapping_menu.aboutToShow.connect(self.on_snapping_menu_aboutToShow)
+        self.snapping_menu.addAction('Disabled')
+        for snapping_mode in SnappingMode:
+            self.snapping_menu.addAction(f'Snap to {snapping_mode.value}').setObjectName(
+                snapping_mode.name)
+        self.snapping_menu_action_group = QtGui.QActionGroup(self)
+        for action in self.snapping_menu.actions():
+            action.triggered.connect(self.on_snapping_menu_action_triggered)
+            action.setCheckable(True)
+            action.setToolTip(snapping_menu_tool_tip)
+            self.snapping_menu_action_group.addAction(action)
+
         self.minimap_menu = QtWidgets.QMenu(self.menubar)
         self.minimap_menu.setTitle("Minimap")
         load_minimap = QtGui.QAction("Load Minimap Image", self)
@@ -772,6 +801,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.menubar.addAction(self.edit_menu.menuAction())
         self.menubar.addAction(self.visibility_menu.menuAction())
         self.menubar.addAction(self.collision_menu.menuAction())
+        self.menubar.addAction(self.tools_menu.menuAction())
         self.menubar.addAction(self.minimap_menu.menuAction())
         self.menubar.addAction(self.misc_menu.menuAction())
         self.setMenuBar(self.menubar)
@@ -1293,6 +1323,18 @@ class GenEditor(QtWidgets.QMainWindow):
 
         for i, option in enumerate(collision_options):
             collision_actions[i].setChecked(option == default_filetype)
+
+    def on_snapping_menu_aboutToShow(self):
+        if self.level_view.snapping_enabled:
+            for action in self.snapping_menu.actions():
+                if action.objectName() == self.level_view.snapping_mode.name:
+                    action.setChecked(True)
+                    return
+
+        self.snapping_menu.actions()[0].setChecked(True)
+
+    def on_snapping_menu_action_triggered(self):
+        self.level_view.set_snapping_mode(self.sender().objectName())
 
     def change_to_topdownview(self, checked):
         if checked:

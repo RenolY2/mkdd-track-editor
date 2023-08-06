@@ -9,16 +9,25 @@ from .vectors import Vector3, Triangle, Line
 class Collision:
 
     def __init__(self, verts, faces):
+        self.hash = hash((tuple(verts), tuple(faces)))
+
         self.verts = verts
+        self.vertices = [(x, -z, y) for x, y, z in verts]
         self.faces = faces
+        self.face_centers = []
+        self.edge_centers = []
         self.triangles = []
+
         for v1i, v2i, v3i in self.faces:
-            x, y, z = verts[v1i[0] - 1]
-            v1 = Vector3(x, -z, y)
-            x, y, z = verts[v2i[0] - 1]
-            v2 = Vector3(x, -z, y)
-            x, y, z = verts[v3i[0] - 1]
-            v3 = Vector3(x, -z, y)
+            v1 = Vector3(*self.vertices[v1i[0] - 1])
+            v2 = Vector3(*self.vertices[v2i[0] - 1])
+            v3 = Vector3(*self.vertices[v3i[0] - 1])
+
+            face_center = (v1 + v2 + v3) / 3.0
+            self.face_centers.append((face_center.x, face_center.y, face_center.z))
+
+            for edge_center in ((v1 + v2) / 2.0, (v1 + v3) / 2.0, (v2 + v3) / 2.0):
+                self.edge_centers.append((edge_center.x, edge_center.y, edge_center.z))
 
             triangle = Triangle(v1, v2, v3)
             if not triangle.normal.is_zero():
@@ -82,6 +91,31 @@ class Collision:
 
         return Vector3(*place_at)
 
+    @staticmethod
+    def get_closest_point(ray, points):
+        distances_and_points = []
+        for point in points:
+            try:
+                distance = _distance_between_line_and_point(
+                    ray.origin.x,
+                    ray.origin.y,
+                    ray.origin.z,
+                    ray.direction.x,
+                    ray.direction.y,
+                    ray.direction.z,
+                    *point,
+                )
+            except Exception:
+                continue
+            if distance is not math.nan:
+                distances_and_points.append((distance, point))
+
+        if not distances_and_points:
+            return None
+
+        _distance, closest_point = min(distances_and_points)
+        return Vector3(*closest_point)
+
 
 @numba.jit(nopython=True, nogil=True, cache=True)
 def cross(
@@ -142,6 +176,13 @@ def subtract(
     z1: float,
 ) -> tuple[float, float, float]:
     return x0 - x1, y0 - y1, z0 - z1
+
+
+@numba.jit(nopython=True, nogil=True, cache=True)
+def _distance_between_line_and_point(x, y, z, dx, dy, dz, px, py, pz):
+    p1_to_p2 = subtract(dx + x, dy + y, dz + z, x, y, z)
+    p3_to_p1 = subtract(x, y, z, px, py, pz)
+    return length(*cross(*p1_to_p2, *p3_to_p1)) / length(*p1_to_p2)
 
 
 @numba.jit(nopython=True, nogil=True, cache=True)
