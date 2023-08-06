@@ -237,6 +237,7 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
         self.setColumnCount(1)
         self.setHeaderLabel("Track Data Entries")
         self.setHeaderHidden(True)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
         self.bolheader = BolHeader()
         self.addTopLevelItem(self.bolheader)
@@ -343,11 +344,10 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
         self.mgentries.remove_children()
 
     def set_objects(self, boldata: BOL):
-        # Compute the location (based on indexes) of the currently selected item, if any.
-        selected_item_indexes = []
-        selected_items = self.selectedItems()
-        if selected_items:
-            item = selected_items[0]
+        # Compute the location (based on indexes) of the currently selected items, if any.
+        selected_item_indexes_list = []
+        for item in self.selectedItems():
+            selected_item_indexes = []
             while item is not None:
                 parent_item = item.parent()
                 if parent_item is not None:
@@ -355,7 +355,11 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
                 else:
                     selected_item_indexes.insert(0, self.indexOfTopLevelItem(item))
                 item = parent_item
-        selected_items = None
+            if selected_item_indexes:
+                selected_item_indexes_list.append(selected_item_indexes)
+
+        if selected_item_indexes_list:
+            initial_item_count = self.count_items()
 
         # Preserve the expansion state of the top-level items that can have nested groups.
         enemyroutes_expansion_states = self._get_expansion_states(self.enemyroutes)
@@ -410,18 +414,18 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
         self._set_expansion_states(self.checkpointgroups, checkpointgroups_expansion_states)
         self._set_expansion_states(self.routes, routes_expansion_states)
 
-        # And restore previous selection.
-        if selected_item_indexes:
-            for item in self.selectedItems():
-                item.setSelected(False)
-            item = self.topLevelItem(selected_item_indexes.pop(0))
-            while selected_item_indexes:
-                index = selected_item_indexes.pop(0)
-                if index < item.childCount():
-                    item = item.child(index)
-                else:
-                    break
-            item.setSelected(True)
+        # And restore previous selection (but only if item counts match, or else indexes could be
+        # unreliable).
+        if selected_item_indexes_list and initial_item_count == self.count_items():
+            for selected_item_indexes in selected_item_indexes_list:
+                item = self.topLevelItem(selected_item_indexes.pop(0))
+                while selected_item_indexes:
+                    index = selected_item_indexes.pop(0)
+                    if index < item.childCount():
+                        item = item.child(index)
+                    else:
+                        break
+                item.setSelected(True)
 
         self.bound_to_group(boldata)
 
@@ -454,6 +458,22 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
         for i in range(item_count):
             item = parent_item.child(i)
             item.setExpanded(expansion_states[i])
+
+    def count_items(self):
+        count = 0
+
+        pending_items = []
+        for i in range(self.topLevelItemCount()):
+            pending_items.append(self.topLevelItem(i))
+
+        while pending_items:
+            item = pending_items.pop()
+            count += 1
+
+            for i in range(item.childCount()):
+                pending_items.append(item.child(i))
+
+        return count
 
     def bound_to_group(self, levelfile):
         self.enemyroutes.bound_to = levelfile.enemypointgroups
