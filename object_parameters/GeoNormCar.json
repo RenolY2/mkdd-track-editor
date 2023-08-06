@@ -1,7 +1,7 @@
 {
     "Object Parameters": [
         "Speed",
-        "Unknown 2",
+        "Zigzagging",
         "Unknown 3",
         "Unknown 4",
         "Unknown 5",
@@ -17,7 +17,7 @@
     ],
     "Tooltips": [
         "Vehicle speed",
-        "",
+        "How strong the zigzag effect is.",
         "",
         "",
         "",
