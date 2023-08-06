@@ -122,11 +122,6 @@ class TopdownSelect(ClickDragAction):
         editor.selectionbox_start = (selectstartx, selectstartz)
         editor.selectionbox_end = None
 
-        if editor.level_file is not None:
-            editor.selectionqueue.queue_selection(x, y, 1, 1,
-                                           editor.shift_is_pressed)
-            editor.do_redraw(force=True)
-
     def move(self, editor, buttons, event):
         selectendx, selectendz = editor.mouse_coord_to_world_coord(event.x(), event.y())
         editor.selectionbox_end = (selectendx, selectendz)
@@ -153,6 +148,11 @@ class TopdownSelect(ClickDragAction):
 class Gizmo2DMoveX(ClickDragAction):
     def just_clicked(self, editor, buttons, event):
         super().just_clicked(editor, buttons, event)
+
+        # Generally, selection tasks should be scheduled with the click release event, however, for
+        # the gizmo, we want the first press event to already make the gizmo handle interactive.
+        # Therefore, the event is scheduled on the press event (instead of in the natural release
+        # event).
         editor.selectionqueue.queue_selection(event.x(), event.y(), 1, 1,
                                               editor.shift_is_pressed, do_gizmo=True)
         editor.do_redraw(force=True)
@@ -288,12 +288,6 @@ class Select3D(ClickDragAction):
 
     def just_clicked(self, editor, buttons, event):
         super().just_clicked(editor, buttons, event)
-        editor.selectionqueue.queue_selection(
-            event.x(), event.y(), 1, 1,
-            editor.shift_is_pressed)
-        #print("WE HAVE SENT A REQUEST")
-        editor.do_redraw(force=True)
-
 
         editor.camera_direction.normalize()
 
@@ -576,7 +570,6 @@ class UserControl(object):
         else:
             self.handle_release_3d(event)
 
-        editor.selectionqueue.clear()
         editor.gizmo.reset_hit_status()
         #print("Gizmo hit status was reset!!!!", editor.gizmo.was_hit_at_all)
         editor.do_redraw()
