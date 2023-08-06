@@ -110,7 +110,7 @@ class TexturedMesh(object):
             vn.normalize()
 
             for vi, ti in triangle:
-                if self.material.tex is not None and ti is not None:
+                if self.material.tex is not None and ti is not None and ti < len(self.vertex_texcoords):
                     glTexCoord2f(*self.vertex_texcoords[ti])
                 glNormal3f(vn.x, vn.y, vn.z)
                 glVertex3f(*self.vertex_positions[vi])
