@@ -1,5 +1,7 @@
 import contextlib
+import cProfile
 import pickle
+import pstats
 import traceback
 import os
 from timeit import default_timer
@@ -796,10 +798,46 @@ class GenEditor(QtWidgets.QMainWindow):
 
             self.misc_menu.addAction(action)
 
+        if self.editorconfig.get('debug_ui'):
+            self.debug_menu = self.menubar.addMenu('Debug')
+
+            self.profile_action = self.debug_menu.addAction('Start Profiling')
+            self.profile_action.setShortcut('Ctrl+Alt+P')
+            self.profile_action.triggered.connect(self.action_profile_start_stop)
+            self.profile = None
+
     def action_hook_into_dolphion(self):
         error = self.dolphin.initialize()
         if error != "":
             open_error_dialog(error, self)
+
+    def action_profile_start_stop(self):
+        if self.profile is None:
+            # Start profiling.
+            self.profile_action.setText('Stop Profiling')
+            self.profile = cProfile.Profile()
+            self.profile.enable()
+            return
+
+        # Stop profiling.
+        self.profile.disable()
+
+        # Print results sorted by total time.
+        s = StringIO()
+        ps = pstats.Stats(self.profile, stream=s).sort_stats('tottime')
+        ps.print_stats()
+        print(s.getvalue())
+
+        print('')
+
+        # Print results sorted by cummulative time.
+        s = StringIO()
+        ps = pstats.Stats(self.profile, stream=s).sort_stats('cumtime')
+        ps.print_stats()
+        print(s.getvalue())
+
+        self.profile = None
+        self.profile_action.setText('Start Profiling')
 
     def action_load_minimap_image(self):
         supported_extensions = [f'*{ext}' for ext in Image.registered_extensions()]
