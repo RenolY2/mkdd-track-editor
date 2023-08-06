@@ -486,6 +486,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
     def clear_collision(self):
         self.alternative_mesh = None
+        self.collision = None
 
         if self.main_model is not None:
             glDeleteLists(self.main_model, 1)

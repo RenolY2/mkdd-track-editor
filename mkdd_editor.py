@@ -434,13 +434,13 @@ class GenEditor(QtWidgets.QMainWindow):
 
         if visible_objectroutes or visible_cameraroutes or visible_unassignedroutes:
             camera_routes = set(camera.route for camera in self.level_file.cameras)
-            object_routes = set(obj.pathid for obj in self.level_file.objects.objects)
+            object_routes = set(obj.route for obj in self.level_file.objects.objects)
             assigned_routes = camera_routes.union(object_routes)
 
-            for i, object_route in enumerate(self.level_file.routes):
-                if (not ((i in object_routes and visible_objectroutes) or
-                         (i in camera_routes and visible_cameraroutes) or
-                         (i not in assigned_routes and visible_unassignedroutes))):
+            for object_route in self.level_file.routes:
+                if (not ((object_route in object_routes and visible_objectroutes) or
+                         (object_route in camera_routes and visible_cameraroutes) or
+                         (object_route not in assigned_routes and visible_unassignedroutes))):
                     continue
                 for object_route_point in object_route.points:
                     extend(object_route_point.position)
@@ -2261,7 +2261,7 @@ class GenEditor(QtWidgets.QMainWindow):
             self.action_ground_objects((new_point_1.position, new_point_2.position))
 
             self.level_file.routes.append(new_route)
-            obj.pathid = len(self.level_file.routes) - 1
+            obj.route = self.level_file.routes[-1]
         elif option == "add_respawn":
             self.object_to_be_added = [libbol.JugemPoint.new(), -1, 0]
             self.pik_control.button_add_object.setChecked(True)
