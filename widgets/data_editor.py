@@ -532,7 +532,7 @@ class DataEditor(QtWidgets.QWidget):
         else:
             widget = QtWidgets.QLineEdit()
             widget.setValidator(QtGui.QIntValidator(MIN_SIGNED_SHORT, MAX_SIGNED_SHORT))
-            widget.textChanged.connect(lambda text: set_value(int(text)))
+            widget.textChanged.connect(lambda text: set_value(int(text) if text else 0))
 
         layout.addLayout(self.create_labeled_widget(None, text, widget))
 
