@@ -168,12 +168,14 @@ class Game(object):
                         self.kart_headings[i].y = self.dolphin.read_float(kartPtr + 0x30C)
                         self.kart_headings[i].z = self.dolphin.read_float(kartPtr + 0x310)
 
-                        karttarget = self.dolphin.read_uint32(kartctrlPtr + 0x1C0 + i*4)
+                        # This is equivalent to KartCtrl::getKartEnemy() (NTSC-U).
+                        karttarget = self.dolphin.read_uint32(kartctrlPtr + 0x180 + i * 4)
 
                         if self.dolphin.address_valid(karttarget):
-                            clpoint = self.dolphin.read_uint32(karttarget)
+                            # 0x3C offset seen at 0x80235c1c (NTSC-U).
+                            clpoint = self.dolphin.read_uint32(karttarget + 0x3C)
                             if self.dolphin.address_valid(clpoint):
-                                vec3ptr = self.dolphin.read_uint32(clpoint+4)
+                                vec3ptr = clpoint + 0x28  # 0x28 offset seen at 0x802438fc (NTSC-U).
                                 if self.dolphin.address_valid(vec3ptr):
                                     self.kart_targets[i].x = self.dolphin.read_float(vec3ptr)
                                     self.kart_targets[i].y = self.dolphin.read_float(vec3ptr+4)
