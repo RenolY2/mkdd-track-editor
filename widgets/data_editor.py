@@ -530,9 +530,12 @@ class DataEditor(QtWidgets.QWidget):
             widget.currentIndexChanged.connect(
                 lambda index: set_value(widget.itemData(index)))
         else:
-            widget = QtWidgets.QLineEdit()
-            widget.setValidator(QtGui.QIntValidator(MIN_SIGNED_SHORT, MAX_SIGNED_SHORT))
-            widget.textChanged.connect(lambda text: set_value(int(text) if text else 0))
+            widget = QtWidgets.QSpinBox()
+            policy = widget.sizePolicy()
+            policy.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
+            widget.setSizePolicy(policy)
+            widget.setRange(MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+            widget.valueChanged.connect(set_value)
 
         layout.addLayout(self.create_labeled_widget(None, text, widget))
 
@@ -1134,8 +1137,8 @@ class ObjectEdit(DataEditor):
                 elif isinstance(widget, QtWidgets.QComboBox):
                     index = widget.findData(obj.userdata[i])
                     widget.setCurrentIndex(index if index != -1 else 0)
-                elif isinstance(widget, QtWidgets.QLineEdit):
-                    widget.setText(str(obj.userdata[i]))
+                elif isinstance(widget, QtWidgets.QSpinBox):
+                    widget.setValue(obj.userdata[i])
 
 
 class KartStartPointEdit(DataEditor):
