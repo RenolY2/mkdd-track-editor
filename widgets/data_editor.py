@@ -1054,8 +1054,8 @@ class ObjectEdit(DataEditor):
         for i, (parameter_name, tooltip, widget_type) in enumerate(tuples):
             if parameter_name == "Unused":
                 if self.bound_to.userdata[i] != 0:
-                    Warning(f"Parameter with index {i} in object {objectname} is marked as Unused "
-                            f"but has value {self.bound_to.userdata[i]}")
+                    print(f"Parameter with index {i} in object {objectname} is marked as Unused "
+                          f"but has value {self.bound_to.userdata[i]}")
                 continue
 
             widget = self.add_types_widget_index(self.userdata_layout, parameter_name, 'userdata',
