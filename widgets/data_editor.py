@@ -405,7 +405,7 @@ class DataEditor(QtWidgets.QWidget):
 
         layout = self.create_labeled_widget(self, labeltext, button)
         self.vbox.addLayout(layout)
-        return button
+        return layout
 
     def add_color_input(self, text, attribute, with_alpha=False):
         line_edits = []
@@ -1022,7 +1022,7 @@ class ObjectEdit(DataEditor):
                                       off_value=0, on_value=1)
         set_tool_tip(self.flag, ttl.objectdata['Collision'])
 
-        self.objdatalabel = self.add_button_input(
+        self.objdata_reset_button_layout = self.add_button_input(
             "Object-Specific Settings", "Reset to Default", self.fill_default_values)
 
         self.userdata = [None] * 8
@@ -1064,6 +1064,13 @@ class ObjectEdit(DataEditor):
             set_tool_tip(widget, tooltips[i])
 
             self.userdata[i] = widget
+
+        # Only show reset button if there is any object-specific field that can be reset.
+        has_fields = any(widget is not None for widget in self.userdata)
+        for i in range(self.objdata_reset_button_layout.count()):
+            item = self.objdata_reset_button_layout.itemAt(i)
+            if item_widget := item.widget():
+                item_widget.setVisible(has_fields)
 
         self.update_userdata_widgets(self.bound_to)
 
