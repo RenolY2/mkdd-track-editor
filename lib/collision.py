@@ -216,11 +216,11 @@ def _collide_ray_and_triangle(
     intersection_point = x + dx * d, y + dy * d, z + dz * d
 
     C0 = intersection_point[0] - x0, intersection_point[1] - y0, intersection_point[2] - z0
-    if dot(nx, ny, nz, *cross(*subtract(x1, y1, z1, x0, y0, z0), *C0)) > 0.0:
+    if dot(nx, ny, nz, *cross(*subtract(x1, y1, z1, x0, y0, z0), *C0)) >= 0.0:
         C1 = intersection_point[0] - x1, intersection_point[1] - y1, intersection_point[2] - z1
-        if dot(nx, ny, nz, *cross(*subtract(x2, y2, z2, x1, y1, z1), *C1)) > 0.0:
+        if dot(nx, ny, nz, *cross(*subtract(x2, y2, z2, x1, y1, z1), *C1)) >= 0.0:
             C2 = intersection_point[0] - x2, intersection_point[1] - y2, intersection_point[2] - z2
-            if dot(nx, ny, nz, *cross(*subtract(x0, y0, z0, x2, y2, z2), *C2)) > 0.0:
+            if dot(nx, ny, nz, *cross(*subtract(x0, y0, z0, x2, y2, z2), *C2)) >= 0.0:
                 return d, *intersection_point
 
     return 0.0, 0.0, 0.0, 0.0
