@@ -2805,7 +2805,7 @@ class GenEditor(QtWidgets.QMainWindow):
                         if object.route == currentobj:
                             objects.append(get_full_name(object.objectid))
                     for i, camera in enumerate(self.level_file.cameras):
-                        if camera.route == index:
+                        if camera.route == currentobj:
                             objects.append("Camera {0}".format(i))
 
                     self.pik_control.set_info(currentobj, self.update_3d, objects)
