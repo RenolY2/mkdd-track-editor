@@ -331,17 +331,18 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
         self.addTopLevelItem(group)
         return group
 
-    def reset(self):
-        self.enemyroutes.remove_children()
-        self.checkpointgroups.remove_children()
-        self.routes.remove_children()
-        self.objects.remove_children()
-        self.kartpoints.remove_children()
-        self.areas.remove_children()
-        self.cameras.remove_children()
-        self.respawnpoints.remove_children()
-        self.lightparams.remove_children()
-        self.mgentries.remove_children()
+    def _reset(self):
+        with QtCore.QSignalBlocker(self):  # Avoid triggering item selection changed events.
+            self.enemyroutes.remove_children()
+            self.checkpointgroups.remove_children()
+            self.routes.remove_children()
+            self.objects.remove_children()
+            self.kartpoints.remove_children()
+            self.areas.remove_children()
+            self.cameras.remove_children()
+            self.respawnpoints.remove_children()
+            self.lightparams.remove_children()
+            self.mgentries.remove_children()
 
     def set_objects(self, boldata: BOL):
         # Compute the location (based on indexes) of the currently selected items, if any.
@@ -366,7 +367,7 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
         checkpointgroups_expansion_states = self._get_expansion_states(self.checkpointgroups)
         routes_expansion_states = self._get_expansion_states(self.routes)
 
-        self.reset()
+        self._reset()
 
         for group in boldata.enemypointgroups.groups:
             group_item = EnemyPointGroup(self.enemyroutes, group)
