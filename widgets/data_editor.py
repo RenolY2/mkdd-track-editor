@@ -872,15 +872,11 @@ class CheckpointEdit(DataEditor):
 
 class ObjectRouteEdit(DataEditor):
     def setup_widgets(self):
-        self.unk1 = self.add_integer_input("Unknown 1", "unk1",
-                                           MIN_UNSIGNED_INT, MAX_UNSIGNED_INT)
-        self.unk2 = self.add_integer_input("Unknown 2", "unk2",
-                                           MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.unk1 = self.add_checkbox("Unknown 1", "unk1", 0, 1)
 
     def update_data(self):
         obj: Route = self.bound_to
-        self.unk1.setText(str(obj.unk1))
-        self.unk2.setText(str(obj.unk2))
+        self.unk1.setChecked(bool(obj.unk1))
 
 
 class ObjectRoutePointEdit(DataEditor):
