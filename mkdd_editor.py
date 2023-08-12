@@ -1105,7 +1105,7 @@ class GenEditor(QtWidgets.QMainWindow):
             def mousePressEvent(self, event):
                 super().mousePressEvent(event)
 
-                modelIndex = self.indexAt(event.pos())
+                modelIndex = self.indexAt(event.position().toPoint())
                 if not modelIndex.isValid():
                     self.clearSelection()
 
