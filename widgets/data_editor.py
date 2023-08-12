@@ -91,30 +91,6 @@ def set_tool_tip(widget: QtWidgets.QWidget, tool_tip: str):
         widget.setToolTip(tool_tip)
 
 
-class PythonIntValidator(QtGui.QValidator):
-    def __init__(self, min, max, parent):
-        super().__init__(parent)
-        self.min = min
-        self.max = max
-
-    def validate(self, p_str, p_int):
-        if p_str == "" or p_str == "-":
-            return QtGui.QValidator.Intermediate, p_str, p_int
-
-        try:
-            result = int(p_str)
-        except:
-            return QtGui.QValidator.Invalid, p_str, p_int
-
-        if self.min <= result <= self.max:
-            return QtGui.QValidator.Acceptable, p_str, p_int
-        else:
-            return QtGui.QValidator.Invalid, p_str, p_int
-
-    def fixup(self, s):
-        pass
-
-
 class MaskBoxMenu(QtWidgets.QMenu):
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
@@ -172,6 +148,36 @@ class MaskBox(QtWidgets.QPushButton):
 
         self.set_value(value)
         self.value_changed.emit(value)
+
+
+class SpinBox(QtWidgets.QSpinBox):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        policy = self.sizePolicy()
+        policy.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
+        self.setSizePolicy(policy)
+
+    def setValueQuiet(self, value: int):
+        with QtCore.QSignalBlocker(self):
+            self.setValue(value)
+
+
+class DoubleSpinBox(QtWidgets.QDoubleSpinBox):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        policy = self.sizePolicy()
+        policy.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
+        self.setSizePolicy(policy)
+
+        self.setDecimals(4)
+
+    def setValueQuiet(self, value: float):
+        with QtCore.QSignalBlocker(self):
+            self.setValue(value)
 
 
 class ClickableLabel(QtWidgets.QLabel):
@@ -321,37 +327,33 @@ class DataEditor(QtWidgets.QWidget):
         return maskbox
 
     def add_integer_input(self, text, attribute, min_val, max_val):
-        line_edit = QtWidgets.QLineEdit(self)
-        layout = self.create_labeled_widget(self, text, line_edit)
+        spinbox = SpinBox(self)
+        spinbox.setRange(min_val, max_val)
 
-        line_edit.setValidator(PythonIntValidator(min_val, max_val, line_edit))
+        def on_spinbox_valueChanged(value):
+            setattr(self.bound_to, attribute, value)
 
-        def input_edited():
-            text = line_edit.text()
+        spinbox.valueChanged.connect(on_spinbox_valueChanged)
 
-            setattr(self.bound_to, attribute, int(text))
-
-        line_edit.editingFinished.connect(input_edited)
-
+        layout = self.create_labeled_widget(self, text, spinbox)
         self.vbox.addLayout(layout)
-        return line_edit
+
+        return spinbox
 
     def add_decimal_input(self, text, attribute, min_val, max_val):
-        line_edit = QtWidgets.QLineEdit(self)
-        layout = self.create_labeled_widget(self, text, line_edit)
+        spinbox = DoubleSpinBox(self)
+        spinbox.setRange(min_val, max_val)
 
-        line_edit.setValidator(QtGui.QDoubleValidator(min_val, max_val, 6, self))
-
-        def input_edited():
-            text = line_edit.text()
+        def on_spinbox_valueChanged(value):
             self.catch_text_update()
-            setattr(self.bound_to, attribute, float(text))
+            setattr(self.bound_to, attribute, value)
 
-        line_edit.editingFinished.connect(input_edited)
+        spinbox.valueChanged.connect(on_spinbox_valueChanged)
 
+        layout = self.create_labeled_widget(self, text, spinbox)
         self.vbox.addLayout(layout)
 
-        return line_edit
+        return spinbox
 
     def add_text_input(self, text, attribute, maxlength):
         line_edit = QtWidgets.QLineEdit(self)
@@ -408,105 +410,113 @@ class DataEditor(QtWidgets.QWidget):
         return button
 
     def add_color_input(self, text, attribute, with_alpha=False):
-        line_edits = []
+        spinboxes = []
         input_edited_callbacks = []
 
         for subattr in ["r", "g", "b", "a"] if with_alpha else ["r", "g", "b"]:
-            line_edit = QtWidgets.QLineEdit(self)
-            line_edit.setMaximumWidth(30)
-            line_edit.setValidator(QtGui.QIntValidator(0, 255, self))
-            input_edited = create_setter(line_edit, self.bound_to, attribute, subattr, self.catch_text_update, isFloat=False)
+            spinbox = SpinBox(self)
+            spinbox.setMaximumWidth(self.fontMetrics().averageCharWidth() * 4)
+            spinbox.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
+            spinbox.setRange(0, 255)
+            input_edited = create_setter(self.bound_to,
+                                         attribute,
+                                         subattr,
+                                         self.catch_text_update)
             input_edited_callbacks.append(input_edited)
-            line_edit.editingFinished.connect(input_edited)
-            line_edits.append(line_edit)
+            spinbox.valueChanged.connect(input_edited)
+            spinboxes.append(spinbox)
 
         color_picker = ColorPicker(with_alpha=with_alpha)
 
-        def on_text_changed(text: str):
-            _ = text
-            r = int(line_edits[0].text() or '0')
-            g = int(line_edits[1].text() or '0')
-            b = int(line_edits[2].text() or '0')
-            a = int(line_edits[3].text() or '0') if len(line_edits) == 4 else 255
+        def on_spinbox_valueChanged(value: int):
+            _ = value
+            r = spinboxes[0].value()
+            g = spinboxes[1].value()
+            b = spinboxes[2].value()
+            a = spinboxes[3].value() if len(spinboxes) == 4 else 255
             color_picker.color = QtGui.QColor(r, g, b, a)
             color_picker.update_color(color_picker.color)
 
-        for line_edit in line_edits:
-            line_edit.textChanged.connect(on_text_changed)
+        for spinbox in spinboxes:
+            spinbox.valueChanged.connect(on_spinbox_valueChanged)
 
         def on_color_changed(color):
-            line_edits[0].setText(str(color.red()))
-            line_edits[1].setText(str(color.green()))
-            line_edits[2].setText(str(color.blue()))
-            if len(line_edits) == 4:
-                line_edits[3].setText(str(color.alpha()))
+            spinboxes[0].setValue(color.red())
+            spinboxes[1].setValue(color.green())
+            spinboxes[2].setValue(color.blue())
+            if len(spinboxes) == 4:
+                spinboxes[3].setValue(color.alpha())
 
         def on_color_picked(color):
-            for callback in input_edited_callbacks:
-                callback()
+            values = [color.red(), color.green(), color.blue()]
+            if len(spinboxes) == 4:
+                values.append(color.alpha())
+            for callback, value in zip(input_edited_callbacks, values):
+                callback(value)
 
         color_picker.color_changed.connect(on_color_changed)
         color_picker.color_picked.connect(on_color_picked)
 
-        layout = self.create_labeled_widgets(self, text, line_edits + [color_picker])
+        layout = self.create_labeled_widgets(self, text, spinboxes + [color_picker])
         self.vbox.addLayout(layout)
 
-        return line_edits
+        return spinboxes
 
     def add_multiple_integer_input(self, text, attribute, subattributes, min_val, max_val):
-        line_edits = []
+        spinboxes = []
         for subattr in subattributes:
-            line_edit = QtWidgets.QLineEdit(self)
-
+            spinbox = SpinBox(self)
             if max_val <= MAX_UNSIGNED_BYTE:
-                line_edit.setMaximumWidth(30)
+                spinbox.setMaximumWidth(self.fontMetrics().averageCharWidth() * 4)
+            spinbox.setRange(min_val, max_val)
+            input_edited = create_setter(self.bound_to,
+                                         attribute,
+                                         subattr,
+                                         self.catch_text_update)
+            spinbox.valueChanged.connect(input_edited)
+            spinboxes.append(spinbox)
 
-            line_edit.setValidator(QtGui.QIntValidator(min_val, max_val, self))
-
-            input_edited = create_setter(line_edit, self.bound_to, attribute, subattr, self.catch_text_update, isFloat=False)
-
-            line_edit.editingFinished.connect(input_edited)
-            line_edits.append(line_edit)
-
-        layout = self.create_labeled_widgets(self, text, line_edits)
+        layout = self.create_labeled_widgets(self, text, spinboxes)
         self.vbox.addLayout(layout)
 
-
-        return line_edits
+        return spinboxes
 
     def add_multiple_decimal_input(self, text, attribute, subattributes, min_val, max_val):
-        line_edits = []
+        spinboxes = []
         for subattr in subattributes:
-            line_edit = QtWidgets.QLineEdit(self)
+            spinbox = DoubleSpinBox(self)
+            if text in ('Position', 'Start', 'Light Position', 'Start Point', 'End Point'):
+                # Some fields can naturally get a greater step; no point in increasing position
+                # components by one unit in MKDD.
+                spinbox.setSingleStep(10)
+            spinbox.setRange(min_val, max_val)
+            input_edited = create_setter(self.bound_to,
+                                         attribute,
+                                         subattr,
+                                         self.catch_text_update)
+            spinbox.valueChanged.connect(input_edited)
+            spinboxes.append(spinbox)
 
-            line_edit.setValidator(QtGui.QDoubleValidator(min_val, max_val, 6, self))
-
-            input_edited = create_setter(line_edit, self.bound_to, attribute, subattr, self.catch_text_update, isFloat=True)
-            line_edit.editingFinished.connect(input_edited)
-            line_edits.append(line_edit)
-
-        layout = self.create_labeled_widgets(self, text, line_edits)
+        layout = self.create_labeled_widgets(self, text, spinboxes)
         self.vbox.addLayout(layout)
 
-        return line_edits
+        return spinboxes
 
     def add_multiple_integer_input_list(self, text, attribute, min_val, max_val):
-        line_edits = []
+        spinboxes = []
         fieldlist = getattr(self.bound_to, attribute)
         for i in range(len(fieldlist)):
-            line_edit = QtWidgets.QLineEdit(self)
-            line_edit.setMaximumWidth(30)
+            spinbox = SpinBox(self)
+            spinbox.setMaximumWidth(self.fontMetrics().averageCharWidth() * 4)
+            spinbox.setRange(min_val, max_val)
+            input_edited = create_setter_list(self.bound_to, attribute, i)
+            spinbox.valueChanged.connect(input_edited)
+            spinboxes.append(spinbox)
 
-            line_edit.setValidator(QtGui.QIntValidator(min_val, max_val, self))
-
-            input_edited = create_setter_list(line_edit, self.bound_to, attribute, i)
-            line_edit.editingFinished.connect(input_edited)
-            line_edits.append(line_edit)
-
-        layout = self.create_labeled_widgets(self, text, line_edits)
+        layout = self.create_labeled_widgets(self, text, spinboxes)
         self.vbox.addLayout(layout)
 
-        return line_edits
+        return spinboxes
 
     def add_types_widget_index(self, layout, text, attribute, index, widget_type):
         # Certain widget types will be accompanied with arguments.
@@ -554,54 +564,37 @@ class DataEditor(QtWidgets.QWidget):
             if getattr(left, attr) == 0.0:
                 setattr(left, attr, 0.0)
 
-        forwardedits[0].setText(str(round(forward.x, 4)))
-        forwardedits[1].setText(str(round(forward.y, 4)))
-        forwardedits[2].setText(str(round(forward.z, 4)))
+        forwardedits[0].setValueQuiet(forward.x)
+        forwardedits[1].setValueQuiet(forward.y)
+        forwardedits[2].setValueQuiet(forward.z)
 
-        upedits[0].setText(str(round(up.x, 4)))
-        upedits[1].setText(str(round(up.y, 4)))
-        upedits[2].setText(str(round(up.z, 4)))
+        upedits[0].setValueQuiet(up.x)
+        upedits[1].setValueQuiet(up.y)
+        upedits[2].setValueQuiet(up.z)
 
-        leftedits[0].setText(str(round(left.x, 4)))
-        leftedits[1].setText(str(round(left.y, 4)))
-        leftedits[2].setText(str(round(left.z, 4)))
+        leftedits[0].setValueQuiet(left.x)
+        leftedits[1].setValueQuiet(left.y)
+        leftedits[2].setValueQuiet(left.z)
 
         self.catch_text_update()
 
     def add_rotation_input(self):
         rotation = self.bound_to.rotation
-        forward_edits = []
-        up_edits = []
-        left_edits = []
+        forward_spinboxes = []
+        up_spinboxes = []
+        left_spinboxes = []
 
-        for attr in ("x", "y", "z"):
-            line_edit = QtWidgets.QLineEdit(self)
-            validator = QtGui.QDoubleValidator(-1.0, 1.0, 9999, self)
-            validator.setNotation(QtGui.QDoubleValidator.StandardNotation)
-            line_edit.setValidator(validator)
-
-            forward_edits.append(line_edit)
-
-        for attr in ("x", "y", "z"):
-            line_edit = QtWidgets.QLineEdit(self)
-            validator = QtGui.QDoubleValidator(-1.0, 1.0, 9999, self)
-            validator.setNotation(QtGui.QDoubleValidator.StandardNotation)
-            line_edit.setValidator(validator)
-
-            up_edits.append(line_edit)
-
-        for attr in ("x", "y", "z"):
-            line_edit = QtWidgets.QLineEdit(self)
-            validator = QtGui.QDoubleValidator(-1.0, 1.0, 9999, self)
-            validator.setNotation(QtGui.QDoubleValidator.StandardNotation)
-            line_edit.setValidator(validator)
-
-            left_edits.append(line_edit)
+        for spinboxes in (forward_spinboxes, up_spinboxes, left_spinboxes):
+            for attr in ("x", "y", "z"):
+                spinbox = DoubleSpinBox(self)
+                spinbox.setDecimals(4)
+                spinbox.setRange(-1.0, 1.0)
+                spinboxes.append(spinbox)
 
         def change_forward():
             forward, up, left = rotation.get_vectors()
 
-            newforward = Vector3(*[float(v.text()) for v in forward_edits])
+            newforward = Vector3(*[v.value() for v in forward_spinboxes])
             if newforward.norm() == 0.0:
                 newforward = left.cross(up)
             newforward.normalize()
@@ -611,11 +604,11 @@ class DataEditor(QtWidgets.QWidget):
             left.normalize()
 
             rotation.set_vectors(newforward, up, left)
-            self.update_rotation(forward_edits, up_edits, left_edits)
+            self.update_rotation(forward_spinboxes, up_spinboxes, left_spinboxes)
 
         def change_up():
             forward, up, left = rotation.get_vectors()
-            newup = Vector3(*[float(v.text()) for v in up_edits])
+            newup = Vector3(*[v.value() for v in up_spinboxes])
             if newup.norm() == 0.0:
                 newup = forward.cross(left)
             newup.normalize()
@@ -625,12 +618,12 @@ class DataEditor(QtWidgets.QWidget):
             left.normalize()
 
             rotation.set_vectors(forward, newup, left)
-            self.update_rotation(forward_edits, up_edits, left_edits)
+            self.update_rotation(forward_spinboxes, up_spinboxes, left_spinboxes)
 
         def change_left():
             forward, up, left = rotation.get_vectors()
 
-            newleft = Vector3(*[float(v.text()) for v in left_edits])
+            newleft = Vector3(*[v.value() for v in left_spinboxes])
             if newleft.norm() == 0.0:
                 newleft = up.cross(forward)
             newleft.normalize()
@@ -640,53 +633,42 @@ class DataEditor(QtWidgets.QWidget):
             up.normalize()
 
             rotation.set_vectors(forward, up, newleft)
-            self.update_rotation(forward_edits, up_edits, left_edits)
+            self.update_rotation(forward_spinboxes, up_spinboxes, left_spinboxes)
 
-        for edit in forward_edits:
-            edit.editingFinished.connect(change_forward)
-        for edit in up_edits:
-            edit.editingFinished.connect(change_up)
-        for edit in left_edits:
-            edit.editingFinished.connect(change_left)
+        for edit in forward_spinboxes:
+            edit.valueChanged.connect(lambda _value: change_forward())
+        for edit in up_spinboxes:
+            edit.valueChanged.connect(lambda _value: change_up())
+        for edit in left_spinboxes:
+            edit.valueChanged.connect(lambda _value: change_left())
 
-        layout = self.create_labeled_widgets(self, "Forward dir", forward_edits)
+        layout = self.create_labeled_widgets(self, "Forward dir", forward_spinboxes)
         self.vbox.addLayout(layout)
-        layout = self.create_labeled_widgets(self, "Up dir", up_edits)
+        layout = self.create_labeled_widgets(self, "Up dir", up_spinboxes)
         self.vbox.addLayout(layout)
-        layout = self.create_labeled_widgets(self, "Left dir", left_edits)
+        layout = self.create_labeled_widgets(self, "Left dir", left_spinboxes)
         self.vbox.addLayout(layout)
-        return forward_edits, up_edits, left_edits
-
-    def set_value(self, field, val):
-        field.setText(str(val))
+        return forward_spinboxes, up_spinboxes, left_spinboxes
 
 
-def create_setter_list(lineedit, bound_to, attribute, index):
-    def input_edited():
-        text = lineedit.text()
+def create_setter_list(bound_to, attribute, index):
+
+    def on_spinbox_valueChanged(value):
         mainattr = getattr(bound_to, attribute)
-        mainattr[index] = int(text)
+        mainattr[index] = value
 
-    return input_edited
+    return on_spinbox_valueChanged
 
 
-def create_setter(lineedit, bound_to, attribute, subattr, update3dview, isFloat):
-    if isFloat:
-        def input_edited():
-            text = lineedit.text()
-            mainattr = getattr(bound_to, attribute)
+def create_setter(bound_to, attribute, subattr, update3dview):
 
-            setattr(mainattr, subattr, float(text))
-            update3dview()
-        return input_edited
-    else:
-        def input_edited():
-            text = lineedit.text()
-            mainattr = getattr(bound_to, attribute)
+    def on_spinbox_valueChanged(value):
+        mainattr = getattr(bound_to, attribute)
+        setattr(mainattr, subattr, value)
+        update3dview()
 
-            setattr(mainattr, subattr, int(text))
-            update3dview()
-        return input_edited
+    return on_spinbox_valueChanged
+
 
 MIN_SIGNED_BYTE = -128
 MAX_SIGNED_BYTE = 127
@@ -741,7 +723,7 @@ class EnemyPointGroupEdit(DataEditor):
         self.groupid = self.add_integer_input("Group ID", "id", MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
 
     def update_data(self):
-        self.groupid.setText(str(self.bound_to.id))
+        self.groupid.setValueQuiet(self.bound_to.id)
 
 
 DRIFT_DIRECTION_OPTIONS = OrderedDict()
@@ -783,30 +765,30 @@ class EnemyPointEdit(DataEditor):
         set_tool_tip(self.nomushroomzone, ttl.enemypoints['No Mushroom Zone'])
 
         for widget in self.position:
-            widget.editingFinished.connect(self.catch_text_update)
+            widget.valueChanged.connect(lambda _value: self.catch_text_update())
         for widget in (self.itemsonly, self.nomushroomzone):
             widget.stateChanged.connect(lambda _state: self.catch_text_update())
         for widget in (self.swerve, self.driftdirection):
             widget.currentIndexChanged.connect(lambda _index: self.catch_text_update())
         for widget in (self.link, self.driftacuteness, self.driftduration, self.driftsupplement):
-            widget.editingFinished.connect(self.catch_text_update)
+            widget.valueChanged.connect(lambda _value: self.catch_text_update())
 
-        self.link.editingFinished.connect(self.update_name)
+        self.link.valueChanged.connect(lambda _value: self.update_name())
 
     def update_data(self):
         obj: EnemyPoint = self.bound_to
-        self.position[0].setText(str(round(obj.position.x, 3)))
-        self.position[1].setText(str(round(obj.position.y, 3)))
-        self.position[2].setText(str(round(obj.position.z, 3)))
+        self.position[0].setValueQuiet(obj.position.x)
+        self.position[1].setValueQuiet(obj.position.y)
+        self.position[2].setValueQuiet(obj.position.z)
         self.driftdirection.setCurrentIndex(obj.driftdirection)
         set_tool_tip(self.driftdirection, ttl.enemypoints['Drift Direction'])
-        self.link.setText(str(obj.link))
-        self.scale.setText(str(obj.scale))
+        self.link.setValueQuiet(obj.link)
+        self.scale.setValueQuiet(obj.scale)
         self.itemsonly.setChecked(bool(obj.itemsonly))
-        self.group.setText(str(obj.group))
-        self.driftacuteness.setText(str(obj.driftacuteness))
-        self.driftduration.setText(str(obj.driftduration))
-        self.driftsupplement.setText(str(obj.driftsupplement))
+        self.group.setValueQuiet(obj.group)
+        self.driftacuteness.setValueQuiet(obj.driftacuteness)
+        self.driftduration.setValueQuiet(obj.driftduration)
+        self.driftsupplement.setValueQuiet(obj.driftsupplement)
         self.nomushroomzone.setChecked(bool(obj.nomushroomzone))
 
         if obj.swerve in SWERVE_IDS:
@@ -834,11 +816,11 @@ class CheckpointGroupEdit(DataEditor):
 
     def update_data(self):
         obj = self.bound_to
-        self.grouplink.setText(str(obj.grouplink))
+        self.grouplink.setValueQuiet(obj.grouplink)
         for i, widget in enumerate(self.prevgroup):
-            widget.setText(str(obj.prevgroup[i]))
+            widget.setValueQuiet(obj.prevgroup[i])
         for i, widget in enumerate(self.nextgroup):
-            widget.setText(str(obj.nextgroup[i]))
+            widget.setValueQuiet(obj.nextgroup[i])
 
 
 class CheckpointEdit(DataEditor):
@@ -857,15 +839,15 @@ class CheckpointEdit(DataEditor):
 
     def update_data(self):
         obj: Checkpoint = self.bound_to
-        self.start[0].setText(str(round(obj.start.x, 3)))
-        self.start[1].setText(str(round(obj.start.y, 3)))
-        self.start[2].setText(str(round(obj.start.z, 3)))
+        self.start[0].setValueQuiet(obj.start.x)
+        self.start[1].setValueQuiet(obj.start.y)
+        self.start[2].setValueQuiet(obj.start.z)
 
-        self.end[0].setText(str(round(obj.end.x, 3)))
-        self.end[1].setText(str(round(obj.end.y, 3)))
-        self.end[2].setText(str(round(obj.end.z, 3)))
+        self.end[0].setValueQuiet(obj.end.x)
+        self.end[1].setValueQuiet(obj.end.y)
+        self.end[2].setValueQuiet(obj.end.z)
 
-        self.unk1.setText(str(obj.unk1))
+        self.unk1.setValueQuiet(obj.unk1)
         self.unk2.setChecked(obj.unk2 != 0)
         self.unk3.setChecked(obj.unk3 != 0)
 
@@ -884,14 +866,14 @@ class ObjectRoutePointEdit(DataEditor):
         self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
                                                         -inf, +inf)
         self.unknown = self.add_integer_input("Object Action", "unk",
-                                              MIN_UNSIGNED_INT, MAX_UNSIGNED_INT)
+                                              MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
 
     def update_data(self):
         obj: RoutePoint = self.bound_to
-        self.position[0].setText(str(round(obj.position.x, 3)))
-        self.position[1].setText(str(round(obj.position.y, 3)))
-        self.position[2].setText(str(round(obj.position.z, 3)))
-        self.unknown.setText(str(obj.unk))
+        self.position[0].setValueQuiet(obj.position.x)
+        self.position[1].setValueQuiet(obj.position.y)
+        self.position[2].setValueQuiet(obj.position.z)
+        self.unknown.setValueQuiet(obj.unk)
 
 
 ROLL_OPTIONS = OrderedDict()
@@ -931,33 +913,32 @@ class BOLEdit(DataEditor):
 
     def update_data(self):
         obj: BOL = self.bound_to
-        #self.roll.setText(str(obj.roll))
         self.roll.setCurrentIndex(obj.roll)
-        self.rgb_ambient[0].setText(str(obj.rgb_ambient.r))
-        self.rgb_ambient[1].setText(str(obj.rgb_ambient.g))
-        self.rgb_ambient[2].setText(str(obj.rgb_ambient.b))
-        self.rgba_light[0].setText(str(obj.rgba_light.r))
-        self.rgba_light[1].setText(str(obj.rgba_light.g))
-        self.rgba_light[2].setText(str(obj.rgba_light.b))
-        self.rgba_light[3].setText(str(obj.rgba_light.a))
-        self.lightsource[0].setText(str(round(obj.lightsource.x, 3)))
-        self.lightsource[1].setText(str(round(obj.lightsource.y, 3)))
-        self.lightsource[2].setText(str(round(obj.lightsource.z, 3)))
-        self.lap_count.setText(str(obj.lap_count))
-        self.fog_type.setText(str(obj.fog_type))
-        self.fog_color[0].setText(str(obj.fog_color.r))
-        self.fog_color[1].setText(str(obj.fog_color.g))
-        self.fog_color[2].setText(str(obj.fog_color.b))
-        self.fog_startz.setText(str(obj.fog_startz))
-        self.fog_endz.setText(str(obj.fog_endz))
+        self.rgb_ambient[0].setValue(obj.rgb_ambient.r)
+        self.rgb_ambient[1].setValue(obj.rgb_ambient.g)
+        self.rgb_ambient[2].setValue(obj.rgb_ambient.b)
+        self.rgba_light[0].setValue(obj.rgba_light.r)
+        self.rgba_light[1].setValue(obj.rgba_light.g)
+        self.rgba_light[2].setValue(obj.rgba_light.b)
+        self.rgba_light[3].setValue(obj.rgba_light.a)
+        self.lightsource[0].setValueQuiet(obj.lightsource.x)
+        self.lightsource[1].setValueQuiet(obj.lightsource.y)
+        self.lightsource[2].setValueQuiet(obj.lightsource.z)
+        self.lap_count.setValueQuiet(obj.lap_count)
+        self.fog_type.setValueQuiet(obj.fog_type)
+        self.fog_color[0].setValue(obj.fog_color.r)
+        self.fog_color[1].setValue(obj.fog_color.g)
+        self.fog_color[2].setValue(obj.fog_color.b)
+        self.fog_startz.setValueQuiet(obj.fog_startz)
+        self.fog_endz.setValueQuiet(obj.fog_endz)
         self.lod_bias.setChecked(obj.lod_bias != 0)
         self.dummy_start_line.setChecked(obj.dummy_start_line != 0)
         self.snow_effects.setChecked(obj.snow_effects != 0)
-        self.shadow_opacity.setText(str(obj.shadow_opacity))
+        self.shadow_opacity.setValueQuiet(obj.shadow_opacity)
         self.sky_follow.setChecked(obj.sky_follow != 0)
-        self.shadow_color[0].setText(str(obj.shadow_color.r))
-        self.shadow_color[1].setText(str(obj.shadow_color.g))
-        self.shadow_color[2].setText(str(obj.shadow_color.b))
+        self.shadow_color[0].setValue(obj.shadow_color.r)
+        self.shadow_color[1].setValue(obj.shadow_color.g)
+        self.shadow_color[2].setValue(obj.shadow_color.b)
 
         if obj.music_id not in MUSIC_IDS:
             name = "INVALID"
@@ -973,6 +954,8 @@ class ObjectEdit(DataEditor):
                                                         -inf, +inf)
         self.scale = self.add_multiple_decimal_input("Scale", "scale", ["x", "y", "z"],
                                                     -inf, +inf)
+        for spinbox in self.scale:
+            spinbox.setSingleStep(0.1)
         self.rotation = self.add_rotation_input()
         self.objectid = self.add_dropdown_input("Object Type", "objectid", REVERSEOBJECTNAMES)
         self.prev_objectname = None
@@ -980,7 +963,7 @@ class ObjectEdit(DataEditor):
         #self.pathid = self.add_integer_input("Route ID", "pathid",
         #                                     MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         #set_tool_tip(self.pathid, ttl.objectdata['Route ID'])
-        #self.pathid.editingFinished.connect(self.catch_text_update)
+        #self.pathid.valueChanged.connect(lambda _value: self.catch_text_update())
 
         routes = OrderedDict()
         routes["None"] = None
@@ -1025,7 +1008,7 @@ class ObjectEdit(DataEditor):
         self.objectid.currentTextChanged.connect(self.update_name)
 
         for widget in self.position:
-            widget.editingFinished.connect(self.catch_text_update)
+            widget.valueChanged.connect(lambda _value: self.catch_text_update())
 
         self.objectid.currentTextChanged.connect(self.rebuild_object_parameters_widgets)
 
@@ -1075,13 +1058,13 @@ class ObjectEdit(DataEditor):
 
     def update_data(self):
         obj: MapObject = self.bound_to
-        self.position[0].setText(str(round(obj.position.x, 3)))
-        self.position[1].setText(str(round(obj.position.y, 3)))
-        self.position[2].setText(str(round(obj.position.z, 3)))
+        self.position[0].setValueQuiet(obj.position.x)
+        self.position[1].setValueQuiet(obj.position.y)
+        self.position[2].setValueQuiet(obj.position.z)
 
-        self.scale[0].setText(str(round(obj.scale.x, 3)))
-        self.scale[1].setText(str(round(obj.scale.y, 3)))
-        self.scale[2].setText(str(round(obj.scale.z, 3)))
+        self.scale[0].setValueQuiet(obj.scale.x)
+        self.scale[1].setValueQuiet(obj.scale.y)
+        self.scale[2].setValueQuiet(obj.scale.z)
 
         self.update_rotation(*self.rotation)
 
@@ -1092,7 +1075,7 @@ class ObjectEdit(DataEditor):
         index = self.objectid.findText(name)
         self.objectid.setCurrentIndex(index)
 
-        #self.pathid.setText(str(obj.pathid))
+        #self.pathid.setValueQuiet(obj.pathid)
 
         try:
             routeindex = self.bol.routes.index(obj.route)
@@ -1104,7 +1087,7 @@ class ObjectEdit(DataEditor):
             self.route.setCurrentText("Route {0}".format(routeindex))
 
 
-        self.unk_2a.setText(str(obj.unk_2a))
+        self.unk_2a.setValueQuiet(obj.unk_2a)
         self.presence_filter.set_value(obj.presence_filter)
         self.presence.set_value(obj.presence)
         self.flag.setChecked(obj.unk_flag != 0)
@@ -1156,15 +1139,15 @@ class KartStartPointEdit(DataEditor):
 
     def update_data(self):
         obj: KartStartPoint = self.bound_to
-        self.position[0].setText(str(round(obj.position.x, 3)))
-        self.position[1].setText(str(round(obj.position.y, 3)))
-        self.position[2].setText(str(round(obj.position.z, 3)))
+        self.position[0].setValueQuiet(obj.position.x)
+        self.position[1].setValueQuiet(obj.position.y)
+        self.position[2].setValueQuiet(obj.position.z)
 
         self.update_rotation(*self.rotation)
 
-        self.scale[0].setText(str(obj.scale.x))
-        self.scale[1].setText(str(obj.scale.y))
-        self.scale[2].setText(str(obj.scale.z))
+        self.scale[0].setValueQuiet(obj.scale.x)
+        self.scale[1].setValueQuiet(obj.scale.y)
+        self.scale[2].setValueQuiet(obj.scale.z)
 
         self.poleposition.setCurrentIndex(obj.poleposition)
 
@@ -1176,7 +1159,7 @@ class KartStartPointEdit(DataEditor):
         self.playerid.setCurrentIndex(index)
         set_tool_tip(self.playerid, ttl.kartstartpoints['Players'])
 
-        self.unknown.setText(str(obj.unknown))
+        self.unknown.setValueQuiet(obj.unknown)
 
     def update_name(self):
         if self.bound_to.widget is None:
@@ -1224,13 +1207,13 @@ class AreaEdit(DataEditor):
 
     def update_data(self):
         obj: Area = self.bound_to
-        self.position[0].setText(str(round(obj.position.x, 3)))
-        self.position[1].setText(str(round(obj.position.y, 3)))
-        self.position[2].setText(str(round(obj.position.z, 3)))
+        self.position[0].setValueQuiet(obj.position.x)
+        self.position[1].setValueQuiet(obj.position.y)
+        self.position[2].setValueQuiet(obj.position.z)
 
-        self.scale[0].setText(str(round(obj.scale.x, 3)))
-        self.scale[1].setText(str(round(obj.scale.y, 3)))
-        self.scale[2].setText(str(round(obj.scale.z, 3)))
+        self.scale[0].setValueQuiet(obj.scale.x)
+        self.scale[1].setValueQuiet(obj.scale.y)
+        self.scale[2].setValueQuiet(obj.scale.z)
 
         self.update_rotation(*self.rotation)
 
@@ -1246,12 +1229,12 @@ class AreaEdit(DataEditor):
         else:
             self.camera.setCurrentText("Camera {0}".format(camindex))
 
-        self.feather[0].setText(str(obj.feather.i0))
-        self.feather[1].setText(str(obj.feather.i1))
-        self.unkfixedpoint.setText(str(obj.unkfixedpoint))
-        self.unkshort.setText(str(obj.unkshort))
-        self.shadow_id.setText(str(obj.shadow_id))
-        self.lightparam_index.setText(str(obj.lightparam_index))
+        self.feather[0].setValueQuiet(obj.feather.i0)
+        self.feather[1].setValueQuiet(obj.feather.i1)
+        self.unkfixedpoint.setValueQuiet(obj.unkfixedpoint)
+        self.unkshort.setValueQuiet(obj.unkshort)
+        self.shadow_id.setValueQuiet(obj.shadow_id)
+        self.lightparam_index.setValueQuiet(obj.lightparam_index)
 
     def update_name(self):
         if self.bound_to.widget is None:
@@ -1322,27 +1305,27 @@ class CameraEdit(DataEditor):
 
     def update_data(self):
         obj: Camera = self.bound_to
-        self.position[0].setText(str(round(obj.position.x, 3)))
-        self.position[1].setText(str(round(obj.position.y, 3)))
-        self.position[2].setText(str(round(obj.position.z, 3)))
+        self.position[0].setValueQuiet(obj.position.x)
+        self.position[1].setValueQuiet(obj.position.y)
+        self.position[2].setValueQuiet(obj.position.z)
 
-        self.position2[0].setText(str(round(obj.position2.x, 3)))
-        self.position2[1].setText(str(round(obj.position2.y, 3)))
-        self.position2[2].setText(str(round(obj.position2.z, 3)))
+        self.position2[0].setValueQuiet(obj.position2.x)
+        self.position2[1].setValueQuiet(obj.position2.y)
+        self.position2[2].setValueQuiet(obj.position2.z)
 
-        self.position3[0].setText(str(round(obj.position3.x, 3)))
-        self.position3[1].setText(str(round(obj.position3.y, 3)))
-        self.position3[2].setText(str(round(obj.position3.z, 3)))
+        self.position3[0].setValueQuiet(obj.position3.x)
+        self.position3[1].setValueQuiet(obj.position3.y)
+        self.position3[2].setValueQuiet(obj.position3.z)
 
         self.update_rotation(*self.rotation)
 
         self.camtype.setCurrentIndex(list(CAMERA_TYPES.values()).index(obj.camtype))
-        self.fov[0].setText(str(obj.fov.start))
-        self.fov[1].setText(str(obj.fov.end))
-        self.camduration.setText(str(obj.camduration))
+        self.fov[0].setValueQuiet(obj.fov.start)
+        self.fov[1].setValueQuiet(obj.fov.end)
+        self.camduration.setValueQuiet(obj.camduration)
         self.startcamera.setChecked(obj.startcamera != 0)
-        self.shimmer[0].setText(str(obj.shimmer.z0))
-        self.shimmer[1].setText(str(obj.shimmer.z1))
+        self.shimmer[0].setValueQuiet(obj.shimmer.z0)
+        self.shimmer[1].setValueQuiet(obj.shimmer.z1)
 
         try:
             routeindex = self.bol.routes.index(obj.route)
@@ -1353,7 +1336,7 @@ class CameraEdit(DataEditor):
         else:
             self.route.setCurrentText("Route {0}".format(routeindex))
 
-        self.routespeed.setText(str(obj.routespeed))
+        self.routespeed.setValueQuiet(obj.routespeed)
 
         try:
             camindex = self.bol.cameras.index(obj.nextcam)
@@ -1383,7 +1366,7 @@ class RespawnPointEdit(DataEditor):
         self.unk1 = self.add_integer_input("Next Enemy Point", "unk1",
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         set_tool_tip(self.unk1, ttl.respawn['Next Enemy Point'])
-        self.unk1.editingFinished.connect(self.catch_text_update)
+        self.unk1.valueChanged.connect(lambda _value: self.catch_text_update())
 
         self.unk2 = self.add_integer_input("Camera Index", "unk2",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
@@ -1391,21 +1374,21 @@ class RespawnPointEdit(DataEditor):
         self.unk3 = self.add_integer_input("Previous Checkpoint", "unk3",
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         set_tool_tip(self.unk3, ttl.respawn['Previous Checkpoint'])
-        self.unk3.editingFinished.connect(self.catch_text_update)
+        self.unk3.valueChanged.connect(lambda _value: self.catch_text_update())
 
 
-        self.respawn_id.editingFinished.connect(self.update_name)
+        self.respawn_id.valueChanged.connect(lambda _value: self.update_name())
 
     def update_data(self):
         obj: JugemPoint = self.bound_to
-        self.position[0].setText(str(round(obj.position.x, 3)))
-        self.position[1].setText(str(round(obj.position.y, 3)))
-        self.position[2].setText(str(round(obj.position.z, 3)))
+        self.position[0].setValueQuiet(obj.position.x)
+        self.position[1].setValueQuiet(obj.position.y)
+        self.position[2].setValueQuiet(obj.position.z)
         self.update_rotation(*self.rotation)
-        self.respawn_id.setText(str(obj.respawn_id))
-        self.unk1.setText(str(obj.unk1))
-        self.unk2.setText(str(obj.unk2))
-        self.unk3.setText(str(obj.unk3))
+        self.respawn_id.setValueQuiet(obj.respawn_id)
+        self.unk1.setValueQuiet(obj.unk1)
+        self.unk2.setValueQuiet(obj.unk2)
+        self.unk3.setValueQuiet(obj.unk3)
 
     def update_name(self):
         if self.bound_to.widget is None:
@@ -1418,7 +1401,7 @@ class LightParamEdit(DataEditor):
         self.color1 = self.add_color_input("RGBA 1", "color1", with_alpha=True)
         for i in self.color1:
             set_tool_tip(i, ttl.lightparam["Light"])
-        self.unkvec = self.add_multiple_decimal_input("Vector", "unkvec", ["x", "y", "z"],
+        self.unkvec = self.add_multiple_decimal_input("Position", "unkvec", ["x", "y", "z"],
                                                       -inf, +inf)
         for i in self.unkvec:
             set_tool_tip(i, ttl.lightparam["Position"])
@@ -1428,19 +1411,19 @@ class LightParamEdit(DataEditor):
 
     def update_data(self):
         obj: LightParam = self.bound_to
-        self.color1[0].setText(str(obj.color1.r))
-        self.color1[1].setText(str(obj.color1.g))
-        self.color1[2].setText(str(obj.color1.b))
-        self.color1[3].setText(str(obj.color1.a))
+        self.color1[0].setValue(obj.color1.r)
+        self.color1[1].setValue(obj.color1.g)
+        self.color1[2].setValue(obj.color1.b)
+        self.color1[3].setValue(obj.color1.a)
 
-        self.color2[0].setText(str(obj.color2.r))
-        self.color2[1].setText(str(obj.color2.g))
-        self.color2[2].setText(str(obj.color2.b))
-        self.color2[3].setText(str(obj.color2.a))
+        self.color2[0].setValue(obj.color2.r)
+        self.color2[1].setValue(obj.color2.g)
+        self.color2[2].setValue(obj.color2.b)
+        self.color2[3].setValue(obj.color2.a)
 
-        self.unkvec[0].setText(str(obj.unkvec.x))
-        self.unkvec[1].setText(str(obj.unkvec.y))
-        self.unkvec[2].setText(str(obj.unkvec.z))
+        self.unkvec[0].setValueQuiet(obj.unkvec.x)
+        self.unkvec[1].setValueQuiet(obj.unkvec.y)
+        self.unkvec[2].setValueQuiet(obj.unkvec.z)
 
 
 class MGEntryEdit(DataEditor):
@@ -1456,10 +1439,10 @@ class MGEntryEdit(DataEditor):
 
     def update_data(self):
         obj: MGEntry = self.bound_to
-        self.unk1.setText(str(obj.unk1))
-        self.unk2.setText(str(obj.unk2))
-        self.unk3.setText(str(obj.unk3))
-        self.unk4.setText(str(obj.unk4))
+        self.unk1.setValueQuiet(obj.unk1)
+        self.unk2.setValueQuiet(obj.unk2)
+        self.unk3.setValueQuiet(obj.unk3)
+        self.unk4.setValueQuiet(obj.unk4)
 
 
 ORIENTATION_OPTIONS = OrderedDict()
@@ -1480,11 +1463,11 @@ class MinimapEdit(DataEditor):
 
     def update_data(self):
         obj: Minimap = self.bound_to
-        self.topleft[0].setText(str(round(obj.corner1.x, 3)))
-        self.topleft[1].setText(str(round(obj.corner1.y, 3)))
-        self.topleft[2].setText(str(round(obj.corner1.z, 3)))
-        self.bottomright[0].setText(str(round(obj.corner2.x, 3)))
-        self.bottomright[1].setText(str(round(obj.corner2.y, 3)))
-        self.bottomright[2].setText(str(round(obj.corner2.z, 3)))
+        self.topleft[0].setValueQuiet(obj.corner1.x)
+        self.topleft[1].setValueQuiet(obj.corner1.y)
+        self.topleft[2].setValueQuiet(obj.corner1.z)
+        self.bottomright[0].setValueQuiet(obj.corner2.x)
+        self.bottomright[1].setValueQuiet(obj.corner2.y)
+        self.bottomright[2].setValueQuiet(obj.corner2.z)
 
         self.orientation.setCurrentIndex(obj.orientation)
