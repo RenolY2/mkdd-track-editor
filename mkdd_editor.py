@@ -13,7 +13,6 @@ from PIL import Image
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-import opengltext
 import py_obj
 
 from lib import bti

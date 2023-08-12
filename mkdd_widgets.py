@@ -16,7 +16,6 @@ from PySide6 import QtCore, QtGui, QtOpenGLWidgets, QtWidgets
 from helper_functions import calc_zoom_in_factor, calc_zoom_out_factor
 from lib.collision import Collision
 from widgets.editor_widgets import catch_exception, catch_exception_with_dialog, check_checkpoints
-from opengltext import draw_collision
 from lib.vectors import Vector3, Line, Plane, Triangle
 from lib.model_rendering import TexturedPlane, Model, Grid, GenericObject, Material, Minimap
 from gizmo import Gizmo
@@ -180,9 +179,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
         self._wasdscrolling_speed = 1
         self._wasdscrolling_speedupfactor = 3
-
-        self.main_model = None
-        self.buffered_deltas = []
 
         # 3D Setup
         self.mode = MODE_TOPDOWN
@@ -535,23 +531,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         self.alternative_mesh = None
         self.collision = None
 
-        if self.main_model is not None:
-            glDeleteLists(self.main_model, 1)
-            self.main_model = None
-
     def set_collision(self, verts, faces, alternative_mesh):
         self.collision = Collision(verts, faces)
-
-        if self.main_model is None:
-            self.main_model = glGenLists(1)
-
         self.alternative_mesh = alternative_mesh
-
-        glNewList(self.main_model, GL_COMPILE)
-        #glBegin(GL_TRIANGLES)
-        draw_collision(verts, faces)
-        #glEnd()
-        glEndList()
 
     def set_mouse_mode(self, mode):
         assert mode in (MOUSE_MODE_NONE, MOUSE_MODE_ADDWP, MOUSE_MODE_CONNECTWP, MOUSE_MODE_MOVEWP)
@@ -944,33 +926,30 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         glEnable(GL_DEPTH_TEST)
         glDisable(GL_TEXTURE_2D)
         glColor4f(1.0, 1.0, 1.0, 1.0)
-        if self.main_model is not None:
-            if self.alternative_mesh is None:
-                glCallList(self.main_model)
-            else:
-                if self.mode != MODE_TOPDOWN:
-                    light0_position = (campos.x, -campos.z, campos.y, 1.0)
-                    light0_diffuse = (5.0, 5.0, 5.0, 1.0)
-                    light0_specular = (0.8, 0.8, 0.8, 1.0)
-                    light0_ambient = (1.8, 1.8, 1.8, 1.0)
-                    glLightfv(GL_LIGHT0, GL_POSITION, light0_position)
-                    glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_diffuse)
-                    glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_specular)
-                    glLightfv(GL_LIGHT0, GL_AMBIENT, light0_ambient)
-                    glShadeModel(GL_SMOOTH)
-                    glEnable(GL_LIGHT0)
-                    glEnable(GL_RESCALE_NORMAL)
-                    glEnable(GL_NORMALIZE)
-                    glEnable(GL_LIGHTING)
+        if self.alternative_mesh is not None:
+            if self.mode != MODE_TOPDOWN:
+                light0_position = (campos.x, -campos.z, campos.y, 1.0)
+                light0_diffuse = (5.0, 5.0, 5.0, 1.0)
+                light0_specular = (0.8, 0.8, 0.8, 1.0)
+                light0_ambient = (1.8, 1.8, 1.8, 1.0)
+                glLightfv(GL_LIGHT0, GL_POSITION, light0_position)
+                glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_diffuse)
+                glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_specular)
+                glLightfv(GL_LIGHT0, GL_AMBIENT, light0_ambient)
+                glShadeModel(GL_SMOOTH)
+                glEnable(GL_LIGHT0)
+                glEnable(GL_RESCALE_NORMAL)
+                glEnable(GL_NORMALIZE)
+                glEnable(GL_LIGHTING)
 
-                glPushMatrix()
-                glScalef(1.0, -1.0, 1.0)
-                self.alternative_mesh.render(selectedPart=self.highlight_colltype,
-                                             cull_faces=self.cull_faces)
-                glPopMatrix()
+            glPushMatrix()
+            glScalef(1.0, -1.0, 1.0)
+            self.alternative_mesh.render(selectedPart=self.highlight_colltype,
+                                         cull_faces=self.cull_faces)
+            glPopMatrix()
 
-                if self.mode != MODE_TOPDOWN:
-                    glDisable(GL_LIGHTING)
+            if self.mode != MODE_TOPDOWN:
+                glDisable(GL_LIGHTING)
 
         glDisable(GL_TEXTURE_2D)
 
