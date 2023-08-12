@@ -2046,22 +2046,22 @@ class GenEditor(QtWidgets.QMainWindow):
         self.button_open_add_item_window()
 
     def select_tree_item_bound_to(self, objects):
-        new_item_selection = []
+        # Iteratively traverse all the tree widget items to retrieve all the bound objects.
+        bound_objects_and_items = []
+        pending_items = [self.leveldatatreeview.invisibleRootItem()]
+        while pending_items:
+            item = pending_items.pop(0)
+            for child_index in range(item.childCount()):
+                child_item = item.child(child_index)
+                if hasattr(child_item, 'bound_to') and child_item.bound_to is not None:
+                    bound_objects_and_items.append((child_item.bound_to, child_item))
+                pending_items.append(child_item)
 
+        new_item_selection = []
         for obj in objects:
-            # Iteratively traverse all the tree widget items.
-            pending_items = [self.leveldatatreeview.invisibleRootItem()]
-            while pending_items:
-                item = pending_items.pop(0)
-                for child_index in range(item.childCount()):
-                    child_item = item.child(child_index)
-                    # Check whether the item contains any item that happens to be bound to the
-                    # target object.
-                    bound_item = get_treeitem(child_item, obj)
-                    if bound_item is not None:
-                        new_item_selection.append(bound_item)
-                    else:
-                        pending_items.append(child_item)
+            for bound_object, item in bound_objects_and_items:
+                if obj is bound_object:
+                    new_item_selection.append(item)
 
         if new_item_selection:
             # If found, deselect current selection, and select the new item.
