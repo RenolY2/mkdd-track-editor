@@ -17,7 +17,7 @@ from helper_functions import calc_zoom_in_factor, calc_zoom_out_factor
 from lib.collision import Collision
 from widgets.editor_widgets import catch_exception, catch_exception_with_dialog, check_checkpoints
 from lib.vectors import Vector3, Line, Plane, Triangle
-from lib.model_rendering import TexturedPlane, Model, Grid, GenericObject, Material, Minimap
+from lib.model_rendering import CollisionModel, Grid, Minimap
 from gizmo import Gizmo
 from lib.object_models import ObjectModels
 from editor_controls import UserControl
@@ -532,8 +532,24 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         self.collision = None
 
     def set_collision(self, verts, faces, alternative_mesh):
-        self.collision = Collision(verts, faces)
         self.alternative_mesh = alternative_mesh
+
+        triangles = []
+
+        if isinstance(alternative_mesh, CollisionModel):
+            for v1, v2, v3 in alternative_mesh.get_visible_triangles():
+                v1 = Vector3(v1.x, v1.y, -v1.z)
+                v2 = Vector3(v2.x, v2.y, -v2.z)
+                v3 = Vector3(v3.x, v3.y, -v3.z)
+                triangles.append((v1, v2, v3))
+        else:
+            for v1i, v2i, v3i in faces:
+                v1 = Vector3(*verts[v1i[0] - 1])
+                v2 = Vector3(*verts[v2i[0] - 1])
+                v3 = Vector3(*verts[v3i[0] - 1])
+                triangles.append((v1, v2, v3))
+
+        self.collision = Collision(triangles)
 
     def set_mouse_mode(self, mode):
         assert mode in (MOUSE_MODE_NONE, MOUSE_MODE_ADDWP, MOUSE_MODE_CONNECTWP, MOUSE_MODE_MOVEWP)
@@ -995,13 +1011,13 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                 glBegin(GL_POINTS)
                 points = self._get_snapping_points()
                 for point in points:
-                    glVertex3f(*point)
+                    glVertex3f(point.x, point.y, point.z)
                 glEnd()
                 glPointSize(3)
                 glColor3f(1.0, 1.0, 1.0)
                 glBegin(GL_POINTS)
                 for point in points:
-                    glVertex3f(*point)
+                    glVertex3f(point.x, point.y, point.z)
                 glEnd()
                 glPointSize(1)
 

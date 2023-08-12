@@ -472,14 +472,9 @@ class GenEditor(QtWidgets.QMainWindow):
             extend(self.level_view.minimap.corner1)
             extend(self.level_view.minimap.corner2)
 
-        if self.level_view.collision is not None and self.level_view.collision.verts:
-            vertices = self.level_view.collision.verts
-            min_x = min(x for x, _y, _z in vertices)
-            min_y = min(y for _x, y, _z in vertices)
-            min_z = min(z for _x, _y, z in vertices)
-            max_x = max(x for x, _y, _z in vertices)
-            max_y = max(y for _x, y, _z in vertices)
-            max_z = max(z for _x, _y, z in vertices)
+        if self.level_view.collision is not None and self.level_view.collision.extent is not None:
+            min_x, min_y, min_z, max_x, max_y, max_z = self.level_view.collision.extent
+            min_y, min_z, max_y, max_z = min_z, -max_y, max_z, -min_y
 
             if extent:
                 extent[0] = min(extent[0], min_x)
@@ -1217,6 +1212,8 @@ class GenEditor(QtWidgets.QMainWindow):
                     target_set.discard(colltype)
                 else:
                     target_set.add(colltype)
+
+            self.level_view.set_collision([], [], collision_model)
 
             update_both_all_buttons()
 
@@ -2019,13 +2016,14 @@ class GenEditor(QtWidgets.QMainWindow):
         QtWidgets.QApplication.instance().processEvents()
 
     def setup_collision(self, verts, faces, filepath, alternative_mesh=None):
-        self.level_view.set_collision(verts, faces, alternative_mesh)
-        self.pathsconfig["collision"] = filepath
         editor_config = self.configuration["editor"]
         alternative_mesh.hidden_collision_types = \
             set(int(t) for t in editor_config.get("hidden_collision_types", "").split(",") if t)
         alternative_mesh.hidden_collision_type_groups = \
             set(int(t) for t in editor_config.get("hidden_collision_type_groups", "").split(",") if t)
+        self.level_view.set_collision(verts, faces, alternative_mesh)
+
+        self.pathsconfig["collision"] = filepath
         save_cfg(self.configuration)
 
     def button_open_add_item_window(self):
