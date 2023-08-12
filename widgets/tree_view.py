@@ -230,8 +230,10 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
     split = QtCore.Signal(EnemyPointGroup, EnemyRoutePoint)
     split_checkpoint = QtCore.Signal(CheckpointGroup, Checkpoint)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args)
+    def __init__(self, editor, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.editor = editor
 
         self.resize(200, self.height())
         self.setColumnCount(1)
@@ -417,6 +419,7 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
 
         # And restore previous selection (but only if item counts match, or else indexes could be
         # unreliable).
+        items_to_select = []
         if selected_item_indexes_list and initial_item_count == self.count_items():
             for selected_item_indexes in selected_item_indexes_list:
                 item = self.topLevelItem(selected_item_indexes.pop(0))
@@ -426,7 +429,14 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
                         item = item.child(index)
                     else:
                         break
-                item.setSelected(True)
+                items_to_select.append(item)
+
+            # Effectively select items without relying on signals which could trigger a considerate
+            # number of events for each item.
+            with QtCore.QSignalBlocker(self):
+                for item in items_to_select:
+                    item.setSelected(True)
+        self.editor.tree_select_object(items_to_select)
 
         self.bound_to_group(boldata)
 

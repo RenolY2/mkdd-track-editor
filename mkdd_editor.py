@@ -548,7 +548,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.horizontalLayout = QtWidgets.QSplitter()
         self.centralwidget = self.horizontalLayout
         self.setCentralWidget(self.horizontalLayout)
-        self.leveldatatreeview = LevelDataTreeView(self.centralwidget)
+        self.leveldatatreeview = LevelDataTreeView(self, self.centralwidget)
         #self.leveldatatreeview.itemClicked.connect(self.tree_select_object)
         self.leveldatatreeview.itemDoubleClicked.connect(self.do_goto_action)
         self.leveldatatreeview.itemSelectionChanged.connect(self.tree_select_arrowkey)
