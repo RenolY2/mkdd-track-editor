@@ -3,6 +3,7 @@ import cProfile
 import pickle
 import pstats
 import traceback
+import weakref
 import os
 from timeit import default_timer
 from copy import deepcopy
@@ -88,14 +89,32 @@ def get_treeitem(root: QtWidgets.QTreeWidgetItem, obj):
 
 class UndoEntry:
 
-    def __init__(self, bol_document: bytes, enemy_path_data: 'tuple[tuple[bool, int]]',
-                 minimap_data: tuple):
-        self.bol_document = bol_document
-        self.enemy_path_data = enemy_path_data
-        self.minimap_data = minimap_data
+    _cache = weakref.WeakValueDictionary()
 
+    class _UndoCacheEntry:
+
+        def __init__(self, bol_document, enemy_path_data):
+            self.bol_document = bol_document
+            self.enemy_path_data = enemy_path_data
+
+    def __init__(self, bol_document: bytes, enemy_path_data: 'tuple[tuple[bool, int]]',
+                 minimap_data: tuple, selected_items_data: tuple):
         self.bol_hash = hash((bol_document, enemy_path_data))
-        self.hash = hash((self.bol_hash, self.minimap_data))
+
+        # To avoid keeping track of duplicates of the BOL document (likely the case when the part
+        # that changes in the undo entry is the selection data), a cache is used.
+        if self.bol_hash not in UndoEntry._cache:
+            self._cache_entry = UndoEntry._UndoCacheEntry(bol_document, enemy_path_data)
+            UndoEntry._cache[self.bol_hash] = self._cache_entry
+        else:
+            self._cache_entry = UndoEntry._cache[self.bol_hash]
+
+        self.bol_document = self._cache_entry.bol_document
+        self.enemy_path_data = self._cache_entry.enemy_path_data
+        self.minimap_data = minimap_data
+        self.selected_items_data = selected_items_data
+
+        self.hash = hash((self.bol_hash, self.minimap_data, self.selected_items_data))
 
     def __eq__(self, other) -> bool:
         return self.hash == other.hash
@@ -268,7 +287,19 @@ class GenEditor(QtWidgets.QMainWindow):
             minimap.orientation
         )
 
-        return UndoEntry(bol_document, enemy_path_data, minimap_data)
+        # Model indexes would be quickly invalidated, so they are not used. Instead, row indexes
+        # (of the item, and all its ancestors) are tracked.
+        selected_items_data = []
+        for model_index in self.leveldatatreeview.selectionModel().selectedIndexes():
+            selected_item_data = [model_index.row()]
+            model_index_parent = model_index.parent()
+            while model_index_parent.isValid():
+                selected_item_data.append(model_index_parent.row())
+                model_index_parent = model_index_parent.parent()
+            selected_items_data.append(tuple(selected_item_data))
+        selected_items_data = tuple(selected_items_data)
+
+        return UndoEntry(bol_document, enemy_path_data, minimap_data, selected_items_data)
 
     def load_top_undo_entry(self):
         if not self.undo_history:
@@ -296,6 +327,11 @@ class GenEditor(QtWidgets.QMainWindow):
                 assert enemy_path.id == enemy_path_id
                 self.level_file.enemypointgroups.groups.append(enemy_path)
 
+        # Clear existing selection.
+        with QtCore.QSignalBlocker(self.leveldatatreeview):
+            for item in self.leveldatatreeview.selectedItems():
+                item.setSelected(False)
+
         self.level_view.level_file = self.level_file
         self.leveldatatreeview.set_objects(self.level_file)
 
@@ -307,6 +343,17 @@ class GenEditor(QtWidgets.QMainWindow):
         minimap.corner2.y = undo_entry.minimap_data[4]
         minimap.corner2.z = undo_entry.minimap_data[5]
         minimap.orientation = undo_entry.minimap_data[6]
+
+        # Restore the selection that was current when the undo entry was produced.
+        items_to_select = []
+        with QtCore.QSignalBlocker(self.leveldatatreeview):
+            for selected_item_data in undo_entry.selected_items_data:
+                item = self.leveldatatreeview.invisibleRootItem()
+                for row in reversed(selected_item_data):
+                    item = item.child(row)
+                item.setSelected(True)
+                items_to_select.append(item)
+        self.tree_select_object(items_to_select)
 
         self.update_3d()
         self.pik_control.update_info()
