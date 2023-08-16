@@ -153,6 +153,9 @@ class GenEditor(QtWidgets.QMainWindow):
 
         self.restore_geometry()
 
+        self.visibility_menu.fullscreen.setChecked(
+            bool(QtCore.Qt.WindowFullScreen & self.windowState()))
+
         self.undo_history.append(self.generate_undo_entry())
 
         self.leveldatatreeview.set_objects(self.level_file)
