@@ -1111,6 +1111,16 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                         pos = point.position
                         glVertex3f(pos.x, -pos.z, pos.y)
                     glEnd()
+                    for i, point in enumerate(route.points[1:]):
+                        prev_point = route.points[i]
+                        mid_position = (point.position + prev_point.position) / 2.0
+                        if self.mode == MODE_TOPDOWN:
+                            scale = 3 * zf
+                            up_dir = Vector3(0.0, 1.0, 0.0)
+                        else:
+                            up_dir = (mid_position - campos).normalized()
+                            scale = (mid_position - campos).norm() / 130.0
+                        self.models.draw_arrow_head(prev_point.position, mid_position, up_dir, scale)
                     if selected:
                         glLineWidth(1.0)
 
@@ -1313,8 +1323,13 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                         else:
                             mid1 = (prev.start + prev.end) / 2.0
                             mid2 = (checkpoint.start + checkpoint.end) / 2.0
-
-                            self.models.draw_arrow_head(mid1, mid2)
+                            if self.mode == MODE_TOPDOWN:
+                                scale = 3 * zf
+                                up_dir = Vector3(0.0, 1.0, 0.0)
+                            else:
+                                up_dir = (mid2 - campos).normalized()
+                                scale = (mid2 - campos).norm() / 130.0
+                            self.models.draw_arrow_head(mid1, mid2, up_dir, scale)
                             prev = checkpoint
 
                 glBegin(GL_LINES)
