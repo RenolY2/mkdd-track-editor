@@ -2558,6 +2558,15 @@ class GenEditor(QtWidgets.QMainWindow):
                     obj.route = self.level_file.routes.index(obj.route)
                 else:
                     obj.route = -1
+        # And the same applies to cameras assigned to areas.
+        areas_cameras = []
+        for obj in self.level_view.selected:
+            if isinstance(obj, libbol.Area):
+                areas_cameras.append((obj, obj.camera))
+                if obj.camera is not None:
+                    obj.camera = self.level_file.cameras.index(obj.camera)
+                else:
+                    obj.camera = -1
 
         try:
             # Effectively serialize the data.
@@ -2569,6 +2578,9 @@ class GenEditor(QtWidgets.QMainWindow):
             # Restore the routes instances.
             for obj, route in object_camera_routes:
                 obj.route = route
+            # Restore the cameras instances.
+            for obj, camera in areas_cameras:
+                obj.camera = camera
 
         mimedata = QtCore.QMimeData()
         mimedata.setData("application/mkdd-track-editor", QtCore.QByteArray(data))
@@ -2629,6 +2641,19 @@ class GenEditor(QtWidgets.QMainWindow):
 
                 target_route.points.append(obj)
 
+                added.append(obj)
+
+        for obj in copied_objects:
+            # Cameras. They may be referenced by other objects; they need to be pasted first.
+            if isinstance(obj, libbol.Camera):
+                if 0 <= obj.route < len(self.level_file.routes):
+                    obj.route = self.level_file.routes[obj.route]
+                else:
+                    obj.route = None
+                self.level_file.cameras.append(obj)
+
+                added.append(obj)
+
         for obj in copied_objects:
             # Group objects.
             if isinstance(obj, libbol.EnemyPointGroup):
@@ -2668,9 +2693,9 @@ class GenEditor(QtWidgets.QMainWindow):
 
             # Autonomous objects.
             elif isinstance(obj, libbol.MapObject):
-                try:
+                if 0 <= obj.route < len(self.level_file.routes):
                     obj.route = self.level_file.routes[obj.route]
-                except IndexError:
+                else:
                     obj.route = None
                 self.level_file.objects.objects.append(obj)
             elif isinstance(obj, libbol.KartStartPoint):
@@ -2682,13 +2707,11 @@ class GenEditor(QtWidgets.QMainWindow):
                 obj.respawn_id = max_respawn_id + 1
                 self.level_file.respawnpoints.append(obj)
             elif isinstance(obj, libbol.Area):
+                if 0 <= obj.camera < len(self.level_file.cameras):
+                    obj.camera = self.level_file.cameras[obj.camera]
+                else:
+                    obj.camera = None
                 self.level_file.areas.areas.append(obj)
-            elif isinstance(obj, libbol.Camera):
-                try:
-                    obj.route = self.level_file.routes[obj.route]
-                except IndexError:
-                    obj.route = None
-                self.level_file.cameras.append(obj)
             elif isinstance(obj, libbol.LightParam):
                 self.level_file.lightparams.append(obj)
             elif isinstance(obj, libbol.MGEntry):
