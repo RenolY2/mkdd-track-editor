@@ -5,7 +5,7 @@ import pstats
 import traceback
 import os
 from timeit import default_timer
-from copy import deepcopy
+from copy import deepcopy, copy
 from io import TextIOWrapper, BytesIO, StringIO
 from math import sin, cos, atan2
 import json
@@ -2728,6 +2728,8 @@ class GenEditor(QtWidgets.QMainWindow):
         if self.level_file is not None:
             item = None
             selected = self.level_view.selected
+            selected_positions = copy(self.level_view.selected_positions)
+
             if len(selected) == 1:
                 currentobj = selected[0]
                 if isinstance(currentobj, libbol.EnemyPoint):
@@ -2776,6 +2778,7 @@ class GenEditor(QtWidgets.QMainWindow):
 
                 if item is not None:
                     self.leveldatatreeview.setCurrentItem(item)
+                    self.level_view.selected_positions = selected_positions
 
                 if suppress_signal:
                     self.leveldatatreeview.blockSignals(False)
