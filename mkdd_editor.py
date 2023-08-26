@@ -643,6 +643,12 @@ class GenEditor(QtWidgets.QMainWindow):
         self.paste_action.setShortcut(QtGui.QKeySequence('Ctrl+V'))
         self.paste_action.triggered.connect(self.on_paste_action_triggered)
 
+        self.edit_menu.addSeparator()
+        self.rotation_mode = QtGui.QAction("Rotate Positions around Pivot", self)
+        self.rotation_mode.setCheckable(True)
+        self.rotation_mode.setChecked(True)
+        self.edit_menu.addAction(self.rotation_mode)
+
         self.visibility_menu = mkdd_widgets.FilterViewMenu(self)
         self.visibility_menu.filter_update.connect(self.on_filter_update)
         filters = self.editorconfig["filter_view"].split(",")
@@ -698,6 +704,11 @@ class GenEditor(QtWidgets.QMainWindow):
         self.clear_current_collision = QtGui.QAction("Clear Current Model", self)
         self.clear_current_collision.triggered.connect(self.clear_collision)
         self.collision_menu.addAction(self.clear_current_collision)
+
+        self.choose_bco_area = QtGui.QAction("Collision Areas (BCO)")
+        self.choose_bco_area.triggered.connect(self.action_choose_bco_area)
+        self.collision_menu.addAction(self.choose_bco_area)
+        self.choose_bco_area.setShortcut("Ctrl+K")
 
         self.tools_menu = QtWidgets.QMenu(self.menubar)
         self.tools_menu.setTitle("Tools")
@@ -755,23 +766,20 @@ class GenEditor(QtWidgets.QMainWindow):
         self.minimap_menu.addSeparator()
         self.minimap_menu.addAction(minimap_generator_action)
 
-        # Misc
-        self.misc_menu = QtWidgets.QMenu(self.menubar)
-        self.misc_menu.setTitle("Misc")
-        self.rotation_mode = QtGui.QAction("Rotate Positions around Pivot", self)
-        self.rotation_mode.setCheckable(True)
-        self.rotation_mode.setChecked(True)
+        #View
+        self.view_menu = QtWidgets.QMenu(self.menubar)
+        self.view_menu.setTitle("View")
         self.frame_action = QtGui.QAction("Frame Selection/All", self)
         self.frame_action.triggered.connect(
             lambda _checked: self.frame_selection(adjust_zoom=True))
         self.frame_action.setShortcut("F")
-        self.misc_menu.addAction(self.rotation_mode)
-        self.misc_menu.addAction(self.frame_action)
+        
+        self.view_menu.addAction(self.frame_action)
         self.analyze_action = QtGui.QAction("Analyze for common mistakes", self)
         self.analyze_action.triggered.connect(self.analyze_for_mistakes)
-        self.misc_menu.addAction(self.analyze_action)
+        self.view_menu.addAction(self.analyze_action)
 
-        self.misc_menu.aboutToShow.connect(
+        self.view_menu.aboutToShow.connect(
             lambda: self.frame_action.setText(
                 "Frame Selection" if self.level_view.selected_positions else "Frame All"))
 
@@ -780,7 +788,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.change_to_topdownview_action = QtGui.QAction("Topdown View", self)
         self.view_action_group.addAction(self.change_to_topdownview_action)
         self.change_to_topdownview_action.triggered.connect(self.change_to_topdownview)
-        self.misc_menu.addAction(self.change_to_topdownview_action)
+        self.view_menu.addAction(self.change_to_topdownview_action)
         self.change_to_topdownview_action.setCheckable(True)
         self.change_to_topdownview_action.setChecked(True)
         self.change_to_topdownview_action.setShortcut("Ctrl+1")
@@ -788,14 +796,13 @@ class GenEditor(QtWidgets.QMainWindow):
         self.change_to_3dview_action = QtGui.QAction("3D View", self)
         self.view_action_group.addAction(self.change_to_3dview_action)
         self.change_to_3dview_action.triggered.connect(self.change_to_3dview)
-        self.misc_menu.addAction(self.change_to_3dview_action)
+        self.view_menu.addAction(self.change_to_3dview_action)
         self.change_to_3dview_action.setCheckable(True)
         self.change_to_3dview_action.setShortcut("Ctrl+2")
 
-        self.choose_bco_area = QtGui.QAction("Collision Areas (BCO)")
-        self.choose_bco_area.triggered.connect(self.action_choose_bco_area)
-        self.misc_menu.addAction(self.choose_bco_area)
-        self.choose_bco_area.setShortcut("Ctrl+3")
+        # Misc
+        self.misc_menu = QtWidgets.QMenu(self.menubar)
+        self.misc_menu.setTitle("Dolphin")
 
         self.menubar.addAction(self.file_menu.menuAction())
         self.menubar.addAction(self.edit_menu.menuAction())
@@ -803,6 +810,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.menubar.addAction(self.collision_menu.menuAction())
         self.menubar.addAction(self.tools_menu.menuAction())
         self.menubar.addAction(self.minimap_menu.menuAction())
+        self.menubar.addAction(self.view_menu.menuAction())
         self.menubar.addAction(self.misc_menu.menuAction())
         self.setMenuBar(self.menubar)
 
