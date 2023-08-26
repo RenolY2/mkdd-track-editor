@@ -809,7 +809,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
                 if vismenu.cameras.is_selectable():
                     for i, obj in enumerate(obj for obj in self.level_file.cameras if obj not in selected):
-                        if obj in self.selected:
+                        if obj.name == "para":
+                            continue
+                        if obj.camtype in (5, 6):
                             objlist.append(
                                 ObjectSelectionEntry(obj=obj,
                                                      pos1=obj.position,
@@ -820,6 +822,16 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                                                                                     id + (offset + i) * 4)
                             self.models.render_generic_position_colored_id(obj.position2, id + (offset + i) * 4 + 1)
                             self.models.render_generic_position_colored_id(obj.position3, id + (offset + i) * 4 + 2)
+                        elif obj.camtype == 4:
+                            objlist.append(
+                                ObjectSelectionEntry(obj=obj,
+                                                     pos1=obj.position,
+                                                     pos2=None,
+                                                     pos3=obj.position3,
+                                                     rotation=obj.rotation))
+                            self.models.render_generic_position_rotation_colored_id(obj.position, obj.rotation,
+                                                                                    id + (offset + i) * 4)
+                            self.models.render_generic_position_colored_id(obj.position3, id + (offset + i) * 4 + 1)
                         else:
                             objlist.append(
                                 ObjectSelectionEntry(obj=obj,
@@ -1360,15 +1372,26 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     self.models.draw_wireframe_cube(object.position, object.rotation, object.scale*100)
             if vismenu.cameras.is_visible():
                 for object in self.level_file.cameras:
+                    if object.name == "para":
+                        continue
                     self.models.render_generic_position_rotation_colored("camera",
                                                                 object.position, object.rotation,
                                                                  object in select_optimize)
 
-                    if object in select_optimize:
+                    if object.camtype in (4, 5, 6):
                         glColor3f(0.0, 1.0, 0.0)
-                        self.models.draw_sphere(object.position3, 600)
-                        glColor3f(1.0, 0.0, 0.0)
-                        self.models.draw_sphere(object.position2, 600)
+                        self.models.draw_sphere(object.position3, 600, object in select_optimize)
+                        if object.camtype != 4:
+                            glColor3f(1.0, 0.0, 0.0)
+                            self.models.draw_sphere(object.position2, 600, object in select_optimize)
+
+                            glBegin(GL_LINES)
+                            glColor3f(0, 0, 0)
+                            glVertex3f(object.position3.x, -object.position3.z, object.position3.y)
+                            glVertex3f(object.position2.x, -object.position2.z, object.position2.y)
+                            glEnd()
+
+                            self.models.draw_arrow_head(object.position3, object.position2)
 
 
             if vismenu.respawnpoints.is_visible():

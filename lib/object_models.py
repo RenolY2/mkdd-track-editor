@@ -43,6 +43,9 @@ class ObjectModels(object):
         with open("resources/unitsphere.obj", "r") as f:
             self.sphere = Model.from_obj(f, rotate=True)
 
+        with open("resources/unitspheresolid.obj", "r") as f:
+            self.sphere_solid = Model.from_obj(f, rotate=True)
+
         with open("resources/unitcylinder.obj", "r") as f:
             self.unitcylinder = Model.from_obj(f, rotate=True)
 
@@ -90,13 +93,16 @@ class ObjectModels(object):
         #glVertex3f(topos.x, -topos.z, topos.y)
         #glEnd()
 
-    def draw_sphere(self, position, scale):
+    def draw_sphere(self, position, scale, solid=False):
         glPushMatrix()
 
         glTranslatef(position.x, -position.z, position.y)
         glScalef(scale, scale, scale)
 
-        self.sphere.render()
+        if solid:
+            self.sphere_solid.render()
+        else:
+            self.sphere.render()
         glPopMatrix()
 
     def draw_sphere_last_position(self, scale):
