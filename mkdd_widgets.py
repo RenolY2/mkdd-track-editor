@@ -662,8 +662,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
         vismenu: FilterViewMenu = self.visibility_menu
 
-        gizmo_enabled = vismenu.transform_gizmo.isChecked()
-        grid_enabled = vismenu.grid.isChecked()
+        gizmo_enabled = self.editor.transform_gizmo.isChecked()
+        grid_enabled = self.editor.grid.isChecked()
 
         if self.mode == MODE_TOPDOWN:
             gizmo_scale = 3*zf
@@ -1754,7 +1754,7 @@ class FilterViewMenu(QtWidgets.QMenu):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setTitle("View")
+        self.setTitle("Filter View")
 
         self.show_all = QtGui.QAction("Show All", self)
         self.show_all.triggered.connect(self.handle_show_all)
@@ -1793,25 +1793,7 @@ class FilterViewMenu(QtWidgets.QMenu):
             action.action_view_toggle.triggered.connect(self.emit_update)
             action.action_select_toggle.triggered.connect(self.emit_update)
 
-        self.addSeparator()
 
-        self.transform_gizmo = self.addAction('&Transform Gizmo')
-        self.transform_gizmo.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_T))
-        self.transform_gizmo.setCheckable(True)
-        self.transform_gizmo.setChecked(True)
-        self.transform_gizmo.triggered.connect(self.filter_update)
-
-        self.grid = self.addAction('Grid')
-        self.grid.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_NumberSign))
-        self.grid.setCheckable(True)
-        self.grid.setChecked(True)
-        self.grid.triggered.connect(self.filter_update)
-
-        self.fullscreen = self.addAction('Fullscreen')
-        self.fullscreen.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F11))
-        self.fullscreen.setCheckable(True)
-        self.fullscreen.triggered[bool].connect(lambda checked: self.parent().showFullScreen()
-                                                if checked else self.parent().showNormal())
 
     def get_entries(self):
         return (self.enemyroute,
