@@ -1471,6 +1471,11 @@ class GenEditor(QtWidgets.QMainWindow):
         self.leveldatatreeview.duplicate.connect(self.duplicate_group)
         self.leveldatatreeview.split.connect(self.split_group)
         self.leveldatatreeview.split_checkpoint.connect(self.split_group_checkpoint)
+        self.leveldatatreeview.select_object_type.connect(self.select_object_type)
+        self.leveldatatreeview.select_area_type.connect(self.select_area_type)
+        self.leveldatatreeview.select_area_assoc.connect(self.select_area_assoc)
+        self.leveldatatreeview.select_route_assoc.connect(self.select_route_assoc)
+        self.leveldatatreeview.select_route_points.connect(self.select_route_points)
 
     def split_group_checkpoint(self, group_item, item):
         group = group_item.bound_to
@@ -1593,6 +1598,120 @@ class GenEditor(QtWidgets.QMainWindow):
                 recent_files.append(recent_files_config[config_entry])
 
         return recent_files
+
+    def select_object_type(self, item):
+        mapobject = item.bound_to
+        all_objects = self.level_file.objects.objects
+        map_objects = [obj for obj in all_objects if obj.objectid == mapobject.objectid]
+
+        self.level_view.selected = map_objects
+        self.level_view.selected_positions = [obj.position for obj in map_objects]
+        self.level_view.selected_rotations = [obj.rotation for obj in map_objects]
+
+
+        self.pik_control.set_buttons(map_objects[0] if len(map_objects) == 1 else None)
+
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
+                                              self.level_view.selected_rotations)
+        self.level_view.do_redraw()
+        self.action_update_info()
+
+    def select_area_type(self, item):
+        if isinstance(item, libbol.Area):
+            ref_area = item
+        else:
+            ref_area = item.bound_to
+        all_areas = self.level_file.areas.areas
+        areas = [area for area in all_areas if ref_area.area_type == area.area_type]
+
+        self.level_view.selected = areas
+        self.level_view.selected_positions = [obj.position for obj in areas]
+        self.level_view.selected_rotations = [obj.rotation for obj in areas]
+
+        self.pik_control.set_buttons(areas[0] if len(areas) == 1 else None)
+
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
+                                              self.level_view.selected_rotations)
+        self.level_view.do_redraw()
+        self.action_update_info()
+
+    def select_area_assoc(self, item):
+        if isinstance(item, libbol.Area):
+            ref_area = item
+        else:
+            ref_area = item.bound_to
+
+        self.level_view.selected = [ref_area]
+        self.level_view.selected_positions = [ref_area.position]
+        self.level_view.selected_rotations = [ref_area.rotation]
+
+        camera = ref_area.camera
+        if camera is not None:
+            self.level_view.selected.append(camera)
+            self.level_view.selected_positions.append(camera.position)
+            self.level_view.selected_rotations.append(camera.rotation)
+
+            route = camera.route
+            if route is not None:
+
+                self.level_view.selected.extend(route.points)
+                route_point_positions = [point.position for point in route.points]
+                self.level_view.selected_positions.extend(route_point_positions)
+
+        selected = self.level_view.selected
+        self.pik_control.set_buttons(selected[0] if len(selected) == 1 else None)
+
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
+                                              self.level_view.selected_rotations)
+        self.level_view.do_redraw()
+        self.action_update_info()
+
+    def select_route_assoc(self, item):
+        if isinstance(item, (libbol.MapObject, libbol.Camera)):
+            ref_obj = item
+        else:
+            ref_obj = item.bound_to
+
+        self.level_view.selected = [ref_obj]
+        self.level_view.selected_positions = [ref_obj.position]
+        self.level_view.selected_rotations = [ref_obj.rotation]
+
+        route = ref_obj.route
+        self.level_view.selected.extend(route.points)
+        route_point_positions = [point.position for point in route.points]
+        self.level_view.selected_positions.extend(route_point_positions)
+
+        selected = self.level_view.selected
+        self.pik_control.set_buttons(selected[0] if len(selected) == 1 else None)
+
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
+                                              self.level_view.selected_rotations)
+        self.level_view.do_redraw()
+        self.action_update_info()
+
+    def select_route_points(self, item):
+        if isinstance(item, libbol.RoutePoint):
+            ref_point = item
+        else:
+            ref_point = item.bound_to
+
+        self.level_view.selected = []
+        self.level_view.selected_positions = []
+        self.level_view.selected_rotations = []
+
+
+        route, _point_index = self.level_file.get_route_of_points(ref_point)
+        if route is not None:
+            self.level_view.selected.extend(route.points)
+            self.level_view.selected_positions = [point.position for point in route.points]
+
+            selected = self.level_view.selected
+            self.pik_control.set_buttons(selected[0] if len(selected) == 1 else None)
+
+            self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
+                                                self.level_view.selected_rotations)
+            self.level_view.do_redraw()
+            self.action_update_info()
 
     #@catch_exception
     def button_load_level(self, filepath=None, update_config=True):
@@ -2937,6 +3056,37 @@ class GenEditor(QtWidgets.QMainWindow):
         action = QtGui.QAction("Copy Coordinates", self)
         action.triggered.connect(self.action_copy_coords_to_clipboard)
         context_menu.addAction(action)
+
+        selected = self.level_view.selected
+        if len(selected) == 1:
+            item = selected[0]
+            if isinstance(item, libbol.Area):
+                select_all_action = QtGui.QAction("Select All with Same Type", self)
+                select_all_action.triggered.connect(lambda:
+                                                    self.select_area_type(item))
+                context_menu.addAction(select_all_action)
+
+                if item.area_type == 1:
+                    select_assoc_action = QtGui.QAction("Select Associated Camera + Route", self)
+                    select_assoc_action.triggered.connect(lambda:
+                                                          self.select_area_assoc(item))
+                    context_menu.addAction(select_assoc_action)
+            elif isinstance(item, (libbol.MapObject, libbol.Camera)) and item.route is not None:
+                if isinstance(item, libbol.MapObject):
+                    select_object_id = QtGui.QAction("Select All with Same ID", self)
+                    select_object_id.triggered.connect(lambda:
+                                                        self.select_object_type(item))
+                    context_menu.addAction(select_object_id)
+                select_assoc_action = QtGui.QAction("Select Associated Route", self)
+                select_assoc_action.triggered.connect(lambda:
+                                                        self.select_route_assoc(item))
+                context_menu.addAction(select_assoc_action)
+            elif isinstance(item, libbol.RoutePoint):
+                select_all_group = QtGui.QAction("Select All Points in Route", self)
+                select_all_group.triggered.connect(lambda:
+                                                        self.select_route_points(item))
+                context_menu.addAction(select_all_group)
+
         context_menu.exec(self.level_view.mapToGlobal(position))
         context_menu.destroy()
 
