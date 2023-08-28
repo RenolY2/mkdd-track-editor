@@ -808,6 +808,21 @@ class GenEditor(QtWidgets.QMainWindow):
 
         self.last_obj_select_pos = 0
 
+        self.show_code_patch_fields_action = QtGui.QAction("Show Code Patch-Dependent Fields (🧩)")
+        self.show_code_patch_fields_action.setCheckable(True)
+        self.show_code_patch_fields_action.setChecked(
+            bool(self.editorconfig.get('show_code_patch_fields') == 'true'))
+
+        def on_show_code_patch_fields_triggered(checked):
+            self.editorconfig['show_code_patch_fields'] = 'true' if checked else 'false'
+            self.action_update_info()
+
+        self.show_code_patch_fields_action.triggered[bool].connect(
+            on_show_code_patch_fields_triggered)
+
+        self.misc_menu.addAction(self.show_code_patch_fields_action)
+
+        self.misc_menu.addSeparator()
 
         self.dolphin_action = QtGui.QAction("Hook into Dolphin", self)
         self.dolphin_action.triggered.connect(self.action_hook_into_dolphion)

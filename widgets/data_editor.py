@@ -257,6 +257,12 @@ class DataEditor(QtWidgets.QWidget):
     def update_data(self):
         pass
 
+    def get_bol_editor(self):
+        for window in QtWidgets.QApplication.topLevelWidgets():
+            if 'GenEditor' in str(type(window)):
+                return window
+        return None
+
     def create_label(self, text):
         label = QtWidgets.QLabel(self)
         label.setText(text)
@@ -1046,9 +1052,13 @@ class ObjectEdit(DataEditor):
             self.userdata[i] = None
         clear_layout(self.userdata_layout)
 
+        show_code_patch_fields = self.get_bol_editor().show_code_patch_fields_action.isChecked()
+
         parameter_names, assets, tooltips, widget_types = load_parameter_names(objectname)
         tuples = zip(parameter_names, tooltips, widget_types)
         for i, (parameter_name, tooltip, widget_type) in enumerate(tuples):
+            if '🧩' in parameter_name and not show_code_patch_fields:
+                continue
             if parameter_name == "Unused":
                 if self.bound_to.userdata[i] != 0:
                     Warning(f"Parameter with index {i} in object {objectname} is marked as Unused "
