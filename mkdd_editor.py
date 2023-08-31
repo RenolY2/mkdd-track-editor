@@ -2876,9 +2876,9 @@ class GenEditor(QtWidgets.QMainWindow):
                 if suppress_signal:
                     self.leveldatatreeview.blockSignals(False)
 
-            if item is None:
-                # If no item was selected, no tree item will be selected, and the data editor needs
-                # to be updated manually.
+            if item is None or suppress_signal:
+                # If no item was selected, or the signal was suppressed, no tree item will be
+                # selected, and the data editor needs to be updated manually.
                 self.action_update_info()
 
             #if nothing is selected and the currentitem is something that can be selected
