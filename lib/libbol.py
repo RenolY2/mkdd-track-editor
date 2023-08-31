@@ -605,9 +605,9 @@ class Checkpoint(object):
         start = Vector3(*unpack(">fff", f.read(12)))
         end = Vector3(*unpack(">fff", f.read(12)))
         unk1, unk2, unk3, unk4 = unpack(">BBBB", f.read(4))
-        assert unk4 == 0
         assert unk2 == 0 or unk2 == 1
         assert unk3 == 0 or unk3 == 1
+        assert unk4 in (0, 1)  # 1 expected only for the custom "Lap Checkpoint" parameter
         return cls(start, end, unk1, unk2, unk3, unk4)
 
     def write(self, f):

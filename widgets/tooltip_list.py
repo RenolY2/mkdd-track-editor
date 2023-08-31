@@ -49,6 +49,12 @@ enemypoints = tool_tips_markdown_to_html({
     "No Mushroom Zone": "Whether CPUs are allowed to use mushrooms at this point or not",
 })
 
+checkpoints = tool_tips_markdown_to_html({
+    "Shortcut Point ID": "After this point is crossed, all regions containing checkpoint pairs with this ID will cause the lap checker to be halted, allowing for dev-intended shortcuts.\nOnce the region is left, the lap checker will jump to the next standard checkpoint.",
+    "Double-sided": "If set, the game will check if this point has been crossed from the opposite side.",
+    "Lap Checkpoint": "🧩 Requires the **Sectioned Courses** code patch.\n\nWhen crossed, a lap will be incremented. \nIf this is the last checkpoint of its kind, the race will be finished instead.\nIf **Shortcut Point ID** is set, this flag is ignored, and a lap will _not_ be counted.\n\n---\n<small>**IMPORTANT:** Custom tracks that utilize this property must include `sectioned-courses` in the **code_patches** field in the `trackinfo.ini` file of the custom track.</small>",
+})
+
 objectid = tool_tips_markdown_to_html({
     "GeoAirJet": "The blowing wind from Sherbet Land",
     "GeoMarioFlower1": "The flowers with eyes from several tracks",

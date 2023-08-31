@@ -841,12 +841,16 @@ class CheckpointEdit(DataEditor):
         self.end = self.add_multiple_decimal_input("End", "end", ["x", "y", "z"],
                                                      -inf, +inf)
 
-        self.unk1 = self.add_integer_input("Unknown", "unk1",
+        self.unk1 = self.add_integer_input("Shortcut Point ID", "unk1",
                                            MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
-        self.unk2 = self.add_checkbox("Unknown Flag", "unk2",
-                                      0, 1)
-        self.unk3 = self.add_checkbox("Unknown Flag 2", "unk3",
-                                           0, 1)
+        set_tool_tip(self.unk1, ttl.checkpoints["Shortcut Point ID"])
+        self.unk3 = self.add_checkbox("Double-sided", "unk3", 0, 1)
+        set_tool_tip(self.unk3, ttl.checkpoints["Double-sided"])
+
+        if self.get_bol_editor().show_code_patch_fields_action.isChecked():
+            self.unk4 = self.add_checkbox("Lap Checkpoint 🧩", "unk4", 0, 1)
+            self.unk4.toggled.connect(self.catch_text_update)
+            set_tool_tip(self.unk4, ttl.checkpoints["Lap Checkpoint"])
 
     def update_data(self):
         obj: Checkpoint = self.bound_to
@@ -859,8 +863,10 @@ class CheckpointEdit(DataEditor):
         self.end[2].setValueQuiet(obj.end.z)
 
         self.unk1.setValueQuiet(obj.unk1)
-        self.unk2.setChecked(obj.unk2 != 0)
         self.unk3.setChecked(obj.unk3 != 0)
+
+        if self.get_bol_editor().show_code_patch_fields_action.isChecked():
+            self.unk4.setChecked(obj.unk4 != 0)
 
 
 class ObjectRouteEdit(DataEditor):

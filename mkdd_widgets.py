@@ -36,6 +36,7 @@ MODE_3D = 1
 
 #colors = [(1.0, 0.0, 0.0), (0.0, 0.5, 0.0), (0.0, 0.0, 1.0), (1.0, 1.0, 0.0)]
 colors = [(0.0,191/255.0,255/255.0), (30/255.0,144/255.0,255/255.0), (0.0,0.0,255/255.0), (0.0,0.0,139/255.0)]
+lap_checkpoint_color = (115 / 255, 210 / 255, 22 / 255)
 
 with open("lib/color_coding.json", "r") as f:
     colors_json = json.load(f)
@@ -1267,6 +1268,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
             if vismenu.checkpoints.is_visible():
                 checkpoints_to_highlight = set()
+                section_points = set()
                 count = 0
 
                 # Get all concave checkpoints
@@ -1293,6 +1295,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     for checkpoint in group.points:
                         start_point_selected = checkpoint.start in positions
                         end_point_selected = checkpoint.end in positions
+                        is_sectionpoint = checkpoint.unk4 != 0
                         self.models.render_generic_position_colored(checkpoint.start,
                                                                     start_point_selected,
                                                                     "checkpointleft")
@@ -1302,6 +1305,10 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
                         if start_point_selected or end_point_selected:
                             checkpoints_to_highlight.add(count)
+
+                        if is_sectionpoint:
+                            section_points.add(checkpoint)
+
                         count += 1
 
                     # Draw the lines between the points
@@ -1309,6 +1316,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     for checkpoint in group.points:
                         if checkpoint in concave_checkpoints:
                             glColor3f(1.0, 0.0, 0.0)
+                        elif checkpoint in section_points:
+                            glColor3f(*lap_checkpoint_color)
                         else:
                             glColor3f(*colors[i % 4])
 
@@ -1354,6 +1363,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                             if point_index in checkpoints_to_highlight:
                                 if checkpoint in concave_checkpoints:
                                     glColor3f(1.0, 0.0, 0.0)
+                                elif checkpoint in section_points:
+                                    glColor3f(*lap_checkpoint_color)
                                 else:
                                     glColor3f(*colors[i % 4])
 
