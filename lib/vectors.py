@@ -69,6 +69,9 @@ class Vector3:
         self.z /= other
         return self
 
+    def __hash__(self):
+        return hash((self.x, self.y, self.z))
+
     def is_zero(self):
         return self.x == self.y == self.z == 0
 

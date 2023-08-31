@@ -13,7 +13,6 @@ from PIL import Image
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-import opengltext
 import py_obj
 
 from lib import bti
@@ -473,14 +472,9 @@ class GenEditor(QtWidgets.QMainWindow):
             extend(self.level_view.minimap.corner1)
             extend(self.level_view.minimap.corner2)
 
-        if self.level_view.collision is not None and self.level_view.collision.verts:
-            vertices = self.level_view.collision.verts
-            min_x = min(x for x, _y, _z in vertices)
-            min_y = min(y for _x, y, _z in vertices)
-            min_z = min(z for _x, _y, z in vertices)
-            max_x = max(x for x, _y, _z in vertices)
-            max_y = max(y for _x, y, _z in vertices)
-            max_z = max(z for _x, _y, z in vertices)
+        if self.level_view.collision is not None and self.level_view.collision.extent is not None:
+            min_x, min_y, min_z, max_x, max_y, max_z = self.level_view.collision.extent
+            min_y, min_z, max_y, max_z = min_z, -max_y, max_z, -min_y
 
             if extent:
                 extent[0] = min(extent[0], min_x)
@@ -1221,7 +1215,25 @@ class GenEditor(QtWidgets.QMainWindow):
             show_all_button.setEnabled(checked_count < len(all_items))
             hide_all_button.setEnabled(checked_count)
 
-        def on_tree_widget_itemChanged(item, column, tree_widget=tree_widget):
+        pending_operations = [False]
+
+        def update_widgets_and_config():
+            if not pending_operations[0]:
+                return
+            pending_operations[0] = False
+
+            update_both_all_buttons()
+
+            self.configuration["editor"]["hidden_collision_types"] = \
+                ",".join(str(t) for t in collision_model.hidden_collision_types)
+            self.configuration["editor"]["hidden_collision_type_groups"] = \
+                ",".join(str(t) for t in collision_model.hidden_collision_type_groups)
+            save_cfg(self.configuration)
+
+            self.level_view.set_collision([], [], collision_model)
+            self.update_3d()
+
+        def on_tree_widget_itemChanged(_item, _column):
             for item in all_items:
                 checked = item.checkState(0) == QtCore.Qt.Checked
                 if item.childCount():
@@ -1234,15 +1246,10 @@ class GenEditor(QtWidgets.QMainWindow):
                 else:
                     target_set.add(colltype)
 
-            update_both_all_buttons()
-
-            self.configuration["editor"]["hidden_collision_types"] = \
-                ",".join(str(t) for t in collision_model.hidden_collision_types)
-            self.configuration["editor"]["hidden_collision_type_groups"] = \
-                ",".join(str(t) for t in collision_model.hidden_collision_type_groups)
-
-            save_cfg(self.configuration)
-            self.update_3d()
+            # To avoid updating widgets several times when multiple items change at once, the
+            # update operation is scheduled to the next tick in the event loop.
+            pending_operations[0] |= True
+            QtCore.QTimer.singleShot(0, update_widgets_and_config)
 
         tree_widget.itemSelectionChanged.connect(on_tree_widget_itemSelectionChanged)
         tree_widget.itemChanged.connect(on_tree_widget_itemChanged)
@@ -2035,13 +2042,14 @@ class GenEditor(QtWidgets.QMainWindow):
         QtWidgets.QApplication.instance().processEvents()
 
     def setup_collision(self, verts, faces, filepath, alternative_mesh=None):
-        self.level_view.set_collision(verts, faces, alternative_mesh)
-        self.pathsconfig["collision"] = filepath
         editor_config = self.configuration["editor"]
         alternative_mesh.hidden_collision_types = \
             set(int(t) for t in editor_config.get("hidden_collision_types", "").split(",") if t)
         alternative_mesh.hidden_collision_type_groups = \
             set(int(t) for t in editor_config.get("hidden_collision_type_groups", "").split(",") if t)
+        self.level_view.set_collision(verts, faces, alternative_mesh)
+
+        self.pathsconfig["collision"] = filepath
         save_cfg(self.configuration)
 
     def button_open_add_item_window(self):

@@ -890,6 +890,19 @@ class CollisionModel(object):
 
         self.meshes = meshes
 
+    def get_visible_triangles(self):
+        triangles = []
+
+        for colltype, mesh_triangles in self.meshes.items():
+            if (colltype in self.hidden_collision_types
+                    or colltype & 0xFF00 in self.hidden_collision_type_groups):
+                continue
+
+            for vertex1, vertex2, vertex3, _normal, _color in mesh_triangles:
+                triangles.append((vertex1, vertex2, vertex3))
+
+        return triangles
+
     def generate_displists(self):
         if self.program is None:
             self.create_shaders()

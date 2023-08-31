@@ -8,26 +8,26 @@ from .vectors import Vector3, Triangle, Line
 
 class Collision:
 
-    def __init__(self, verts, faces):
-        self.hash = hash((tuple(verts), tuple(faces)))
+    def __init__(self, triangles: tuple[tuple[Vector3, Vector3, Vector3]]):
+        self.hash = hash(tuple(triangles))
 
-        self.verts = verts
-        self.vertices = [(x, -z, y) for x, y, z in verts]
-        self.faces = faces
+        self.vertices = []
         self.face_centers = []
         self.edge_centers = []
         self.triangles = []
 
-        for v1i, v2i, v3i in self.faces:
-            v1 = Vector3(*self.vertices[v1i[0] - 1])
-            v2 = Vector3(*self.vertices[v2i[0] - 1])
-            v3 = Vector3(*self.vertices[v3i[0] - 1])
+        for v1, v2, v3 in triangles:
+            v1 = Vector3(v1.x, -v1.z, v1.y)
+            v2 = Vector3(v2.x, -v2.z, v2.y)
+            v3 = Vector3(v3.x, -v3.z, v3.y)
+
+            self.vertices.extend((v1, v2, v3))
 
             face_center = (v1 + v2 + v3) / 3.0
-            self.face_centers.append((face_center.x, face_center.y, face_center.z))
+            self.face_centers.append(face_center)
 
             for edge_center in ((v1 + v2) / 2.0, (v1 + v3) / 2.0, (v2 + v3) / 2.0):
-                self.edge_centers.append((edge_center.x, edge_center.y, edge_center.z))
+                self.edge_centers.append(edge_center)
 
             triangle = Triangle(v1, v2, v3)
             if not triangle.normal.is_zero():
@@ -38,6 +38,18 @@ class Collision:
             self.flat_triangles.extend((t.origin.x, t.origin.y, t.origin.z, t.p2.x, t.p2.y, t.p2.z,
                                         t.p3.x, t.p3.y, t.p3.z))
         self.flat_triangles = numpy.array(self.flat_triangles)
+
+        if self.triangles:
+            self.extent = (
+                numpy.min(self.flat_triangles[0::3]),
+                numpy.min(self.flat_triangles[1::3]),
+                numpy.min(self.flat_triangles[2::3]),
+                numpy.max(self.flat_triangles[0::3]),
+                numpy.max(self.flat_triangles[1::3]),
+                numpy.max(self.flat_triangles[2::3]),
+            )
+        else:
+            self.extent = None
 
     def collide_ray_downwards(self, x, z, y=99999999):
         result = self.collide_ray(Line(Vector3(x, -z, y), Vector3(0.0, 0.0, -1.0)))
@@ -94,7 +106,7 @@ class Collision:
     @staticmethod
     def get_closest_point(ray, points):
         distances_and_points = []
-        for point in points:
+        for i, point in enumerate(points):
             try:
                 distance = _distance_between_line_and_point(
                     ray.origin.x,
@@ -103,18 +115,20 @@ class Collision:
                     ray.direction.x,
                     ray.direction.y,
                     ray.direction.z,
-                    *point,
+                    point.x,
+                    point.y,
+                    point.z,
                 )
             except Exception:
                 continue
             if distance is not math.nan:
-                distances_and_points.append((distance, point))
+                distances_and_points.append((distance, i))
 
         if not distances_and_points:
             return None
 
-        _distance, closest_point = min(distances_and_points)
-        return Vector3(*closest_point)
+        _distance, closest_point_index = min(distances_and_points)
+        return points[closest_point_index]
 
 
 @numba.jit(nopython=True, nogil=True, cache=True)
