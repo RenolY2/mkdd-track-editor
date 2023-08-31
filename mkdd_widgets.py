@@ -1457,8 +1457,14 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                             glVertex3f(object.position2.x, -object.position2.z, object.position2.y)
                             glEnd()
 
-                            self.models.draw_arrow_head(object.position3, (object.position2 + object.position3) / 2)
-
+                            midpoint = (object.position2 + object.position3) / 2
+                            if self.mode == MODE_TOPDOWN:
+                                scale = 3 * zf
+                                up_dir = Vector3(0.0, 1.0, 0.0)
+                            else:
+                                up_dir = (midpoint - campos).normalized()
+                                scale = (midpoint - campos).norm() / 130
+                            self.models.draw_arrow_head(object.position3, midpoint, up_dir, scale)
 
             if vismenu.respawnpoints.is_visible():
                 for object in self.level_file.respawnpoints:
