@@ -182,7 +182,7 @@ class ClickableLabel(QtWidgets.QLabel):
 
     def mouseReleaseEvent(self, event):
 
-        if self.rect().contains(event.pos()):
+        if self.rect().contains(event.position().toPoint()):
             event.accept()
             self.clicked.emit()
 
