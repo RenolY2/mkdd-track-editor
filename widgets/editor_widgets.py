@@ -216,15 +216,28 @@ class ErrorAnalyzer(QtWidgets.QDialog):
 
     @classmethod
     def check_checkpoints_convex(cls, bol, write_line):
-        for gindex, group in enumerate(bol.checkpoints.groups):
-            if len(group.points) > 1:
-                for i in range(1, len(group.points)):
-                    c1 = group.points[i-1]
-                    c2 = group.points[i]
-                    if not check_checkpoints(c1, c2):
-                        write_line("Quad formed by checkpoints {0} and {1} in checkpoint group {2} isn't convex.".format(
-                                    i-1, i, gindex
-                                ))
+        checkpoint_groups = bol.checkpoints.groups
+
+        for gindex, group in enumerate(checkpoint_groups):
+            if not group.points:
+                continue
+
+            # Check every two consecutive points.
+            for i, (c1, c2) in enumerate(zip(group.points, group.points[1:])):
+                if not check_checkpoints(c1, c2):
+                    write_line(f"Quad formed by checkpoints {i} and {i + 1} in "
+                               f"checkpoint group {gindex} is not convex.")
+
+            # Check last checkpoint with the first checkpoint of the next checkpoint groups.
+            next_groups = [(checkpoint_groups[next_], next_) for next_ in group.nextgroup
+                           if 0 <= next_ < len(checkpoint_groups)]
+            next_points = [(next_group.points[0], next_gindex)
+                           for next_group, next_gindex in next_groups if next_group.points]
+            c1 = group.points[-1]
+            for c2, next_gindex in next_points:
+                if not check_checkpoints(c1, c2):
+                    write_line(f"Quad formed by checkpoint group {gindex} and {next_gindex} "
+                               f"is not convex.")
 
 
 def check_checkpoints(c1, c2):
