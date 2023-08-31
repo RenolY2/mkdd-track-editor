@@ -230,8 +230,10 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
     split = QtCore.Signal(EnemyPointGroup, EnemyRoutePoint)
     split_checkpoint = QtCore.Signal(CheckpointGroup, Checkpoint)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args)
+    def __init__(self, editor, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.editor = editor
 
         self.resize(200, self.height())
         self.setColumnCount(1)
@@ -331,17 +333,18 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
         self.addTopLevelItem(group)
         return group
 
-    def reset(self):
-        self.enemyroutes.remove_children()
-        self.checkpointgroups.remove_children()
-        self.routes.remove_children()
-        self.objects.remove_children()
-        self.kartpoints.remove_children()
-        self.areas.remove_children()
-        self.cameras.remove_children()
-        self.respawnpoints.remove_children()
-        self.lightparams.remove_children()
-        self.mgentries.remove_children()
+    def _reset(self):
+        with QtCore.QSignalBlocker(self):  # Avoid triggering item selection changed events.
+            self.enemyroutes.remove_children()
+            self.checkpointgroups.remove_children()
+            self.routes.remove_children()
+            self.objects.remove_children()
+            self.kartpoints.remove_children()
+            self.areas.remove_children()
+            self.cameras.remove_children()
+            self.respawnpoints.remove_children()
+            self.lightparams.remove_children()
+            self.mgentries.remove_children()
 
     def set_objects(self, boldata: BOL):
         # Compute the location (based on indexes) of the currently selected items, if any.
@@ -366,7 +369,7 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
         checkpointgroups_expansion_states = self._get_expansion_states(self.checkpointgroups)
         routes_expansion_states = self._get_expansion_states(self.routes)
 
-        self.reset()
+        self._reset()
 
         for group in boldata.enemypointgroups.groups:
             group_item = EnemyPointGroup(self.enemyroutes, group)
@@ -416,6 +419,7 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
 
         # And restore previous selection (but only if item counts match, or else indexes could be
         # unreliable).
+        items_to_select = []
         if selected_item_indexes_list and initial_item_count == self.count_items():
             for selected_item_indexes in selected_item_indexes_list:
                 item = self.topLevelItem(selected_item_indexes.pop(0))
@@ -425,7 +429,14 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
                         item = item.child(index)
                     else:
                         break
-                item.setSelected(True)
+                items_to_select.append(item)
+
+            # Effectively select items without relying on signals which could trigger a considerate
+            # number of events for each item.
+            with QtCore.QSignalBlocker(self):
+                for item in items_to_select:
+                    item.setSelected(True)
+        self.editor.tree_select_object(items_to_select)
 
         self.bound_to_group(boldata)
 
