@@ -413,7 +413,7 @@ class DataEditor(QtWidgets.QWidget):
 
         layout = self.create_labeled_widget(self, labeltext, button)
         self.vbox.addLayout(layout)
-        return button
+        return layout
 
     def add_color_input(self, text, attribute, with_alpha=False):
         line_edits = []
@@ -538,9 +538,12 @@ class DataEditor(QtWidgets.QWidget):
             widget.currentIndexChanged.connect(
                 lambda index: set_value(widget.itemData(index)))
         else:
-            widget = QtWidgets.QLineEdit()
-            widget.setValidator(QtGui.QIntValidator(MIN_SIGNED_SHORT, MAX_SIGNED_SHORT))
-            widget.textChanged.connect(lambda text: set_value(int(text) if text else 0))
+            widget = QtWidgets.QSpinBox()
+            policy = widget.sizePolicy()
+            policy.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
+            widget.setSizePolicy(policy)
+            widget.setRange(MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
+            widget.valueChanged.connect(set_value)
 
         layout.addLayout(self.create_labeled_widget(None, text, widget))
 
@@ -1027,7 +1030,7 @@ class ObjectEdit(DataEditor):
                                       off_value=0, on_value=1)
         set_tool_tip(self.flag, ttl.objectdata['Collision'])
 
-        self.objdatalabel = self.add_button_input(
+        self.objdata_reset_button_layout = self.add_button_input(
             "Object-Specific Settings", "Reset to Default", self.fill_default_values)
 
         self.userdata = [None] * 8
@@ -1063,16 +1066,23 @@ class ObjectEdit(DataEditor):
                 continue
             if parameter_name == "Unused":
                 if self.bound_to.userdata[i] != 0:
-                    Warning(f"Parameter with index {i} in object {objectname} is marked as Unused "
-                            f"but has value {self.bound_to.userdata[i]}")
+                    print(f"Warning: Parameter with index {i} in object {objectname} is marked as "
+                          f"unused but has value {self.bound_to.userdata[i]}.")
                 continue
 
             widget = self.add_types_widget_index(self.userdata_layout, parameter_name, 'userdata',
                                                  i, widget_type)
 
-            set_tool_tip(widget, tooltips[i])
+            set_tool_tip(widget, tooltip)
 
             self.userdata[i] = widget
+
+        # Only show reset button if there is any object-specific field that can be reset.
+        has_fields = any(widget is not None for widget in self.userdata)
+        for i in range(self.objdata_reset_button_layout.count()):
+            item = self.objdata_reset_button_layout.itemAt(i)
+            if item_widget := item.widget():
+                item_widget.setVisible(has_fields)
 
         self.update_userdata_widgets(self.bound_to)
 
@@ -1146,8 +1156,8 @@ class ObjectEdit(DataEditor):
                 elif isinstance(widget, QtWidgets.QComboBox):
                     index = widget.findData(obj.userdata[i])
                     widget.setCurrentIndex(index if index != -1 else 0)
-                elif isinstance(widget, QtWidgets.QLineEdit):
-                    widget.setText(str(obj.userdata[i]))
+                elif isinstance(widget, QtWidgets.QSpinBox):
+                    widget.setValue(obj.userdata[i])
 
 
 class KartStartPointEdit(DataEditor):
