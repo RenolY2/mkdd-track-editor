@@ -159,11 +159,11 @@ class Line:
         intersection_point = self.origin + self.direction * d
 
         C0 = intersection_point - tri.origin
-        if normal.dot(tri.p1_to_p2.cross(C0)) > 0:
+        if normal.dot(tri.p1_to_p2.cross(C0)) >= 0:
             C1 = intersection_point - tri.p2
-            if normal.dot(tri.p2_to_p3.cross(C1)) > 0:
+            if normal.dot(tri.p2_to_p3.cross(C1)) >= 0:
                 C2 = intersection_point - tri.p3
-                if normal.dot(tri.p3_to_p1.cross(C2)) > 0:
+                if normal.dot(tri.p3_to_p1.cross(C2)) >= 0:
                     return intersection_point, d
 
         return False
