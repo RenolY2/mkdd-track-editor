@@ -179,7 +179,17 @@ def subtract(
 
 
 @numba.jit(nopython=True, nogil=True, cache=True)
-def _distance_between_line_and_point(x, y, z, dx, dy, dz, px, py, pz):
+def _distance_between_line_and_point(
+    x: float,
+    y: float,
+    z: float,
+    dx: float,
+    dy: float,
+    dz: float,
+    px: float,
+    py: float,
+    pz: float,
+) -> float:
     p1_to_p2 = subtract(dx + x, dy + y, dz + z, x, y, z)
     p3_to_p1 = subtract(x, y, z, px, py, pz)
     return length(*cross(*p1_to_p2, *p3_to_p1)) / length(*p1_to_p2)
@@ -202,16 +212,16 @@ def _collide_ray_and_triangle(
     x2: float,
     y2: float,
     z2: float,
-):
+) -> tuple[float, float, float, float]:
     nx, ny, nz = normal(x0, y0, z0, x1, y1, z1, x2, y2, z2)
 
     d = dot(nx, ny, nz, dx, dy, dz)
     if d == 0.0:
-        return 0.0, 0.0, 0.0, 0.0
+        return -1.0, 0.0, 0.0, 0.0
 
     d = dot(*subtract(x0, y0, z0, x, y, z), nx, ny, nz) / d
     if d < 0.0:
-        return 0.0, 0.0, 0.0, 0.0
+        return -1.0, 0.0, 0.0, 0.0
 
     intersection_point = x + dx * d, y + dy * d, z + dz * d
 
@@ -223,7 +233,7 @@ def _collide_ray_and_triangle(
             if dot(nx, ny, nz, *cross(*subtract(x0, y0, z0, x2, y2, z2), *C2)) >= 0.0:
                 return d, *intersection_point
 
-    return 0.0, 0.0, 0.0, 0.0
+    return -1.0, 0.0, 0.0, 0.0
 
 
 @numba.jit(nopython=True, nogil=True, cache=True)
@@ -256,7 +266,7 @@ def _collide_ray_and_triangles(
             triangles[t * 9 + 8],
         )
 
-        if collision[0] > 0.0:
+        if collision[0] >= 0.0:
             collisions.append(collision)
 
     if collisions:
