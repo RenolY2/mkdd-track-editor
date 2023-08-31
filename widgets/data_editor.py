@@ -1,3 +1,5 @@
+import re
+
 import widgets.tooltip_list as ttl
 
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -30,8 +32,8 @@ def load_parameter_names(objectname):
         tooltips += [''] * (8 - len(tooltips))
 
         tooltips = [
-            ttl.markdown_to_html(parameter_name, tool_tip) if tool_tip else ''
-            for parameter_name, tool_tip in zip(parameter_names, tooltips)
+            ttl.markdown_to_html(re.sub(r'[^\x00-\x7f]', r'', parameter_name).strip(), tool_tip)
+            if tool_tip else '' for parameter_name, tool_tip in zip(parameter_names, tooltips)
         ]
 
         widget_types = data.get("Widgets", [])
@@ -256,6 +258,12 @@ class DataEditor(QtWidgets.QWidget):
 
     def update_data(self):
         pass
+
+    def get_bol_editor(self):
+        for window in QtWidgets.QApplication.topLevelWidgets():
+            if 'GenEditor' in str(type(window)):
+                return window
+        return None
 
     def create_label(self, text):
         label = QtWidgets.QLabel(self)
@@ -1046,9 +1054,13 @@ class ObjectEdit(DataEditor):
             self.userdata[i] = None
         clear_layout(self.userdata_layout)
 
+        show_code_patch_fields = self.get_bol_editor().show_code_patch_fields_action.isChecked()
+
         parameter_names, assets, tooltips, widget_types = load_parameter_names(objectname)
         tuples = zip(parameter_names, tooltips, widget_types)
         for i, (parameter_name, tooltip, widget_type) in enumerate(tuples):
+            if '🧩' in parameter_name and not show_code_patch_fields:
+                continue
             if parameter_name == "Unused":
                 if self.bound_to.userdata[i] != 0:
                     Warning(f"Parameter with index {i} in object {objectname} is marked as Unused "
