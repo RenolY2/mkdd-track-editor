@@ -659,6 +659,11 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         campos = Vector3(self.offset_x, self.camera_height, -self.offset_z)
         self.campos = campos
 
+        vismenu: FilterViewMenu = self.visibility_menu
+
+        gizmo_enabled = vismenu.transform_gizmo.isChecked()
+        grid_enabled = vismenu.grid.isChecked()
+
         if self.mode == MODE_TOPDOWN:
             gizmo_scale = 3*zf
         else:
@@ -677,13 +682,11 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         gizmo_hover_id = 0xFF
-        if not self.selectionqueue and check_gizmo_hover_id:
+        if gizmo_enabled and not self.selectionqueue and check_gizmo_hover_id:
             self.gizmo.render_collision_check(gizmo_scale, is3d=self.mode == MODE_3D)
             mouse_pos = self.mapFromGlobal(QtGui.QCursor.pos())
             pixels = glReadPixels(mouse_pos.x(), self.canvas_height - mouse_pos.y(), 1, 1, GL_RGB, GL_UNSIGNED_BYTE)
             gizmo_hover_id = pixels[2]
-
-        vismenu: FilterViewMenu = self.visibility_menu
 
         if self.selectionqueue:
             glClearColor(1.0, 1.0, 1.0, 1.0)
@@ -704,6 +707,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             clickheight = max(0, min(clickheight, height - click_y))
             if not clickwidth or not clickheight:
                 continue
+
+            do_gizmo = do_gizmo and gizmo_enabled
 
             if do_gizmo and clickwidth == 1 and clickheight == 1:
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -1048,7 +1053,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             glHint(GL_FOG_HINT, GL_DONT_CARE)
             glFogf(GL_FOG_END, 200000)
 
-        self.grid.render()
+        if grid_enabled:
+            self.grid.render()
 
         if self.mode != MODE_TOPDOWN:
             glFogf(GL_FOG_END, 500000)
@@ -1418,7 +1424,10 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                                                             self.minimap.corner2 in positions,
                                                             'minimap')
 
-        self.gizmo.render_scaled(gizmo_scale, is3d=self.mode == MODE_3D, hover_id=gizmo_hover_id)
+        if gizmo_enabled:
+            self.gizmo.render_scaled(gizmo_scale,
+                                     is3d=self.mode == MODE_3D,
+                                     hover_id=gizmo_hover_id)
 
         glDisable(GL_DEPTH_TEST)
         if self.selectionbox_start is not None and self.selectionbox_end is not None:
@@ -1696,7 +1705,7 @@ class FilterViewMenu(QtWidgets.QMenu):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setTitle("Filter View")
+        self.setTitle("View")
 
         self.show_all = QtGui.QAction("Show All", self)
         self.show_all.triggered.connect(self.handle_show_all)
@@ -1734,6 +1743,26 @@ class FilterViewMenu(QtWidgets.QMenu):
         for action in self.get_entries():
             action.action_view_toggle.triggered.connect(self.emit_update)
             action.action_select_toggle.triggered.connect(self.emit_update)
+
+        self.addSeparator()
+
+        self.transform_gizmo = self.addAction('&Transform Gizmo')
+        self.transform_gizmo.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_T))
+        self.transform_gizmo.setCheckable(True)
+        self.transform_gizmo.setChecked(True)
+        self.transform_gizmo.triggered.connect(self.filter_update)
+
+        self.grid = self.addAction('Grid')
+        self.grid.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_NumberSign))
+        self.grid.setCheckable(True)
+        self.grid.setChecked(True)
+        self.grid.triggered.connect(self.filter_update)
+
+        self.fullscreen = self.addAction('Fullscreen')
+        self.fullscreen.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F11))
+        self.fullscreen.setCheckable(True)
+        self.fullscreen.triggered[bool].connect(lambda checked: self.parent().showFullScreen()
+                                                if checked else self.parent().showNormal())
 
     def get_entries(self):
         return (self.enemyroute,
