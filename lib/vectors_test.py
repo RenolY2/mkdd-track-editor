@@ -69,12 +69,17 @@ def test_vector3_arithmetic():
 
 def test_vector3_linear_algebra():
     assert Vector3(1, 2, 3).norm() == pytest.approx(3.741657, 0.000001)
+    assert Vector3(1, 2, 3).length() == pytest.approx(3.741657, 0.000001)
+    assert Vector3(3, 4, 5).length2() == 50
 
     vector = Vector3(1, 2, 3)
     vector.normalize()
     assert vector.x == pytest.approx(0.267261, 0.000001)
     assert vector.y == pytest.approx(0.534522, 0.000001)
     assert vector.z == pytest.approx(0.801783, 0.000001)
+
+    normalized = Vector3(1, 2, 3).normalized()
+    assert normalized == vector
 
     vector = Vector3(1, 2, 3).cross(Vector3(4, -5, 6))
     assert vector.x == 27.0

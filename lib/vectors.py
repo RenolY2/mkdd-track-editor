@@ -1,5 +1,6 @@
 from math import sqrt
 
+import numpy
 
 class Vector3:
     def __init__(self, x, y, z):
@@ -13,11 +14,22 @@ class Vector3:
     def norm(self):
         return sqrt(self.x**2 + self.y**2 + self.z**2)
 
+    def length(self):
+        return sqrt(self.length2())
+
+    def length2(self):
+        return self.x**2 + self.y**2 + self.z**2
+
     def normalize(self):
         norm = self.norm()
         self.x /= norm
         self.y /= norm
         self.z /= norm
+
+    def normalized(self):
+        other = self.copy()
+        other.normalize()
+        return other
 
     def unit(self):
         return self/self.norm()
@@ -182,3 +194,40 @@ class Line:
                 return point, d
 
         return False
+
+
+def align_z_axis_with_target_dir(target_dir: Vector3, up_dir: Vector3) -> numpy.matrix:
+    # Implementation taken from Imath.
+    if target_dir.length2() == 0.0:
+        target_dir = Vector3(0, 0, 1)
+
+    if up_dir.length2() == 0.0:
+        up_dir = Vector3(0, 1, 0)
+
+    if up_dir.cross(target_dir).length2() == 0.0:
+        up_dir = target_dir.cross(Vector3(1.0, 0.0, 0.0))
+        if up_dir.length2() == 0.0:
+            up_dir = target_dir.cross(Vector3(0.0, 0.0, 1.0))
+
+    target_perp_dir = up_dir.cross(target_dir)
+    target_up_dir = target_dir.cross(target_perp_dir)
+
+    target_perp_dir.normalize()
+    target_up_dir.normalize()
+    target_dir.normalize()
+
+    return numpy.matrix([
+        [target_perp_dir.x, target_perp_dir.y, target_perp_dir.z, 0],
+        [target_up_dir.x, target_up_dir.y, target_up_dir.z, 0],
+        [target_dir.x, target_dir.y, target_dir.z, 0],
+        [0, 0, 0, 1],
+    ])
+
+
+def rotation_matrix_with_up_dir(from_dir: Vector3, to_dir: Vector3,
+                                up_dir: Vector3) -> numpy.matrix:
+    # Implementation taken from Imath.
+    z_axis2_from_dir = align_z_axis_with_target_dir(from_dir, Vector3(0, 1, 0))
+    z_axis2_from_dir.transpose()
+    z_axis2_to_dir = align_z_axis_with_target_dir(to_dir, up_dir)
+    return z_axis2_from_dir * z_axis2_to_dir
