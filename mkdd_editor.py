@@ -2965,12 +2965,29 @@ class Application(QtWidgets.QApplication):
 
     document_potentially_changed = QtCore.Signal()
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._pending_focus_change = False
+
+        self.focusChanged.connect(self._on_focus_changed)
+
     def notify(self, receiver: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if event.type() in POTENTIALLY_EDITING_EVENTS:
             if isinstance(receiver, QtGui.QWindow):
-                QtCore.QTimer.singleShot(0, self.document_potentially_changed)
+                # Certain widget types are known to submit many value changes while they have focus.
+                # Potentially-editing events will be disregarded until focus is out (unless there
+                # have been a recent focus change)
+                disregardable = isinstance(self.focusWidget(), QtWidgets.QAbstractSpinBox)
+                if not disregardable or self._pending_focus_change:
+                    self._pending_focus_change = False
+                    QtCore.QTimer.singleShot(0, self.document_potentially_changed)
 
         return super().notify(receiver, event)
+
+    def _on_focus_changed(self, old: QtWidgets.QWidget, now: QtWidgets.QWidget):
+        _ = old, now
+        self._pending_focus_change = True
 
 
 if __name__ == "__main__":

@@ -677,7 +677,9 @@ class Route(object):
         #pad = f.read(4)
         #assert pad == b"\x00\x00\x00\x00"
         route.unk1 = read_uint32(f)
+        assert route.unk1 in (0, 1)
         route.unk2 = read_uint8(f)
+        assert route.unk2 == 0
         pad = f.read(7)
         assert pad == b"\x00"*7
 
