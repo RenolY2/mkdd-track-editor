@@ -950,6 +950,11 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
             self.editor.select_from_3d_to_treeview()
 
+            # The selection action, that depends on the viewport draw call, may have occurred later
+            # than the actual click event (i.e. after the document state has been checked). The
+            # document needs to be checked again to determine whether the selection has changed.
+            self.editor.on_document_potentially_changed(update_unsaved_changes=False)
+
             self.gizmo.move_to_average(self.selected_positions, self.selected_rotations)
             if len(selected) == 0:
                 self.gizmo.hidden = True
