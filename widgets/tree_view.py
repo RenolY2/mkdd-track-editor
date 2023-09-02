@@ -229,6 +229,11 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
     duplicate = QtCore.Signal(ObjectGroup)
     split = QtCore.Signal(EnemyPointGroup, EnemyRoutePoint)
     split_checkpoint = QtCore.Signal(CheckpointGroup, Checkpoint)
+    select_object_type = QtCore.Signal(ObjectEntry)
+    select_area_type = QtCore.Signal(AreaEntry)
+    select_area_assoc = QtCore.Signal(AreaEntry)
+    select_route_assoc = QtCore.Signal(NamedItem)
+    select_route_points = QtCore.Signal(ObjectRoutePoint)
 
     def __init__(self, editor, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -260,9 +265,9 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
 
     def run_context_menu(self, pos):
         item = self.itemAt(pos)
+        context_menu = QtWidgets.QMenu(self)
 
         if isinstance(item, (EnemyRoutePoint, )):
-            context_menu = QtWidgets.QMenu(self)
             split_action = QtGui.QAction("Split Group At", self)
 
             def emit_current_split():
@@ -273,11 +278,7 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
             split_action.triggered.connect(emit_current_split)
 
             context_menu.addAction(split_action)
-            context_menu.exec(self.mapToGlobal(pos))
-            context_menu.destroy()
-            del context_menu
         elif isinstance(item, (Checkpoint, )):
-            context_menu = QtWidgets.QMenu(self)
             split_action = QtGui.QAction("Split Group At", self)
 
             def emit_current_split():
@@ -288,11 +289,7 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
             split_action.triggered.connect(emit_current_split)
 
             context_menu.addAction(split_action)
-            context_menu.exec(self.mapToGlobal(pos))
-            context_menu.destroy()
-            del context_menu
         elif isinstance(item, (EnemyPointGroup, ObjectPointGroup, CheckpointGroup)):
-            context_menu = QtWidgets.QMenu(self)
             select_all_action = QtGui.QAction("Select All", self)
             reverse_action = QtGui.QAction("Reverse", self)
 
@@ -320,7 +317,61 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
                 duplicate_action = QtGui.QAction("Duplicate", self)
                 duplicate_action.triggered.connect(emit_current_duplicate)
                 context_menu.addAction(duplicate_action)
+        elif isinstance(item, ObjectEntry):
 
+            select_all_action = QtGui.QAction("Select All with Same ID", self)
+
+            def emit_select_areas():
+                item = self.itemAt(pos)
+                self.select_object_type.emit(item)
+
+            select_all_action.triggered.connect(emit_select_areas)
+
+            context_menu.addAction(select_all_action)
+        elif isinstance(item, AreaEntry):
+            select_all_action = QtGui.QAction("Select All with Same Type", self)
+
+            def emit_select_areas():
+                item = self.itemAt(pos)
+                self.select_area_type.emit(item)
+
+            select_all_action.triggered.connect(emit_select_areas)
+
+            context_menu.addAction(select_all_action)
+
+            if item.bound_to.area_type == 1:
+                select_assoc_action = QtGui.QAction("Select Associated", self)
+                def emit_area_assoc():
+                    item = self.itemAt(pos)
+                    self.select_area_assoc.emit(item)
+
+                select_assoc_action.triggered.connect(emit_area_assoc)
+
+                context_menu.addAction(select_assoc_action)
+        elif isinstance(item, ObjectRoutePoint):
+            select_all_group = QtGui.QAction("Select All Points in Route", self)
+
+            def emit_select_route():
+                item = self.itemAt(pos)
+                self.select_route_points.emit(item)
+
+            select_all_group.triggered.connect(emit_select_route)
+
+            context_menu.addAction(select_all_group)
+        
+        if isinstance(item, (ObjectEntry, CameraEntry)):
+            if item.bound_to.route is not None:
+                select_assoc_action = QtGui.QAction("Select Associated Route", self)
+
+                def emit_route_assoc():
+                    item = self.itemAt(pos)
+                    self.select_route_assoc.emit(item)
+
+                select_assoc_action.triggered.connect(emit_route_assoc)
+
+                context_menu.addAction(select_assoc_action)
+
+        if context_menu.actions():
             context_menu.exec(self.mapToGlobal(pos))
             context_menu.destroy()
             del context_menu

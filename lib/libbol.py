@@ -1545,6 +1545,11 @@ class BOL(object):
 
         self.respawnpoints.append(respawn_point)
 
+    def get_route_of_points(self, point: RoutePoint):
+        for route in self.routes:
+            if point in route.points:
+                return route, route.points.index(point)
+        return None, None
 
 with open("lib/mkddobjects.json", "r") as f:
     tmp = json.load(f)
