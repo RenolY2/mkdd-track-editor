@@ -3285,7 +3285,7 @@ if __name__ == "__main__":
     app.setPalette(palette)
 
     QtWidgets.QToolTip.setPalette(palette)
-    padding = app.fontMetrics().height() // 2
+    padding = QtGui.QFontMetrics(QtGui.QFont()).height() // 2
     app.setStyleSheet(f'QToolTip {{ padding: {padding}px; }}')
 
     if platform.system() == "Windows":
