@@ -171,7 +171,7 @@ class GenEditor(QtWidgets.QMainWindow):
 
         self.restore_geometry()
 
-        self.visibility_menu.fullscreen.setChecked(
+        self.fullscreen.setChecked(
             bool(QtCore.Qt.WindowFullScreen & self.windowState()))
 
         self.undo_history.append(self.generate_undo_entry())
@@ -687,6 +687,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.paste_action.setShortcut(QtGui.QKeySequence('Ctrl+V'))
         self.paste_action.triggered.connect(self.on_paste_action_triggered)
 
+        # ---- Visibility 
         self.visibility_menu = mkdd_widgets.FilterViewMenu(self)
         self.visibility_menu.filter_update.connect(self.on_filter_update)
         filters = self.editorconfig["filter_view"].split(",")
@@ -703,21 +704,7 @@ class GenEditor(QtWidgets.QMainWindow):
         # ------ Collision Menu
         self.collision_menu = QtWidgets.QMenu(self.menubar)
         self.collision_menu.setTitle("Geometry")
-        self.collision_load_action = QtGui.QAction("Load OBJ", self)
-        self.collision_load_action.triggered.connect(self.button_load_collision)
-        self.collision_menu.addAction(self.collision_load_action)
-        self.collision_load_grid_action = QtGui.QAction("Load BCO", self)
-        self.collision_load_grid_action.triggered.connect(self.button_load_collision_bco)
-        self.collision_menu.addAction(self.collision_load_grid_action)
-        self.collision_load_bmd_action = QtGui.QAction("Load BMD", self)
-        self.collision_load_bmd_action.triggered.connect(self.button_load_collision_bmd)
-        self.collision_menu.addAction(self.collision_load_bmd_action)
-        self.collision_menu.addSeparator()
-        cull_faces_action = self.collision_menu.addAction("Cull Faces")
-        cull_faces_action.setCheckable(True)
-        cull_faces_action.setChecked(self.editorconfig.get("cull_faces") == "True")
-        cull_faces_action.triggered.connect(self.on_cull_faces_triggered)
-        self.collision_menu.addSeparator()
+
         self.choose_default_collision = QtWidgets.QMenu("Choose Autoloaded Geometry", self)
         self.collision_menu.addMenu(self.choose_default_collision)
         self.auto_load_choose = self.choose_default_collision.addAction("Always Ask")
@@ -738,11 +725,32 @@ class GenEditor(QtWidgets.QMainWindow):
         self.auto_load_none.triggered.connect(lambda: self.on_default_geometry_changed("None"))
         if self.editorconfig.get("addi_file_on_load") not in ("BCO", "BMD", "None", "Choose"):
             self.on_default_geometry_changed("Choose")
+
         self.collision_menu.addSeparator()
+        self.collision_load_action = QtGui.QAction("Load OBJ", self)
+        self.collision_load_action.triggered.connect(self.button_load_collision)
+        self.collision_menu.addAction(self.collision_load_action)
+        self.collision_load_grid_action = QtGui.QAction("Load BCO", self)
+        self.collision_load_grid_action.triggered.connect(self.button_load_collision_bco)
+        self.collision_menu.addAction(self.collision_load_grid_action)
+        self.collision_load_bmd_action = QtGui.QAction("Load BMD", self)
+        self.collision_load_bmd_action.triggered.connect(self.button_load_collision_bmd)
+        self.collision_menu.addAction(self.collision_load_bmd_action)
         self.clear_current_collision = QtGui.QAction("Clear Current Model", self)
         self.clear_current_collision.triggered.connect(self.clear_collision)
         self.collision_menu.addAction(self.clear_current_collision)
 
+        self.collision_menu.addSeparator()
+        cull_faces_action = self.collision_menu.addAction("Cull Faces")
+        cull_faces_action.setCheckable(True)
+        cull_faces_action.setChecked(self.editorconfig.get("cull_faces") == "True")
+        cull_faces_action.triggered.connect(self.on_cull_faces_triggered)
+        self.choose_bco_area = QtGui.QAction("Collision Areas (BCO)")
+        self.choose_bco_area.triggered.connect(self.action_choose_bco_area)
+        self.collision_menu.addAction(self.choose_bco_area)
+        self.choose_bco_area.setShortcut("Ctrl+K")
+
+        # ------- Tools Menu
         self.tools_menu = QtWidgets.QMenu(self.menubar)
         self.tools_menu.setTitle("Tools")
 
@@ -765,6 +773,32 @@ class GenEditor(QtWidgets.QMainWindow):
             action.setToolTip(snapping_menu_tool_tip)
             self.snapping_menu_action_group.addAction(action)
 
+        self.analyze_action = QtGui.QAction("Analyze for common mistakes", self)
+        self.analyze_action.triggered.connect(self.analyze_for_mistakes)
+        self.tools_menu.addAction(self.analyze_action)
+
+        self.show_code_patch_fields_action = QtGui.QAction("Show Code Patch-Dependent Fields (🧩)")
+        self.show_code_patch_fields_action.setCheckable(True)
+        self.show_code_patch_fields_action.setChecked(
+            bool(self.editorconfig.get('show_code_patch_fields') == 'true'))
+
+        def on_show_code_patch_fields_triggered(checked):
+            self.editorconfig['show_code_patch_fields'] = 'true' if checked else 'false'
+            self.action_update_info()
+
+        self.show_code_patch_fields_action.triggered[bool].connect(
+            on_show_code_patch_fields_triggered)
+
+        self.tools_menu.addAction(self.show_code_patch_fields_action)
+
+        self.tools_menu.addSeparator()
+        self.rotation_mode = QtGui.QAction("Rotate Positions around Pivot", self)
+        self.rotation_mode.setCheckable(True)
+        self.rotation_mode.setChecked(True)
+        self.tools_menu.addAction(self.rotation_mode)
+
+
+        # -------- Minimap Menu
         self.minimap_menu = QtWidgets.QMenu(self.menubar)
         self.minimap_menu.setTitle("Minimap")
         load_minimap = QtGui.QAction("Load Minimap Image", self)
@@ -799,23 +833,17 @@ class GenEditor(QtWidgets.QMainWindow):
         self.minimap_menu.addSeparator()
         self.minimap_menu.addAction(minimap_generator_action)
 
-        # Misc
-        self.misc_menu = QtWidgets.QMenu(self.menubar)
-        self.misc_menu.setTitle("Misc")
-        self.rotation_mode = QtGui.QAction("Rotate Positions around Pivot", self)
-        self.rotation_mode.setCheckable(True)
-        self.rotation_mode.setChecked(True)
+        #View
+        self.view_menu = QtWidgets.QMenu(self.menubar)
+        self.view_menu.setTitle("View")
         self.frame_action = QtGui.QAction("Frame Selection/All", self)
         self.frame_action.triggered.connect(
             lambda _checked: self.frame_selection(adjust_zoom=True))
         self.frame_action.setShortcut("F")
-        self.misc_menu.addAction(self.rotation_mode)
-        self.misc_menu.addAction(self.frame_action)
-        self.analyze_action = QtGui.QAction("Analyze for common mistakes", self)
-        self.analyze_action.triggered.connect(self.analyze_for_mistakes)
-        self.misc_menu.addAction(self.analyze_action)
+        self.view_menu.addAction(self.frame_action)
 
-        self.misc_menu.aboutToShow.connect(
+
+        self.view_menu.aboutToShow.connect(
             lambda: self.frame_action.setText(
                 "Frame Selection" if self.level_view.selected_positions else "Frame All"))
 
@@ -824,7 +852,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.change_to_topdownview_action = QtGui.QAction("Topdown View", self)
         self.view_action_group.addAction(self.change_to_topdownview_action)
         self.change_to_topdownview_action.triggered.connect(self.change_to_topdownview)
-        self.misc_menu.addAction(self.change_to_topdownview_action)
+        self.view_menu.addAction(self.change_to_topdownview_action)
         self.change_to_topdownview_action.setCheckable(True)
         self.change_to_topdownview_action.setChecked(True)
         self.change_to_topdownview_action.setShortcut("Ctrl+1")
@@ -832,14 +860,33 @@ class GenEditor(QtWidgets.QMainWindow):
         self.change_to_3dview_action = QtGui.QAction("3D View", self)
         self.view_action_group.addAction(self.change_to_3dview_action)
         self.change_to_3dview_action.triggered.connect(self.change_to_3dview)
-        self.misc_menu.addAction(self.change_to_3dview_action)
+        self.view_menu.addAction(self.change_to_3dview_action)
         self.change_to_3dview_action.setCheckable(True)
         self.change_to_3dview_action.setShortcut("Ctrl+2")
 
-        self.choose_bco_area = QtGui.QAction("Collision Areas (BCO)")
-        self.choose_bco_area.triggered.connect(self.action_choose_bco_area)
-        self.misc_menu.addAction(self.choose_bco_area)
-        self.choose_bco_area.setShortcut("Ctrl+3")
+        self.view_menu.addSeparator()
+
+        self.transform_gizmo = self.view_menu.addAction('&Transform Gizmo')
+        self.transform_gizmo.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_T))
+        self.transform_gizmo.setCheckable(True)
+        self.transform_gizmo.setChecked(True)
+        self.transform_gizmo.triggered.connect(self.visibility_menu.filter_update)
+
+        self.grid = self.view_menu.addAction('Grid')
+        self.grid.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_NumberSign))
+        self.grid.setCheckable(True)
+        self.grid.setChecked(True)
+        self.grid.triggered.connect(self.visibility_menu.filter_update)
+
+        self.fullscreen = self.view_menu.addAction('Fullscreen')
+        self.fullscreen.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F11))
+        self.fullscreen.setCheckable(True)
+        self.fullscreen.triggered[bool].connect(lambda checked: self.showFullScreen()
+                                                if checked else self.showNormal())
+
+        # Misc
+        self.misc_menu = QtWidgets.QMenu(self.menubar)
+        self.misc_menu.setTitle("Dolphin")
 
         self.menubar.addAction(self.file_menu.menuAction())
         self.menubar.addAction(self.edit_menu.menuAction())
@@ -847,24 +894,11 @@ class GenEditor(QtWidgets.QMainWindow):
         self.menubar.addAction(self.collision_menu.menuAction())
         self.menubar.addAction(self.tools_menu.menuAction())
         self.menubar.addAction(self.minimap_menu.menuAction())
+        self.menubar.addAction(self.view_menu.menuAction())
         self.menubar.addAction(self.misc_menu.menuAction())
         self.setMenuBar(self.menubar)
 
         self.last_obj_select_pos = 0
-
-        self.show_code_patch_fields_action = QtGui.QAction("Show Code Patch-Dependent Fields (🧩)")
-        self.show_code_patch_fields_action.setCheckable(True)
-        self.show_code_patch_fields_action.setChecked(
-            bool(self.editorconfig.get('show_code_patch_fields') == 'true'))
-
-        def on_show_code_patch_fields_triggered(checked):
-            self.editorconfig['show_code_patch_fields'] = 'true' if checked else 'false'
-            self.action_update_info()
-
-        self.show_code_patch_fields_action.triggered[bool].connect(
-            on_show_code_patch_fields_triggered)
-
-        self.misc_menu.addAction(self.show_code_patch_fields_action)
 
         self.misc_menu.addSeparator()
 
