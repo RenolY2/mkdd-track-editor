@@ -881,8 +881,9 @@ class GenEditor(QtWidgets.QMainWindow):
         self.fullscreen = self.view_menu.addAction('Fullscreen')
         self.fullscreen.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F11))
         self.fullscreen.setCheckable(True)
-        self.fullscreen.triggered[bool].connect(lambda checked: self.showFullScreen()
-                                                if checked else self.showNormal())
+        self.fullscreen.triggered[bool].connect(lambda checked: self.setWindowState(
+            (self.windowState() | QtCore.Qt.WindowFullScreen)
+            if checked else (self.windowState() & ~QtCore.Qt.WindowFullScreen)))
 
         # Misc
         self.misc_menu = QtWidgets.QMenu(self.menubar)
