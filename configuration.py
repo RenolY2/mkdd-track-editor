@@ -24,7 +24,7 @@ def make_default_config():
         "wasdscrolling_speed": "1250",
         "wasdscrolling_speedupfactor": "5",
         "multisampling": "8",
-        "3d_background": "100 100 100",
+        "3d_background": "90 90 90",
         "hidden_collision_types": "",
         "hidden_collision_type_groups": "",
         "filter_view": "",
