@@ -3099,6 +3099,19 @@ class GenEditor(QtWidgets.QMainWindow):
                 # selected, and the data editor needs to be updated manually.
                 self.action_update_info()
 
+                # Without emitting any signal, programmatically update the currently selected item
+                # in the tree view.
+                with QtCore.QSignalBlocker(self.leveldatatreeview):
+                    if selected:
+                        self.select_tree_item_bound_to(selected)
+                    else:
+                        # If no selection occurred, ensure that no tree item remains selected. This
+                        # is relevant to ensure that non-pickable objects (such as the top-level
+                        # items) do not remain selected when the user clicks on an empty space in
+                        # the viewport.
+                        for selected_item in self.leveldatatreeview.selectedItems():
+                            selected_item.setSelected(False)
+
             #if nothing is selected and the currentitem is something that can be selected
             #clear out the buttons
             curr_item = self.leveldatatreeview.currentItem()
@@ -3130,19 +3143,6 @@ class GenEditor(QtWidgets.QMainWindow):
             else:
                 self.pik_control.reset_info("{0} objects selected".format(len(self.level_view.selected)))
                 self.pik_control.set_objectlist(selected)
-
-                # Without emitting any signal, programmatically update the currently selected item
-                # in the tree view.
-                with QtCore.QSignalBlocker(self.leveldatatreeview):
-                    if selected:
-                        self.select_tree_item_bound_to(selected)
-                    else:
-                        # If no selection occurred, ensure that no tree item remains selected. This
-                        # is relevant to ensure that non-pickable objects (such as the top-level
-                        # items) do not remain selected when the user clicks on an empty space in
-                        # the viewport.
-                        for selected_item in self.leveldatatreeview.selectedItems():
-                            selected_item.setSelected(False)
 
     @catch_exception
     def mapview_showcontextmenu(self, position):
