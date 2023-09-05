@@ -2809,10 +2809,22 @@ class GenEditor(QtWidgets.QMainWindow):
         self.action_delete_objects()
 
     def on_copy_action_triggered(self):
+        selected = list(self.level_view.selected)
+
+        # If a point (enemy path point, route point, or checkpoint) is selected, but also its parent
+        # container is selected, discard the point, to give preference to the entire group.
+        for obj in tuple(selected):
+            if isinstance(obj, (libbol.EnemyPointGroup, libbol.CheckpointGroup, libbol.Route)):
+                for point in obj.points:
+                    try:
+                        selected.remove(point)
+                    except ValueError:
+                        pass
+
         # Widgets are unpickleable, so they need to be temporarily stashed. This needs to be done
         # recursively, as top-level groups main contain points associated with widgets too.
         object_to_widget = {}
-        pending = list(self.level_view.selected)
+        pending = list(selected)
         while pending:
             obj = pending.pop(0)
             if hasattr(obj, 'widget'):
@@ -2827,7 +2839,7 @@ class GenEditor(QtWidgets.QMainWindow):
         # well when pasted, as the newly constructed Python object wouldn't be a reference to any
         # route instance; they will be temporarily converted to route indexes instead.
         object_camera_routes = []
-        for obj in self.level_view.selected:
+        for obj in selected:
             if isinstance(obj, (libbol.MapObject, libbol.Camera)):
                 object_camera_routes.append((obj, obj.route))
                 if obj.route is not None:
@@ -2836,7 +2848,7 @@ class GenEditor(QtWidgets.QMainWindow):
                     obj.route = -1
         # And the same applies to cameras assigned to areas.
         areas_cameras = []
-        for obj in self.level_view.selected:
+        for obj in selected:
             if isinstance(obj, libbol.Area):
                 areas_cameras.append((obj, obj.camera))
                 if obj.camera is not None:
@@ -2846,7 +2858,7 @@ class GenEditor(QtWidgets.QMainWindow):
 
         try:
             # Effectively serialize the data.
-            data = pickle.dumps(self.level_view.selected)
+            data = pickle.dumps(selected)
         finally:
             # Restore the widgets.
             for obj, widget in object_to_widget.items():
