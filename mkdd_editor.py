@@ -2887,38 +2887,153 @@ class GenEditor(QtWidgets.QMainWindow):
         if not copied_objects:
             return
 
-        # If an tree item is selected, use it as a reference point for adding the objects that are
-        # about to be pasted.
-        selected_items = self.leveldatatreeview.selectedItems()
-        selected_obj = selected_items[-1].bound_to if selected_items else None
-
-        target_path = None
+        # The currently selected items are used as reference for the insertion points. For each
+        # element kind, we need to figure out the target group, and the index in the target group.
+        target_enemy_path = None
+        target_enemy_path_index = -1
+        target_enemy_point_index = -1
         target_checkpoint_group = None
+        target_checkpoint_group_index = -1
+        target_checkpoint_index = -1
         target_route = None
+        target_route_index = -1
+        target_route_point_index = -1
+        target_object_index = -1
+        target_kart_start_point_index = -1
+        target_area_index = -1
+        target_camera_index = -1
+        target_respawn_point_index = -1
+        target_light_param_index = -1
+        target_minigame_param_index = -1
 
-        if isinstance(selected_obj, libbol.EnemyPointGroup):
-            target_path = selected_obj
-        elif isinstance(selected_obj, libbol.EnemyPoint):
-            for group in self.level_file.enemypointgroups.groups:
-                if group.id == selected_obj.group:
-                    target_path = group
-                    break
+        for selected_item in reversed(self.leveldatatreeview.selectedItems()):
+            if not hasattr(selected_item, 'bound_to'):
+                continue
 
-        if isinstance(selected_obj, libbol.CheckpointGroup):
-            target_checkpoint_group = selected_obj
-        elif isinstance(selected_obj, libbol.Checkpoint):
-            for group in self.level_file.checkpoints.groups:
-                if selected_obj in group.points:
-                    target_checkpoint_group = group
-                    break
+            selected_obj = selected_item.bound_to
 
-        if isinstance(selected_obj, libbol.Route):
-            target_route = selected_obj
-        elif isinstance(selected_obj, libbol.RoutePoint):
-            for route in self.level_file.routes:
-                if selected_obj in route.points:
-                    target_route = route
-                    break
+            if selected_item is self.leveldatatreeview.enemyroutes:
+                if target_enemy_path_index >= 0:
+                    continue
+                target_enemy_path_index = 0
+            elif isinstance(selected_obj, libbol.EnemyPointGroup):
+                if target_enemy_path is not None:
+                    continue
+                target_enemy_path = selected_obj
+                target_enemy_path_index = 1 + self.level_file.enemypointgroups.groups.index(
+                    selected_obj)
+                target_enemy_point_index = 0
+            elif isinstance(selected_obj, libbol.EnemyPoint):
+                if target_enemy_point_index >= 0:
+                    continue
+                for enemy_path in self.level_file.enemypointgroups.groups:
+                    if enemy_path.id == selected_obj.group:
+                        target_enemy_path = enemy_path
+                        target_enemy_point_index = 1 + enemy_path.points.index(selected_obj)
+                        break
+
+            elif selected_item is self.leveldatatreeview.checkpointgroups:
+                if target_checkpoint_group_index >= 0:
+                    continue
+                target_checkpoint_group_index = 0
+            elif isinstance(selected_obj, libbol.CheckpointGroup):
+                if target_checkpoint_group is not None:
+                    continue
+                target_checkpoint_group = selected_obj
+                target_checkpoint_group_index = 1 + self.level_file.checkpoints.groups.index(
+                    selected_obj)
+                target_checkpoint_index = 0
+            elif isinstance(selected_obj, libbol.Checkpoint):
+                if target_checkpoint_index >= 0:
+                    continue
+                for checkpoint_group in self.level_file.checkpoints.groups:
+                    if selected_obj in checkpoint_group.points:
+                        target_checkpoint_group = checkpoint_group
+                        target_checkpoint_index = 1 + checkpoint_group.points.index(selected_obj)
+                        break
+
+            elif selected_item is self.leveldatatreeview.routes:
+                if target_route_index >= 0:
+                    continue
+                target_route_index = 0
+            elif isinstance(selected_obj, libbol.Route):
+                if target_route is not None:
+                    continue
+                target_route = selected_obj
+                target_route_index = 1 + self.level_file.routes.index(selected_obj)
+                target_route_point_index = 0
+            elif isinstance(selected_obj, libbol.RoutePoint):
+                if target_route_point_index >= 0:
+                    continue
+                for route in self.level_file.routes:
+                    if selected_obj in route.points:
+                        target_route = route
+                        target_route_point_index = 1 + route.points.index(selected_obj)
+                        break
+
+            elif selected_item is self.leveldatatreeview.objects:
+                if target_object_index >= 0:
+                    continue
+                target_object_index = 0
+            elif isinstance(selected_obj, libbol.MapObject):
+                if target_object_index >= 0:
+                    continue
+                target_object_index = 1 + self.level_file.objects.objects.index(selected_obj)
+
+            elif selected_item is self.leveldatatreeview.kartpoints:
+                if target_kart_start_point_index >= 0:
+                    continue
+                target_kart_start_point_index = 0
+            elif isinstance(selected_obj, libbol.KartStartPoint):
+                if target_kart_start_point_index >= 0:
+                    continue
+                target_kart_start_point_index = 1 + self.level_file.kartpoints.positions.index(
+                    selected_obj)
+
+            elif selected_item is self.leveldatatreeview.areas:
+                if target_area_index >= 0:
+                    continue
+                target_area_index = 0
+            elif isinstance(selected_obj, libbol.Area):
+                if target_area_index >= 0:
+                    continue
+                target_area_index = 1 + self.level_file.areas.areas.index(selected_obj)
+
+            elif selected_item is self.leveldatatreeview.cameras:
+                if target_camera_index >= 0:
+                    continue
+                target_camera_index = 0
+            elif isinstance(selected_obj, libbol.Camera):
+                if target_camera_index >= 0:
+                    continue
+                target_camera_index = 1 + self.level_file.cameras.index(selected_obj)
+
+            elif selected_item is self.leveldatatreeview.respawnpoints:
+                if target_respawn_point_index >= 0:
+                    continue
+                target_respawn_point_index = 0
+            elif isinstance(selected_obj, libbol.JugemPoint):
+                if target_respawn_point_index >= 0:
+                    continue
+                target_respawn_point_index = 1 + self.level_file.respawnpoints.index(selected_obj)
+
+            elif selected_item is self.leveldatatreeview.lightparams:
+                if target_light_param_index >= 0:
+                    continue
+                target_light_param_index = 0
+            elif isinstance(selected_obj, libbol.LightParam):
+                if target_light_param_index >= 0:
+                    continue
+                target_light_param_index = 1 + self.level_file.lightparams.index(selected_obj)
+
+            elif selected_item is self.leveldatatreeview.mgentries:
+                if target_minigame_param_index >= 0:
+                    continue
+                target_minigame_param_index = 0
+            elif isinstance(selected_obj, libbol.MGEntry):
+                if target_minigame_param_index >= 0:
+                    continue
+                target_minigame_param_index = 1 + self.level_file.mgentries.index(selected_obj)
 
         added = []
 
@@ -2930,7 +3045,11 @@ class GenEditor(QtWidgets.QMainWindow):
                         self.level_file.routes.append(libbol.Route.new())
                     target_route = self.level_file.routes[-1]
 
-                target_route.points.append(obj)
+                if target_route_point_index == -1:
+                    target_route.points.append(obj)
+                else:
+                    target_route.points.insert(target_route_point_index, obj)
+                    target_route_point_index += 1
 
                 added.append(obj)
 
@@ -2941,7 +3060,12 @@ class GenEditor(QtWidgets.QMainWindow):
                     obj.route = self.level_file.routes[obj.route]
                 else:
                     obj.route = None
-                self.level_file.cameras.append(obj)
+
+                if target_camera_index == -1:
+                    self.level_file.cameras.append(obj)
+                else:
+                    self.level_file.cameras.insert(target_camera_index, obj)
+                    target_camera_index += 1
 
                 added.append(obj)
 
@@ -2949,30 +3073,52 @@ class GenEditor(QtWidgets.QMainWindow):
             # Group objects.
             if isinstance(obj, libbol.EnemyPointGroup):
                 obj.id = self.level_file.enemypointgroups.new_group_id()
-                self.level_file.enemypointgroups.groups.append(obj)
                 for point in obj.points:
                     point.link = -1
                     point.group_id = obj.id
+                if target_enemy_path_index == -1:
+                    self.level_file.enemypointgroups.groups.append(obj)
+                else:
+                    self.level_file.enemypointgroups.groups.insert(target_enemy_path_index, obj)
+                    target_enemy_path_index += 1
             elif isinstance(obj, libbol.CheckpointGroup):
-                self.level_file.checkpoints.groups.append(obj)
+                if target_checkpoint_group_index == -1:
+                    self.level_file.checkpoints.groups.append(obj)
+                else:
+                    self.level_file.checkpoints.groups.insert(target_checkpoint_group_index, obj)
+                    target_checkpoint_group_index += 1
             elif isinstance(obj, libbol.Route):
-                self.level_file.routes.append(obj)
+                if target_route_index == -1:
+                    self.level_file.routes.append(obj)
+                else:
+                    self.level_file.routes.insert(target_route_index, obj)
+                    target_route_index += 1
 
             # Objects in group objects.
             elif isinstance(obj, libbol.EnemyPoint):
-                if target_path is None:
+                if target_enemy_path is None:
                     if not self.level_file.enemypointgroups.groups:
                         self.level_file.enemypointgroups.groups.append(libbol.EnemyPointGroup.new())
-                    target_path = self.level_file.enemypointgroups.groups[-1]
+                    target_enemy_path = self.level_file.enemypointgroups.groups[-1]
 
-                obj.group = target_path.id
-                if not target_path.points:
-                    obj.link = 0
+                obj.group = target_enemy_path.id
+                obj.link = -1
+                if target_enemy_point_index == -1:
+                    target_enemy_path.points.append(obj)
                 else:
-                    obj.link = target_path.points[-1].link
-                    if len(target_path.points) > 1:
-                        target_path.points[-1].link = -1
-                target_path.points.append(obj)
+                    target_enemy_path.points.insert(target_enemy_point_index, obj)
+                    target_enemy_point_index += 1
+
+                # If the enemy point has been prepended or appended, link values need to be updated
+                # accordingly.
+                if len(target_enemy_path.points) >= 2:
+                    if target_enemy_path.points[0] is obj:
+                        obj.link = target_enemy_path.points[1].link
+                        target_enemy_path.points[1].link = -1
+                    elif target_enemy_path.points[-1] is obj:
+                        obj.link = target_enemy_path.points[-2].link
+                        if len(target_enemy_path.points) >= 3:
+                            target_enemy_path.points[-2].link = -1
 
             elif isinstance(obj, libbol.Checkpoint):
                 if target_checkpoint_group is None:
@@ -2980,7 +3126,11 @@ class GenEditor(QtWidgets.QMainWindow):
                         self.level_file.checkpoints.groups.append(libbol.CheckpointGroup.new())
                     target_checkpoint_group = self.level_file.checkpoints.groups[-1]
 
-                target_checkpoint_group.points.append(obj)
+                if target_checkpoint_index == -1:
+                    target_checkpoint_group.points.append(obj)
+                else:
+                    target_checkpoint_group.points.append(target_checkpoint_index, obj)
+                    target_checkpoint_index += 1
 
             # Autonomous objects.
             elif isinstance(obj, libbol.MapObject):
@@ -2988,25 +3138,49 @@ class GenEditor(QtWidgets.QMainWindow):
                     obj.route = self.level_file.routes[obj.route]
                 else:
                     obj.route = None
-                self.level_file.objects.objects.append(obj)
+                if target_object_index == -1:
+                    self.level_file.objects.objects.append(obj)
+                else:
+                    self.level_file.objects.objects.insert(target_object_index, obj)
+                    target_object_index += 1
             elif isinstance(obj, libbol.KartStartPoint):
-                self.level_file.kartpoints.positions.append(obj)
+                if target_kart_start_point_index == -1:
+                    self.level_file.kartpoints.positions.append(obj)
+                else:
+                    self.level_file.kartpoints.positions.insert(target_kart_start_point_index, obj)
+                    target_kart_start_point_index += 1
             elif isinstance(obj, libbol.JugemPoint):
                 max_respawn_id = -1
                 for point in self.level_file.respawnpoints:
                     max_respawn_id = max(point.respawn_id, max_respawn_id)
                 obj.respawn_id = max_respawn_id + 1
-                self.level_file.respawnpoints.append(obj)
+                if target_respawn_point_index == -1:
+                    self.level_file.respawnpoints.append(obj)
+                else:
+                    self.level_file.respawnpoints.insert(target_respawn_point_index, obj)
+                    target_respawn_point_index += 1
             elif isinstance(obj, libbol.Area):
                 if 0 <= obj.camera < len(self.level_file.cameras):
                     obj.camera = self.level_file.cameras[obj.camera]
                 else:
                     obj.camera = None
-                self.level_file.areas.areas.append(obj)
+                if target_area_index == -1:
+                    self.level_file.areas.areas.append(obj)
+                else:
+                    self.level_file.areas.areas.insert(target_area_index, obj)
+                    target_area_index += 1
             elif isinstance(obj, libbol.LightParam):
-                self.level_file.lightparams.append(obj)
+                if target_light_param_index == -1:
+                    self.level_file.lightparams.append(obj)
+                else:
+                    self.level_file.lightparams.insert(target_light_param_index, obj)
+                    target_light_param_index += 1
             elif isinstance(obj, libbol.MGEntry):
-                self.level_file.mgentries.append(obj)
+                if target_minigame_param_index == -1:
+                    self.level_file.mgentries.append(obj)
+                else:
+                    self.level_file.mgentries.insert(target_minigame_param_index, obj)
+                    target_minigame_param_index += 1
             else:
                 continue
 
