@@ -2340,9 +2340,12 @@ class GenEditor(QtWidgets.QMainWindow):
                     new_item_selection.append(item)
 
         if new_item_selection:
-            # If found, deselect current selection, and select the new item.
+            # If found, deselect current selection.
             for selected_item in self.leveldatatreeview.selectedItems():
                 selected_item.setSelected(False)
+
+            # Make last item in the new selection current (focus effect), and select new items.
+            self.leveldatatreeview.setCurrentItem(new_item_selection[-1])
             for bound_item in new_item_selection:
                 bound_item.setSelected(True)
 
