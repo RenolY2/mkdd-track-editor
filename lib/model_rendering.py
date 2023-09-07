@@ -786,11 +786,12 @@ class Minimap(object):
 
 
 class Grid(Mesh):
-    def __init__(self, width, length, step):
+    def __init__(self, width, length, step, color):
         super().__init__("Grid")
         self.width = width
         self.length = length
         self.step = step
+        self.color = color
 
     def generate_displist(self):
         if self._displist is not None:
@@ -802,7 +803,7 @@ class Grid(Mesh):
 
         self._displist = glGenLists(1)
         glNewList(self._displist, GL_COMPILE)
-        glColor3f(0.2, 0.2, 0.2)
+        glColor4f(*self.color)
         glLineWidth(4.0)
         glBegin(GL_LINES)
         glVertex3f(-width, 0, offset)

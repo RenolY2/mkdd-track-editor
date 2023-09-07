@@ -222,7 +222,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
         #self.generic_object = GenericObject()
         self.models = ObjectModels()
-        self.grid = Grid(1000000, 1000000, 10000)
+        self.grid = None
+        self.ground_display_list = None
 
         self.modelviewmatrix = None
         self.projectionmatrix = None
@@ -243,6 +244,22 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         glEndList()
 
         self.models.init_gl()
+
+        GRID_SIZE = 1000000
+        self.grid = Grid(GRID_SIZE, GRID_SIZE, 10000, self.skycolor)
+
+        self.ground_display_list = glGenLists(1)
+        glNewList(self.ground_display_list, GL_COMPILE)
+        glBegin(GL_TRIANGLE_FAN)
+        glColor4f(*self.backgroundcolor)
+        glVertex3f(0, 0, -500)
+        glColor4f(*self.skycolor)
+        for angle in range(0, 360, 30):
+            radians = angle * pi / 180.0
+            glVertex3f(sin(radians) * GRID_SIZE, cos(radians) * GRID_SIZE, -500)
+        glVertex3f(0, GRID_SIZE, -500)
+        glEnd()
+        glEndList()
 
         # If multisampling is enabled, a secondary mono-sampled framebuffer needs to be created, as
         # reading pixels from multisampled framebuffers is not a supported GL operation.
@@ -299,7 +316,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             self.backgroundcolor[0] * 0.6,
             self.backgroundcolor[1] * 0.6,
             self.backgroundcolor[2] * 0.6,
-            self.backgroundcolor[3] * 0.6,
+            1.0,
         )
 
     def change_from_topdown_to_3d(self):
@@ -1064,28 +1081,11 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             glLoadIdentity()
             gluPerspective(75, width / height, 100.0, 10000000.0)
 
-            glEnable(GL_FOG)
-            glFogfv(GL_FOG_COLOR, self.skycolor)
-            glFogi(GL_FOG_MODE, GL_LINEAR)
-            glFogf(GL_FOG_START, 1000)
-            glHint(GL_FOG_HINT, GL_DONT_CARE)
-            glFogf(GL_FOG_END, 200000)
-
         if grid_enabled:
             self.grid.render()
 
         if self.mode != MODE_TOPDOWN:
-            glFogf(GL_FOG_END, 500000)
-
-            glColor4f(*self.backgroundcolor)
-            glBegin(GL_QUADS)
-            glVertex3f(10000000, 10000000, -500)
-            glVertex3f(10000000, -10000000, -500)
-            glVertex3f(-10000000, -10000000, -500)
-            glVertex3f(-10000000, 10000000, -500)
-            glEnd()
-
-            glDisable(GL_FOG)
+            glCallList(self.ground_display_list)
 
             glPopMatrix()
             glMatrixMode(GL_MODELVIEW)
