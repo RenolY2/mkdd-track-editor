@@ -1,5 +1,6 @@
 import contextlib
 import cProfile
+import enum
 import pickle
 import pstats
 import traceback
@@ -39,6 +40,13 @@ from widgets.file_select import FileSelect
 from lib.bmd_render import clear_temp_folder, load_textured_bmd
 from lib.game_visualizer import Game
 from lib.vectors import Vector3
+
+
+class SelectionHistorySpecials(enum.IntEnum):
+    MINIMAP_CORNER_1 = -1001
+    MINIMAP_CORNER_2 = -1002
+    CHECKPOINT_START = -1003
+    CHECKPOINT_END = -1004
 
 
 def detect_dol_region(dol):
@@ -299,6 +307,16 @@ class GenEditor(QtWidgets.QMainWindow):
                 selected_item_data.append(model_index_parent.row())
                 model_index_parent = model_index_parent.parent()
             selected_items_data.append(tuple(selected_item_data))
+        if minimap.corner1 in self.level_view.selected_positions:
+            selected_items_data.append((SelectionHistorySpecials.MINIMAP_CORNER_1, ))
+        if minimap.corner2 in self.level_view.selected_positions:
+            selected_items_data.append((SelectionHistorySpecials.MINIMAP_CORNER_2, ))
+        for i, checkpoint_groups in enumerate(self.level_file.checkpoints.groups):
+            for j, checkpoint in enumerate(checkpoint_groups.points):
+                if checkpoint.start in self.level_view.selected_positions:
+                    selected_items_data.append((SelectionHistorySpecials.CHECKPOINT_START, i, j))
+                if checkpoint.end in self.level_view.selected_positions:
+                    selected_items_data.append((SelectionHistorySpecials.CHECKPOINT_END, i, j))
         selected_items_data = tuple(selected_items_data)
 
         return UndoEntry(bol_document, enemy_path_data, minimap_data, selected_items_data)
@@ -346,16 +364,46 @@ class GenEditor(QtWidgets.QMainWindow):
         minimap.corner2.z = undo_entry.minimap_data[5]
         minimap.orientation = undo_entry.minimap_data[6]
 
+        self.level_view.selected = []
+        self.level_view.selected_positions = []
+        self.level_view.selected_rotations = []
+
         # Restore the selection that was current when the undo entry was produced.
         items_to_select = []
         with QtCore.QSignalBlocker(self.leveldatatreeview):
             for selected_item_data in undo_entry.selected_items_data:
+                # Deal with special cases that are not linked to the tree view first.
+                if selected_item_data[0] in (SelectionHistorySpecials.MINIMAP_CORNER_1,
+                                             SelectionHistorySpecials.MINIMAP_CORNER_2):
+                    if minimap not in self.level_view.selected:
+                        self.level_view.selected.append(minimap)
+                    if selected_item_data[0] == SelectionHistorySpecials.MINIMAP_CORNER_1:
+                        self.level_view.selected_positions.append(minimap.corner1)
+                    else:
+                        self.level_view.selected_positions.append(minimap.corner2)
+                    continue
+                if selected_item_data[0] in (SelectionHistorySpecials.CHECKPOINT_START,
+                                             SelectionHistorySpecials.CHECKPOINT_END):
+                    i, j = selected_item_data[1:]
+                    checkpoint_group = self.level_file.checkpoints.groups[i]
+                    checkpoint = checkpoint_group.points[j]
+                    if checkpoint not in self.level_view.selected:
+                        self.level_view.selected.append(checkpoint)
+                    if selected_item_data[0] == SelectionHistorySpecials.CHECKPOINT_START:
+                        self.level_view.selected_positions.append(checkpoint.start)
+                    else:
+                        self.level_view.selected_positions.append(checkpoint.end)
+                    continue
+
                 item = self.leveldatatreeview.invisibleRootItem()
                 for row in reversed(selected_item_data):
                     item = item.child(row)
                 item.setSelected(True)
+                if isinstance(item.bound_to, libbol.Checkpoint):
+                    # Handled as a special case.
+                    continue
                 items_to_select.append(item)
-        self.tree_select_object(items_to_select)
+        self.tree_select_object(items_to_select, clear_existing_selection=False)
 
         self.update_3d()
         self.pik_control.update_info()
@@ -541,10 +589,11 @@ class GenEditor(QtWidgets.QMainWindow):
     def tree_select_arrowkey(self):
         self.tree_select_object(self.leveldatatreeview.selectedItems())
 
-    def tree_select_object(self, items):
-        self.level_view.selected = []
-        self.level_view.selected_positions = []
-        self.level_view.selected_rotations = []
+    def tree_select_object(self, items, clear_existing_selection=True):
+        if clear_existing_selection:
+            self.level_view.selected = []
+            self.level_view.selected_positions = []
+            self.level_view.selected_rotations = []
 
         for item in items:
             if isinstance(item, (tree_view.CameraEntry, tree_view.RespawnEntry, tree_view.AreaEntry,
