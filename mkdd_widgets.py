@@ -949,22 +949,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     if rot not in self.selected_rotations:
                         self.selected_rotations.append(rot)
 
-            # Store selection in a logical order that matches the order of the objects in their
-            # respective groups. This is relevant to ensure that potentially copied, route-like
-            # objects, where order matters, are pasted in the same order.
-            # Objects that are not part of the BOL document are kept at the end of the list in
-            # the same initial, arbitrary pick order.
-            selected = self.selected
-            self.selected = []
-            selected_set = set(selected)
-            for obj in self.level_file.get_all_objects():
-                if obj in selected_set:
-                    self.selected.append(obj)
-                    selected_set.remove(obj)
-            for obj in selected:
-                if obj in selected_set:
-                    self.selected.append(obj)
-
             self.editor.select_from_3d_to_treeview()
 
             # The selection action, that depends on the viewport draw call, may have occurred later

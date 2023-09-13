@@ -2824,6 +2824,12 @@ class GenEditor(QtWidgets.QMainWindow):
                     except ValueError:
                         pass
 
+        # Copy selection in a logical order that matches the order of the objects in their
+        # respective groups. This is relevant to ensure that route-like objects, where order
+        # matters, are later pasted in the same order as seen in the current BOL document.
+        selected_set = set(selected)
+        selected = [obj for obj in self.level_file.get_all_objects() if obj in selected_set]
+
         # Widgets are unpickleable, so they need to be temporarily stashed. This needs to be done
         # recursively, as top-level groups main contain points associated with widgets too.
         object_to_widget = {}
