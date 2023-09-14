@@ -173,7 +173,6 @@ class GenEditor(QtWidgets.QMainWindow):
 
         self.dolphin = Game()
         self.level_view.dolphin = self.dolphin
-        self.last_chosen_type = ""
 
         self.first_time_3dview = True
 
@@ -1800,19 +1799,19 @@ class GenEditor(QtWidgets.QMainWindow):
     #@catch_exception
     def button_load_level(self, filepath=None, update_config=True):
         if filepath is None:
-            filepath, chosentype = QtWidgets.QFileDialog.getOpenFileName(
+            filepath, _chosentype = QtWidgets.QFileDialog.getOpenFileName(
                 self, "Open File",
                 self.pathsconfig["bol"],
-                "BOL files (*.bol);;Archived files (*.arc);;All files (*)",
-                self.last_chosen_type)
-        else:
-            chosentype = None
+                'BOL or RARC (*.bol *.arc);;All files (*)')
 
         if filepath:
-            if chosentype is not None:
-                self.last_chosen_type = chosentype
+            _stem, ext = os.path.splitext(filepath)
+            if ext not in ('.bol', '.arc'):
+                open_error_dialog(f'Unrecognized file extension: "{ext}"', self)
+                return
+
             self.reset()
-            if chosentype == "Archived files (*.arc)" or filepath.endswith(".arc"):
+            if ext == '.arc':
                 with open(filepath, "rb") as f:
                     try:
                         self.loaded_archive = Archive.from_file(f)
@@ -2142,14 +2141,18 @@ class GenEditor(QtWidgets.QMainWindow):
 
     @catch_exception_with_dialog
     def _button_save_level_as(self, modify_current_path, *args, **kwargs):
-        filepath, choosentype = QtWidgets.QFileDialog.getSaveFileName(
+        filepath, _chosentype = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save File",
             self.pathsconfig["bol"],
-            "MKDD Track Data (*.bol);;Archived files (*.arc);;All files (*)",
-            self.last_chosen_type)
+            'BOL or RARC (*.bol *.arc);;All files (*)')
 
         if filepath:
-            if choosentype == "Archived files (*.arc)" or filepath.endswith(".arc"):
+            _stem, ext = os.path.splitext(filepath)
+            if ext not in ('.bol', '.arc'):
+                open_error_dialog(f'Unrecognized file extension: "{ext}"', self)
+                return
+
+            if ext == '.arc':
                 if self.loaded_archive is None or self.loaded_archive_file is None:
                     with open(filepath, "rb") as f:
                         self.loaded_archive = Archive.from_file(f)
