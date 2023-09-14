@@ -1660,7 +1660,7 @@ class GenEditor(QtWidgets.QMainWindow):
             recent_files.remove(filepath)
 
         recent_files.insert(0, filepath)
-        recent_files = recent_files[:10]
+        recent_files = recent_files[:20]
 
         self.configuration["recent files"] = {}
         recent_files_config = self.configuration["recent files"]
