@@ -775,15 +775,15 @@ class GenEditor(QtWidgets.QMainWindow):
             self.on_default_geometry_changed("Choose")
 
         self.collision_menu.addSeparator()
-        self.collision_load_action = QtGui.QAction("Load OBJ", self)
-        self.collision_load_action.triggered.connect(self.button_load_collision)
-        self.collision_menu.addAction(self.collision_load_action)
-        self.collision_load_grid_action = QtGui.QAction("Load BCO", self)
-        self.collision_load_grid_action.triggered.connect(self.button_load_collision_bco)
-        self.collision_menu.addAction(self.collision_load_grid_action)
+        self.collision_load_bco_action = QtGui.QAction("Load BCO", self)
+        self.collision_load_bco_action.triggered.connect(self.button_load_collision_bco)
+        self.collision_menu.addAction(self.collision_load_bco_action)
         self.collision_load_bmd_action = QtGui.QAction("Load BMD", self)
         self.collision_load_bmd_action.triggered.connect(self.button_load_collision_bmd)
         self.collision_menu.addAction(self.collision_load_bmd_action)
+        self.collision_load_obj_action = QtGui.QAction("Load OBJ", self)
+        self.collision_load_obj_action.triggered.connect(self.button_load_collision_obj)
+        self.collision_menu.addAction(self.collision_load_obj_action)
         self.clear_current_collision = QtGui.QAction("Clear Current Model", self)
         self.clear_current_collision.triggered.connect(self.clear_collision)
         self.collision_menu.addAction(self.clear_current_collision)
@@ -2187,15 +2187,29 @@ class GenEditor(QtWidgets.QMainWindow):
 
 
 
-    def button_load_collision(self):
+    def button_load_collision_obj(self):
         try:
-            filepath, choosentype = QtWidgets.QFileDialog.getOpenFileName(
+            last_path = self.pathsconfig["collision"]
+            if not last_path.endswith('.obj'):
+                last_path = os.path.dirname(last_path)
+
+            filepath, _chosentype = QtWidgets.QFileDialog.getOpenFileName(
                 self, "Open File",
-                self.pathsconfig["collision"],
-                "Collision (*.obj);;All files (*)")
+                last_path,
+                "OBJ (*.obj);;All files (*)")
 
             if not filepath:
                 return
+
+            _stem, ext = os.path.splitext(filepath)
+            if ext not in ('.obj', ):
+                open_error_dialog(f'Unrecognized file extension: "{ext}"', self)
+                return
+
+            # TODO(CA): At the moment, only proper OBJ textured models are supported; if the user
+            # attempts to load a OBJ converted from a BCO file, the action fails. It'd be good to
+            # transparently support both formats, by scanning through the content of the OBJ file in
+            # advance and verifying whether it is a collision file.
 
             with open(filepath, "r") as f:
                 verts, faces, normals = py_obj.read_obj(f)
@@ -2212,16 +2226,26 @@ class GenEditor(QtWidgets.QMainWindow):
 
     def button_load_collision_bmd(self):
         try:
-            filepath, choosentype = QtWidgets.QFileDialog.getOpenFileName(
+            last_path = self.pathsconfig["collision"]
+            if not last_path.endswith('.bmd') and not last_path.endswith('.arc'):
+                last_path = os.path.dirname(last_path)
+
+            filepath, _chosentype = QtWidgets.QFileDialog.getOpenFileName(
                 self, "Open File",
-                self.pathsconfig["collision"],
-                "Course Model (*.bmd);;Archived files (*.arc);;All files (*)")
+                last_path,
+                "BMD or RARC (*.bmd *.arc);;All files (*)")
 
             if not filepath:
                 return
+
+            _stem, ext = os.path.splitext(filepath)
+            if ext not in ('.bmd', '.arc'):
+                open_error_dialog(f'Unrecognized file extension: "{ext}"', self)
+                return
+
             bmdpath = filepath
             clear_temp_folder()
-            if choosentype == "Archived files (*.arc)" or filepath.endswith(".arc"):
+            if ext == '.arc':
                 with open(filepath, "rb") as f:
                     rarc = Archive.from_file(f)
 
@@ -2250,16 +2274,26 @@ class GenEditor(QtWidgets.QMainWindow):
 
     def button_load_collision_bco(self):
         try:
-            filepath, choosentype = QtWidgets.QFileDialog.getOpenFileName(
+            last_path = self.pathsconfig["collision"]
+            if not last_path.endswith('.bco') and not last_path.endswith('.arc'):
+                last_path = os.path.dirname(last_path)
+
+            filepath, _chosentype = QtWidgets.QFileDialog.getOpenFileName(
                 self, "Open File",
-                self.pathsconfig["collision"],
-                "MKDD Collision (*.bco);;Archived files (*.arc);;All files (*)")
+                last_path,
+                "BCO or RARC (*.bco *.arc);;All files (*)")
+
             if filepath:
+                _stem, ext = os.path.splitext(filepath)
+                if ext not in ('.bco', '.arc'):
+                    open_error_dialog(f'Unrecognized file extension: "{ext}"', self)
+                    return
+
                 bco_coll = RacetrackCollision()
                 verts = []
                 faces = []
 
-                if choosentype == "Archived files (*.arc)" or filepath.endswith(".arc"):
+                if ext == '.arc':
                     with open(filepath, "rb") as f:
                         rarc = Archive.from_file(f)
 
