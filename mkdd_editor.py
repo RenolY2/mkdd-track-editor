@@ -486,7 +486,7 @@ class GenEditor(QtWidgets.QMainWindow):
                     DEFAULT_ZOOM = 80
                     self.level_view._zoom_factor = max(hzoom, vzoom, DEFAULT_ZOOM)
         else:
-            look = self.level_view.camera_direction.copy()
+            look = self.level_view.camera_direction
 
             if adjust_zoom:
                 MARGIN = 3000

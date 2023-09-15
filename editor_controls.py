@@ -293,8 +293,6 @@ class Select3D(ClickDragAction):
     def just_clicked(self, editor, buttons, event):
         super().just_clicked(editor, buttons, event)
 
-        editor.camera_direction.normalize()
-
         ray = editor.create_ray_from_mouseclick(event.x(), event.y())
         editor.selectionbox_projected_origin = ray.origin + ray.direction*ufac# * 0.1
         editor.selectionbox_projected_coords = None

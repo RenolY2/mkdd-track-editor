@@ -154,7 +154,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                                  sin(self.camera_vertical))
         fac = 1.01 - abs(look_direction.z)
         self.camera_direction = Vector3(look_direction.x * fac, look_direction.y * fac,
-                                        look_direction.z)
+                                        look_direction.z).normalized()
 
         self.selectionqueue = SelectionQueue()
 
@@ -571,7 +571,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                       self.camera_height + look_direction.z,
                       0, 0, 1)
 
-            self.camera_direction = Vector3(look_direction.x * fac, look_direction.y * fac, look_direction.z)
+            self.camera_direction = Vector3(look_direction.x * fac, look_direction.y * fac,
+                                            look_direction.z).normalized()
 
         self.modelviewmatrix = numpy.transpose(numpy.reshape(glGetFloatv(GL_MODELVIEW_MATRIX), (4,4)))
         self.projectionmatrix = numpy.transpose(numpy.reshape(glGetFloatv(GL_PROJECTION_MATRIX), (4,4)))
@@ -1445,9 +1446,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             speedup *= self._wasdscrolling_speedupfactor
         speed = self._wasdscrolling_speed / 2
 
-        self.camera_direction.normalize()
-        view = self.camera_direction.copy()
-        view = view * speed * speedup
+        view = self.camera_direction * speed * speedup
 
         self.offset_x += view.x
         self.camera_height += view.z
@@ -1456,11 +1455,10 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         self.do_redraw()
 
     def create_ray_from_mouseclick(self, mousex, mousey, yisup=False):
-        self.camera_direction.normalize()
         height = self.canvas_height
         width = self.canvas_width
 
-        view = self.camera_direction.copy()
+        view = self.camera_direction
 
         h = view.cross(Vector3(0, 0, 1))
         v = h.cross(view)
