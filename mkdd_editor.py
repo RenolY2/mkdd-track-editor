@@ -495,8 +495,8 @@ class GenEditor(QtWidgets.QMainWindow):
             else:
                 fac = 5000
 
-            self.level_view.offset_z = -(z + look.y * fac)
-            self.level_view.offset_x = x - look.x * fac
+            self.level_view.camera_z = -(z + look.y * fac)
+            self.level_view.camera_x = x - look.x * fac
             self.level_view.camera_height = y - look.z * fac
 
         self.level_view.do_redraw()

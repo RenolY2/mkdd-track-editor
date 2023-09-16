@@ -236,14 +236,13 @@ class Game(object):
                     newx = sin(angle + pi/2.0)
                     newz = cos(angle + pi/2.0)
 
-                    #renderer.offset_x = (self.karts[self.stay_focused_on_player][1].x
+                    #renderer.camera_x = (self.karts[self.stay_focused_on_player][1].x
                     #                     - self.kart_headings[self.stay_focused_on_player].x*1000)
-                    #renderer.offset_z = -(self.karts[self.stay_focused_on_player][1].z
+                    #renderer.camera_z = -(self.karts[self.stay_focused_on_player][1].z
                     #                      - self.kart_headings[self.stay_focused_on_player].z*1000)
-                    renderer.offset_x = (self.karts[self.stay_focused_on_player][1].x
-                                         - newx * 1000)
-                    renderer.offset_z = -(self.karts[self.stay_focused_on_player][1].z
-                                          - newz * 1000)
+                    renderer.camera_x = (self.karts[self.stay_focused_on_player][1].x - newx * 1000)
+                    renderer.camera_z = -(self.karts[self.stay_focused_on_player][1].z -
+                                          newz * 1000)
                     height = self.karts[self.stay_focused_on_player][1].y
                     #if height < renderer.camera_height:
                     renderer.camera_height = height+500
