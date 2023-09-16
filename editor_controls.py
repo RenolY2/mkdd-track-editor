@@ -238,7 +238,7 @@ class View3DScroll(ClickDragAction):
         if editor.shift_is_pressed:
             speedup = editor._wasdscrolling_speedupfactor
 
-        speed = editor._wasdscrolling_speed / 25
+        speed = editor._wasdscrolling_speed * (min(100000.0, editor.camera_height) / 1000000.0)
 
         forward_vec = Vector3(cos(editor.camera_horiz), sin(editor.camera_horiz), 0)
         forward_move = forward_vec * speed * speedup
