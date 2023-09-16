@@ -424,46 +424,33 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         if self.selectionbox_projected_coords is not None:
             return
 
-        speedup = 1
+        if not any((self.MOVE_FORWARD, self.MOVE_BACKWARD, self.MOVE_LEFT, self.MOVE_RIGHT,
+                    self.MOVE_UP, self.MOVE_DOWN)):
+            return
 
-        forward_vec = Vector3(cos(self.camera_horiz), sin(self.camera_horiz), 0)
-        sideways_vec = Vector3(sin(self.camera_horiz), -cos(self.camera_horiz), 0)
+        speedup = self._wasdscrolling_speed * timedelta * (self._wasdscrolling_speedupfactor
+                                                           if self.shift_is_pressed else 1.0)
+        speedup *= max(1.0, min(10.0, abs(self.camera_height) / 10000.0))
 
-        if self.shift_is_pressed:
-            speedup = self._wasdscrolling_speedupfactor
+        camera_position = Vector3(self.camera_x, self.camera_z, self.camera_height)
 
-        if self.MOVE_FORWARD == 1 and self.MOVE_BACKWARD == 1:
-            forward_move = forward_vec*0
-        elif self.MOVE_FORWARD == 1:
-            forward_move = forward_vec*(1*speedup*self._wasdscrolling_speed*timedelta)
-        elif self.MOVE_BACKWARD == 1:
-            forward_move = forward_vec*(-1*speedup*self._wasdscrolling_speed*timedelta)
-        else:
-            forward_move = forward_vec*0
+        if self.MOVE_FORWARD != self.MOVE_BACKWARD:
+            offset = self.camera_direction * speedup * (1.0 if self.MOVE_FORWARD else -1.0)
+            camera_position += offset
 
-        if self.MOVE_LEFT == 1 and self.MOVE_RIGHT == 1:
-            sideways_move = sideways_vec*0
-        elif self.MOVE_LEFT == 1:
-            sideways_move = sideways_vec*(-1*speedup*self._wasdscrolling_speed*timedelta)
-        elif self.MOVE_RIGHT == 1:
-            sideways_move = sideways_vec*(1*speedup*self._wasdscrolling_speed*timedelta)
-        else:
-            sideways_move = sideways_vec*0
+        if self.MOVE_LEFT != self.MOVE_RIGHT:
+            sideways_direction = Vector3(sin(self.camera_horiz), -cos(self.camera_horiz), 0)
+            offset = sideways_direction * speedup * (1.0 if self.MOVE_RIGHT else -1.0)
+            camera_position += offset
 
-        diff_height = 0
-        if self.MOVE_UP == 1 and self.MOVE_DOWN == 1:
-            diff_height = 0
-        elif self.MOVE_UP == 1:
-            diff_height = 1*speedup*self._wasdscrolling_speed*timedelta
-        elif self.MOVE_DOWN == 1:
-            diff_height = -1 * speedup * self._wasdscrolling_speed * timedelta
+        self.camera_x = camera_position.x
+        self.camera_z = camera_position.y
+        self.camera_height = camera_position.z
 
-        if not forward_move.is_zero() or not sideways_move.is_zero() or diff_height != 0:
-            self.camera_x += (forward_move.x + sideways_move.x)
-            self.camera_z += (forward_move.y + sideways_move.y)
-            self.camera_height += diff_height
+        if self.MOVE_UP != self.MOVE_DOWN:
+            self.camera_height += speedup * (1.0 if self.MOVE_UP else -1.0)
 
-            self.do_redraw()
+        self.do_redraw()
 
     def set_arrowkey_movement(self, up, down, left, right):
         self.MOVE_UP = up
