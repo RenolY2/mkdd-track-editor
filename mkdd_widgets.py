@@ -273,6 +273,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             if self.mousemode == MOUSE_MODE_NONE:
                 self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
 
+            self._migrate_camera_properties_to_new_view()
+
             self.do_redraw()
 
     def change_from_3d_to_topdown(self):
@@ -283,7 +285,36 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             if self.mousemode == MOUSE_MODE_NONE:
                 self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 
+            self._migrate_camera_properties_to_new_view()
+
             self.do_redraw()
+
+    def _migrate_camera_properties_to_new_view(self):
+        camera_position = Vector3(self.camera_x, self.camera_height, self.camera_z)
+        camera_direction = Vector3(self.camera_direction.x, self.camera_direction.z,
+                                   self.camera_direction.y)
+
+        ground_point = Vector3(0.0, 0.0, 0.0)
+        if self.collision is not None and self.collision.extent is None:
+            ground_point.y = self.collision.extent[2]  # Lowest value in height.
+        else:
+            points = tuple(self.editor.level_file.enemypointgroups.points())
+            if points:
+                ground_point.y = min(p.position.y for p in points)
+
+        ray = Line(camera_position, camera_direction)
+        ground_plane = Plane.xz_aligned(ground_point)
+        intersection = ray.collide_plane(ground_plane)
+
+        if intersection is not False:
+            intersection, _distance = intersection
+
+            if self.mode == MODE_TOPDOWN:
+                self.offset_x = -intersection.x
+                self.offset_z = intersection.z
+            else:
+                self.camera_x += -self.offset_x - intersection.x
+                self.camera_z += self.offset_z - intersection.z
 
     def logic(self, delta, diff):
         self.dolphin.logic(self, delta, diff)
