@@ -585,9 +585,21 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
         else:
+            campos = Vector3(offset_x, self.camera_height, -offset_z)
+
             glMatrixMode(GL_PROJECTION)
             glLoadIdentity()
-            gluPerspective(75, width / height, 256.0, 160000.0)
+
+            far_plane = 160000.0
+            if self.collision is not None and self.collision.extent is not None:
+                collision_center = Vector3(
+                    self.collision.extent[3] + self.collision.extent[0],
+                    self.collision.extent[5] + self.collision.extent[2],
+                    -(self.collision.extent[4] + self.collision.extent[1])) / 2.0
+                camera_distance = (campos - collision_center).length()
+                far_plane = max(far_plane, camera_distance * 2.0)
+
+            gluPerspective(75, width / height, 256.0, far_plane)
 
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
@@ -607,8 +619,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         self.modelviewmatrix = numpy.transpose(numpy.reshape(glGetFloatv(GL_MODELVIEW_MATRIX), (4,4)))
         self.projectionmatrix = numpy.transpose(numpy.reshape(glGetFloatv(GL_PROJECTION_MATRIX), (4,4)))
         self.mvp_mat = numpy.dot(self.projectionmatrix, self.modelviewmatrix)
-
-        campos = Vector3(offset_x, self.camera_height, -offset_z)
 
         vismenu: FilterViewMenu = self.visibility_menu
 
