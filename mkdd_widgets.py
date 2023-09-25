@@ -1,11 +1,9 @@
 import enum
 import random
 import traceback
-import os
-from time import sleep
 from timeit import default_timer
 from collections import namedtuple
-from math import sin, cos, atan2, radians, degrees, pi, tan
+from math import sin, cos, pi, tan
 import json
 
 from OpenGL.GL import *
@@ -16,7 +14,7 @@ from PySide6 import QtCore, QtGui, QtOpenGLWidgets, QtWidgets
 from helper_functions import calc_zoom_in_factor, calc_zoom_out_factor
 from lib.collision import Collision
 from widgets.editor_widgets import catch_exception, catch_exception_with_dialog, check_checkpoints
-from lib.vectors import Vector3, Line, Plane, Triangle
+from lib.vectors import Vector3, Line, Plane
 from lib.model_rendering import CollisionModel, Grid, Minimap
 from gizmo import Gizmo
 from lib.object_models import ObjectModels
@@ -34,7 +32,6 @@ MOUSE_MODE_CONNECTWP = 3
 MODE_TOPDOWN = 0
 MODE_3D = 1
 
-#colors = [(1.0, 0.0, 0.0), (0.0, 0.5, 0.0), (0.0, 0.0, 1.0), (1.0, 1.0, 0.0)]
 colors = [(0.0,191/255.0,255/255.0), (30/255.0,144/255.0,255/255.0), (0.0,0.0,255/255.0), (0.0,0.0,139/255.0)]
 lap_checkpoint_color = (115 / 255, 210 / 255, 22 / 255)
 
@@ -60,15 +57,9 @@ class SnappingMode(enum.Enum):
 
 
 class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
-    mouse_clicked = QtCore.Signal(QtGui.QMouseEvent)
-    entity_clicked = QtCore.Signal(QtGui.QMouseEvent, str)
-    mouse_dragged = QtCore.Signal(QtGui.QMouseEvent)
-    mouse_released = QtCore.Signal(QtGui.QMouseEvent)
-    mouse_wheel = QtCore.Signal(QtGui.QWheelEvent)
     position_update = QtCore.Signal(tuple)
     move_points = QtCore.Signal(float, float, float)
     move_points_to = QtCore.Signal(float, float, float)
-    connect_update = QtCore.Signal(int, int)
     create_waypoint = QtCore.Signal(float, float)
     create_waypoint_3d = QtCore.Signal(float, float, float)
 
@@ -95,69 +86,38 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         self._zoom_factor = 80
         self.setFocusPolicy(QtCore.Qt.ClickFocus)
 
-        self.SIZEX = 1024#768#1024
-        self.SIZEY = 1024#768#1024
-
         self.canvas_width, self.canvas_height = self.width(), self.height()
         self.resize(600, self.canvas_height)
-        #self.setMinimumSize(QtCore.QSize(self.SIZEX, self.SIZEY))
-        #self.setMaximumSize(QtCore.QSize(self.SIZEX, self.SIZEY))
         self.setObjectName("bw_map_screen")
-
-        self.origin_x = self.SIZEX//2
-        self.origin_z = self.SIZEY//2
 
         self.offset_x = 0
         self.offset_z = 0
-
-        self.left_button_down = False
-        self.mid_button_down = False
-        self.right_button_down = False
-        self.drag_last_pos = None
 
         self.selected = []
         self.selected_positions = []
         self.selected_rotations = []
 
-        #self.p = QPainter()
-        #self.p2 = QPainter()
-        # self.show_terrain_mode = SHOW_TERRAIN_REGULAR
-
         self.selectionbox_start = None
         self.selectionbox_end = None
 
-        self.visualize_cursor = None
-
-        self.click_mode = 0
-
-        self.level_image = None
-
         self.collision = None
-
-        self.highlighttriangle = None
 
         self.setMouseTracking(True)
 
         self.level_file:BOL = None
-        self.waterboxes = []
 
         self.mousemode = MOUSE_MODE_NONE
 
-        self.overlapping_wp_index = 0
         self.editorconfig = None
         self.visibility_menu = None
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 
-        self.spawnpoint = None
         self.alternative_mesh = None
         self.highlight_colltype = None
         self.cull_faces = False
 
         self.shift_is_pressed = False
-        self.rotation_is_pressed = False
-        self.last_drag_update = 0
-        self.change_height_is_pressed = False
         self.last_mouse_move = None
 
         self.timer = QtCore.QTimer()
@@ -186,7 +146,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         self.camera_horiz = pi*(1/2)
         self.camera_vertical = -pi*(1/4)
         self.camera_height = 1000
-        self.last_move = None
+
         self.backgroundcolor = (255, 255, 255, 255)
         self.skycolor = (200, 200, 200, 255)
 
@@ -196,18 +156,10 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         self.camera_direction = Vector3(look_direction.x * fac, look_direction.y * fac,
                                         look_direction.z)
 
-        #self.selection_queue = []
         self.selectionqueue = SelectionQueue()
 
-        self.selectionbox_projected_start = None
-        self.selectionbox_projected_end = None
-
-        #self.selectionbox_projected_2d = None
         self.selectionbox_projected_origin = None
-        self.selectionbox_projected_up = None
-        self.selectionbox_projected_right = None
         self.selectionbox_projected_coords = None
-        self.move_collision_plane = Plane(Vector3(0.0, 0.0, 0.0), Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0))
 
         self.usercontrol = UserControl(self)
 
@@ -220,7 +172,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         with open("resources/gizmo.obj", "r") as f:
             self.gizmo = Gizmo.from_obj(f, rotate=True)
 
-        #self.generic_object = GenericObject()
         self.models = ObjectModels()
         self.grid = None
         self.ground_display_list = None
@@ -233,16 +184,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
     @catch_exception_with_dialog
     def initializeGL(self):
-        self.rotation_visualizer = glGenLists(1)
-        glNewList(self.rotation_visualizer, GL_COMPILE)
-        glColor4f(0.0, 0.0, 1.0, 1.0)
-
-        glBegin(GL_LINES)
-        glVertex3f(0.0, 0.0, 0.0)
-        glVertex3f(0.0, 40.0, 0.0)
-        glEnd()
-        glEndList()
-
         self.models.init_gl()
 
         GRID_SIZE = 1000000
@@ -418,7 +359,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             return
 
         diff_x = diff_y = 0
-        #print(self.MOVE_UP, self.MOVE_DOWN, self.MOVE_LEFT, self.MOVE_RIGHT)
         speedup = 1
 
         if self.shift_is_pressed:
@@ -445,7 +385,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             else:
                 self.offset_x += diff_x
                 self.offset_z += diff_y
-            # self.update()
 
             self.do_redraw()
 
@@ -453,8 +392,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         if self.selectionbox_projected_coords is not None:
             return
 
-        diff_x = diff_y = diff_height = 0
-        #print(self.MOVE_UP, self.MOVE_DOWN, self.MOVE_LEFT, self.MOVE_RIGHT)
         speedup = 1
 
         forward_vec = Vector3(cos(self.camera_horiz), sin(self.camera_horiz), 0)
@@ -481,6 +418,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         else:
             sideways_move = sideways_vec*0
 
+        diff_height = 0
         if self.MOVE_UP == 1 and self.MOVE_DOWN == 1:
             diff_height = 0
         elif self.MOVE_UP == 1:
@@ -489,14 +427,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             diff_height = -1 * speedup * self._wasdscrolling_speed * timedelta
 
         if not forward_move.is_zero() or not sideways_move.is_zero() or diff_height != 0:
-            #if self.zoom_factor > 1.0:
-            #    self.offset_x += diff_x * (1.0 + (self.zoom_factor - 1.0) / 2.0)
-            #    self.offset_z += diff_y * (1.0 + (self.zoom_factor - 1.0) / 2.0)
-            #else:
             self.offset_x += (forward_move.x + sideways_move.x)
             self.offset_z += (forward_move.y + sideways_move.y)
             self.camera_height += diff_height
-            # self.update()
 
             self.do_redraw()
 
@@ -512,36 +445,16 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             self._lastrendertime = 0
             self.update()
 
-    def reset(self, keep_collision=False):
+    def reset(self):
         self.highlight_colltype = None
-        self.overlapping_wp_index = 0
         self.shift_is_pressed = False
-        self.SIZEX = 1024
-        self.SIZEY = 1024
-        self.origin_x = self.SIZEX//2
-        self.origin_z = self.SIZEY//2
-        self.last_drag_update = 0
-
-        self.left_button_down = False
-        self.mid_button_down = False
-        self.right_button_down = False
-        self.drag_last_pos = None
 
         self.selectionbox_start = None
         self.selectionbox_end = None
 
         self.selected = []
 
-        if not keep_collision:
-            # Potentially: Clear collision object too?
-            self.level_image = None
-            self.offset_x = 0
-            self.offset_z = 0
-            self._zoom_factor = 80
-
         self.mousemode = MOUSE_MODE_NONE
-        self.spawnpoint = None
-        self.rotation_is_pressed = False
 
         self._frame_invalid = False
         self._mouse_pos_changed = False
@@ -603,7 +516,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
         if 10 < (self._zoom_factor + fac*mult):
             self._zoom_factor += int(fac*mult)
-            #self.update()
             self.do_redraw()
 
     def mouse_coord_to_world_coord(self, mouse_x, mouse_y):
@@ -621,8 +533,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
         return res
 
-    #@catch_exception_with_dialog
-    #@catch_exception
     def paintGL(self):
         offset_x = self.offset_x
         offset_z = self.offset_z
@@ -634,8 +544,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         if self.mode == MODE_TOPDOWN:
             glMatrixMode(GL_PROJECTION)
             glLoadIdentity()
+
             zf = self.zoom_factor
-            #glOrtho(-6000.0, 6000.0, -6000.0, 6000.0, -3000.0, 2000.0)
             camera_width = width*zf
             camera_height = height*zf
 
@@ -645,9 +555,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
         else:
-            #glEnable(GL_CULL_FACE)
-            # set yellow color for subsequent drawing rendering calls
-
             glMatrixMode(GL_PROJECTION)
             glLoadIdentity()
             gluPerspective(75, width / height, 256.0, 160000.0)
@@ -656,9 +563,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             glLoadIdentity()
 
             look_direction = Vector3(cos(self.camera_horiz), sin(self.camera_horiz), sin(self.camera_vertical))
-            # look_direction.unify()
+
             fac = 1.01 - abs(look_direction.z)
-            # print(fac, look_direction.z, look_direction)
 
             gluLookAt(self.offset_x, self.offset_z, self.camera_height,
                       self.offset_x + look_direction.x * fac, self.offset_z + look_direction.y * fac,
@@ -667,12 +573,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
             self.camera_direction = Vector3(look_direction.x * fac, look_direction.y * fac, look_direction.z)
 
-            #print(self.camera_direction)
-
         self.modelviewmatrix = numpy.transpose(numpy.reshape(glGetFloatv(GL_MODELVIEW_MATRIX), (4,4)))
         self.projectionmatrix = numpy.transpose(numpy.reshape(glGetFloatv(GL_PROJECTION_MATRIX), (4,4)))
         self.mvp_mat = numpy.dot(self.projectionmatrix, self.modelviewmatrix)
-        self.modelviewmatrix_inv = numpy.linalg.inv(self.modelviewmatrix)
 
         campos = Vector3(self.offset_x, self.camera_height, -self.offset_z)
         self.campos = campos
@@ -966,8 +869,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         if use_pick_framebuffer:
             glBindFramebuffer(GL_FRAMEBUFFER, self.defaultFramebufferObject())
 
-        #print("gizmo status", self.gizmo.was_hit_at_all)
-        #glClearColor(1.0, 1.0, 1.0, 0.0)
         glClearColor(*(self.backgroundcolor if self.mode == MODE_TOPDOWN else self.skycolor))
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glEnable(GL_DEPTH_TEST)
@@ -1082,21 +983,11 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             if self.minimap is not None and vismenu.minimap.is_visible() and self.minimap.is_available():
                 self.minimap.render()
                 glClear(GL_DEPTH_BUFFER_BIT)
-        #else:
-        #    if self.minimap is not None and vismenu.minimap.is_visible():
-        #        self.minimap.render()
-        #    glDisable(GL_DEPTH_TEST)
 
         glEnable(GL_ALPHA_TEST)
         glAlphaFunc(GL_GEQUAL, 0.5)
-        p = 0
 
         self.dolphin.render_visual(self, self.selected)
-
-        """for valid, kartpos in self.karts:
-            if valid:
-                self.models.render_player_position_colored(kartpos, valid in self.selected, p)
-            p += 1"""
 
         if self.level_file is not None:
             selected = self.selected
@@ -1313,12 +1204,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                         pos1 = checkpoint.start
                         pos2 = checkpoint.end
 
-                        #self.models.render_generic_position(pos1, False)
-                        #self.models.render_generic_position(pos2, False)
-
                         glVertex3f(pos1.x, -pos1.z, pos1.y)
                         glVertex3f(pos2.x, -pos2.z, pos2.y)
-                        #glColor3f(0.0, 0.0, 0.0)
 
                         if prev is not None:
                             if prev not in concave_checkpoints:
@@ -1475,7 +1362,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
         glDisable(GL_DEPTH_TEST)
         if self.selectionbox_start is not None and self.selectionbox_end is not None:
-            #print("drawing box")
             startx, startz = self.selectionbox_start
             endx, endz = self.selectionbox_end
             glColor4f(1.0, 0.0, 0.0, 1.0)
@@ -1490,7 +1376,6 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             glLineWidth(1.0)
 
         if self.selectionbox_projected_origin is not None and self.selectionbox_projected_coords is not None:
-            #print("drawing box")
             origin = self.selectionbox_projected_origin
             point2, point3, point4 = self.selectionbox_projected_coords
             glColor4f(1.0, 0.0, 0.0, 1.0)

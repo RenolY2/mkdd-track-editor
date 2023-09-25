@@ -245,7 +245,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.loaded_archive = None
         self.loaded_archive_file = None
         self.object_to_be_added = None
-        self.level_view.reset(keep_collision=True)
+        self.level_view.reset()
 
         self.current_coordinates = None
         for key, val in self.editing_windows.items():
@@ -2694,10 +2694,6 @@ class GenEditor(QtWidgets.QMainWindow):
 
         if event.key() == QtCore.Qt.Key_Shift:
             self.level_view.shift_is_pressed = True
-        elif event.key() == QtCore.Qt.Key_R:
-            self.level_view.rotation_is_pressed = True
-        elif event.key() == QtCore.Qt.Key_H:
-            self.level_view.change_height_is_pressed = True
 
         if event.key() == QtCore.Qt.Key_W:
             self.level_view.MOVE_FORWARD = 1
@@ -2720,10 +2716,6 @@ class GenEditor(QtWidgets.QMainWindow):
     def keyReleaseEvent(self, event: QtGui.QKeyEvent):
         if event.key() == QtCore.Qt.Key_Shift:
             self.level_view.shift_is_pressed = False
-        elif event.key() == QtCore.Qt.Key_R:
-            self.level_view.rotation_is_pressed = False
-        elif event.key() == QtCore.Qt.Key_H:
-            self.level_view.change_height_is_pressed = False
 
         if event.key() == QtCore.Qt.Key_W:
             self.level_view.MOVE_FORWARD = 0
