@@ -238,17 +238,17 @@ class View3DScroll(ClickDragAction):
         if editor.shift_is_pressed:
             speedup = editor._wasdscrolling_speedupfactor
 
-        speed = editor._wasdscrolling_speed / 25
+        speed = editor._wasdscrolling_speed * (min(100000.0, editor.camera_height) / 1000000.0)
 
         forward_vec = Vector3(cos(editor.camera_horiz), sin(editor.camera_horiz), 0)
         forward_move = forward_vec * speed * speedup
-        editor.offset_x += forward_move.x * d_y
-        editor.offset_z += forward_move.y * d_y
+        editor.camera_x += forward_move.x * d_y
+        editor.camera_z += forward_move.y * d_y
 
         sideways_vec = Vector3(-sin(editor.camera_horiz), cos(editor.camera_horiz), 0)
         sideways_move = sideways_vec * speed * speedup
-        editor.offset_x += sideways_move.x * d_x
-        editor.offset_z += sideways_move.y * d_x
+        editor.camera_x += sideways_move.x * d_x
+        editor.camera_z += sideways_move.y * d_x
 
         editor.do_redraw()
         self.first_click = event.position().toPoint()
@@ -292,8 +292,6 @@ class Select3D(ClickDragAction):
 
     def just_clicked(self, editor, buttons, event):
         super().just_clicked(editor, buttons, event)
-
-        editor.camera_direction.normalize()
 
         ray = editor.create_ray_from_mouseclick(event.x(), event.y())
         editor.selectionbox_projected_origin = ray.origin + ray.direction*ufac# * 0.1

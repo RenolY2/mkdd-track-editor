@@ -83,15 +83,11 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         self.pick_texture = None
         self.pick_depth_texture = None
 
-        self._zoom_factor = 80
         self.setFocusPolicy(QtCore.Qt.ClickFocus)
 
         self.canvas_width, self.canvas_height = self.width(), self.height()
         self.resize(600, self.canvas_height)
         self.setObjectName("bw_map_screen")
-
-        self.offset_x = 0
-        self.offset_z = 0
 
         self.selected = []
         self.selected_positions = []
@@ -141,11 +137,19 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         self._wasdscrolling_speed = 1
         self._wasdscrolling_speedupfactor = 3
 
-        # 3D Setup
         self.mode = MODE_TOPDOWN
+
+        # Top-down View.
+        self.offset_x = 0.0
+        self.offset_z = 0.0
+        self._zoom_factor = 700.0
+
+        # 3D View.
         self.camera_horiz = pi*(1/2)
         self.camera_vertical = -pi*(1/4)
-        self.camera_height = 1000
+        self.camera_x = 0.0
+        self.camera_z = 0.0
+        self.camera_height = 70000.0
 
         self.backgroundcolor = (255, 255, 255, 255)
         self.skycolor = (200, 200, 200, 255)
@@ -154,7 +158,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                                  sin(self.camera_vertical))
         fac = 1.01 - abs(look_direction.z)
         self.camera_direction = Vector3(look_direction.x * fac, look_direction.y * fac,
-                                        look_direction.z)
+                                        look_direction.z).normalized()
 
         self.selectionqueue = SelectionQueue()
 
@@ -269,8 +273,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             if self.mousemode == MOUSE_MODE_NONE:
                 self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
 
-            # This is necessary so that the position of the 3d camera equals the middle of the topdown view
-            self.offset_x *= -1
+            self._migrate_camera_properties_to_new_view()
+
             self.do_redraw()
 
     def change_from_3d_to_topdown(self):
@@ -281,8 +285,36 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             if self.mousemode == MOUSE_MODE_NONE:
                 self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 
-            self.offset_x *= -1
+            self._migrate_camera_properties_to_new_view()
+
             self.do_redraw()
+
+    def _migrate_camera_properties_to_new_view(self):
+        camera_position = Vector3(self.camera_x, self.camera_height, self.camera_z)
+        camera_direction = Vector3(self.camera_direction.x, self.camera_direction.z,
+                                   self.camera_direction.y)
+
+        ground_point = Vector3(0.0, 0.0, 0.0)
+        if self.collision is not None and self.collision.extent is None:
+            ground_point.y = self.collision.extent[2]  # Lowest value in height.
+        else:
+            points = tuple(self.editor.level_file.enemypointgroups.points())
+            if points:
+                ground_point.y = min(p.position.y for p in points)
+
+        ray = Line(camera_position, camera_direction)
+        ground_plane = Plane.xz_aligned(ground_point)
+        intersection = ray.collide_plane(ground_plane)
+
+        if intersection is not False:
+            intersection, _distance = intersection
+
+            if self.mode == MODE_TOPDOWN:
+                self.offset_x = -intersection.x
+                self.offset_z = intersection.z
+            else:
+                self.camera_x += -self.offset_x - intersection.x
+                self.camera_z += self.offset_z - intersection.z
 
     def logic(self, delta, diff):
         self.dolphin.logic(self, delta, diff)
@@ -392,46 +424,33 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         if self.selectionbox_projected_coords is not None:
             return
 
-        speedup = 1
+        if not any((self.MOVE_FORWARD, self.MOVE_BACKWARD, self.MOVE_LEFT, self.MOVE_RIGHT,
+                    self.MOVE_UP, self.MOVE_DOWN)):
+            return
 
-        forward_vec = Vector3(cos(self.camera_horiz), sin(self.camera_horiz), 0)
-        sideways_vec = Vector3(sin(self.camera_horiz), -cos(self.camera_horiz), 0)
+        speedup = self._wasdscrolling_speed * timedelta * (self._wasdscrolling_speedupfactor
+                                                           if self.shift_is_pressed else 1.0)
+        speedup *= max(1.0, min(10.0, abs(self.camera_height) / 10000.0))
 
-        if self.shift_is_pressed:
-            speedup = self._wasdscrolling_speedupfactor
+        camera_position = Vector3(self.camera_x, self.camera_z, self.camera_height)
 
-        if self.MOVE_FORWARD == 1 and self.MOVE_BACKWARD == 1:
-            forward_move = forward_vec*0
-        elif self.MOVE_FORWARD == 1:
-            forward_move = forward_vec*(1*speedup*self._wasdscrolling_speed*timedelta)
-        elif self.MOVE_BACKWARD == 1:
-            forward_move = forward_vec*(-1*speedup*self._wasdscrolling_speed*timedelta)
-        else:
-            forward_move = forward_vec*0
+        if self.MOVE_FORWARD != self.MOVE_BACKWARD:
+            offset = self.camera_direction * speedup * (1.0 if self.MOVE_FORWARD else -1.0)
+            camera_position += offset
 
-        if self.MOVE_LEFT == 1 and self.MOVE_RIGHT == 1:
-            sideways_move = sideways_vec*0
-        elif self.MOVE_LEFT == 1:
-            sideways_move = sideways_vec*(-1*speedup*self._wasdscrolling_speed*timedelta)
-        elif self.MOVE_RIGHT == 1:
-            sideways_move = sideways_vec*(1*speedup*self._wasdscrolling_speed*timedelta)
-        else:
-            sideways_move = sideways_vec*0
+        if self.MOVE_LEFT != self.MOVE_RIGHT:
+            sideways_direction = Vector3(sin(self.camera_horiz), -cos(self.camera_horiz), 0)
+            offset = sideways_direction * speedup * (1.0 if self.MOVE_RIGHT else -1.0)
+            camera_position += offset
 
-        diff_height = 0
-        if self.MOVE_UP == 1 and self.MOVE_DOWN == 1:
-            diff_height = 0
-        elif self.MOVE_UP == 1:
-            diff_height = 1*speedup*self._wasdscrolling_speed*timedelta
-        elif self.MOVE_DOWN == 1:
-            diff_height = -1 * speedup * self._wasdscrolling_speed * timedelta
+        self.camera_x = camera_position.x
+        self.camera_z = camera_position.y
+        self.camera_height = camera_position.z
 
-        if not forward_move.is_zero() or not sideways_move.is_zero() or diff_height != 0:
-            self.offset_x += (forward_move.x + sideways_move.x)
-            self.offset_z += (forward_move.y + sideways_move.y)
-            self.camera_height += diff_height
+        if self.MOVE_UP != self.MOVE_DOWN:
+            self.camera_height += speedup * (1.0 if self.MOVE_UP else -1.0)
 
-            self.do_redraw()
+        self.do_redraw()
 
     def set_arrowkey_movement(self, up, down, left, right):
         self.MOVE_UP = up
@@ -524,8 +543,15 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         camera_width = width * zf
         camera_height = height * zf
 
-        topleft_x = -camera_width / 2 - self.offset_x
-        topleft_y = camera_height / 2 + self.offset_z
+        if self.mode == MODE_TOPDOWN:
+            offset_x = self.offset_x
+            offset_z = self.offset_z
+        else:
+            offset_x = self.camera_x
+            offset_z = self.camera_z
+
+        topleft_x = -camera_width / 2 - offset_x
+        topleft_y = camera_height / 2 + offset_z
 
         relx = mouse_x / width
         rely = mouse_y / height
@@ -534,8 +560,12 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         return res
 
     def paintGL(self):
-        offset_x = self.offset_x
-        offset_z = self.offset_z
+        if self.mode == MODE_TOPDOWN:
+            offset_x = self.offset_x
+            offset_z = self.offset_z
+        else:
+            offset_x = self.camera_x
+            offset_z = self.camera_z
 
         glClearColor(1.0, 1.0, 1.0, 0.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -555,9 +585,21 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
         else:
+            campos = Vector3(offset_x, self.camera_height, -offset_z)
+
             glMatrixMode(GL_PROJECTION)
             glLoadIdentity()
-            gluPerspective(75, width / height, 256.0, 160000.0)
+
+            far_plane = 160000.0
+            if self.collision is not None and self.collision.extent is not None:
+                collision_center = Vector3(
+                    self.collision.extent[3] + self.collision.extent[0],
+                    self.collision.extent[5] + self.collision.extent[2],
+                    -(self.collision.extent[4] + self.collision.extent[1])) / 2.0
+                camera_distance = (campos - collision_center).length()
+                far_plane = max(far_plane, camera_distance * 2.0)
+
+            gluPerspective(75, width / height, 256.0, far_plane)
 
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
@@ -566,19 +608,17 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
             fac = 1.01 - abs(look_direction.z)
 
-            gluLookAt(self.offset_x, self.offset_z, self.camera_height,
-                      self.offset_x + look_direction.x * fac, self.offset_z + look_direction.y * fac,
-                      self.camera_height + look_direction.z,
+            gluLookAt(self.camera_x, self.camera_z, self.camera_height,
+                      self.camera_x + look_direction.x * fac,
+                      self.camera_z + look_direction.y * fac, self.camera_height + look_direction.z,
                       0, 0, 1)
 
-            self.camera_direction = Vector3(look_direction.x * fac, look_direction.y * fac, look_direction.z)
+            self.camera_direction = Vector3(look_direction.x * fac, look_direction.y * fac,
+                                            look_direction.z).normalized()
 
         self.modelviewmatrix = numpy.transpose(numpy.reshape(glGetFloatv(GL_MODELVIEW_MATRIX), (4,4)))
         self.projectionmatrix = numpy.transpose(numpy.reshape(glGetFloatv(GL_PROJECTION_MATRIX), (4,4)))
         self.mvp_mat = numpy.dot(self.projectionmatrix, self.modelviewmatrix)
-
-        campos = Vector3(self.offset_x, self.camera_height, -self.offset_z)
-        self.campos = campos
 
         vismenu: FilterViewMenu = self.visibility_menu
 
@@ -1445,22 +1485,19 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             speedup *= self._wasdscrolling_speedupfactor
         speed = self._wasdscrolling_speed / 2
 
-        self.camera_direction.normalize()
-        view = self.camera_direction.copy()
-        view = view * speed * speedup
+        view = self.camera_direction * speed * speedup
 
-        self.offset_x += view.x
+        self.camera_x += view.x
         self.camera_height += view.z
-        self.offset_z += view.y
+        self.camera_z += view.y
 
         self.do_redraw()
 
     def create_ray_from_mouseclick(self, mousex, mousey, yisup=False):
-        self.camera_direction.normalize()
         height = self.canvas_height
         width = self.canvas_width
 
-        view = self.camera_direction.copy()
+        view = self.camera_direction
 
         h = view.cross(Vector3(0, 0, 1))
         v = h.cross(view)
@@ -1480,7 +1517,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
         x /= (width / 2)
         y /= (height / 2)
-        camerapos = Vector3(self.offset_x, self.offset_z, self.camera_height)
+        camerapos = Vector3(self.camera_x, self.camera_z, self.camera_height)
 
         pos = camerapos + view * 1.0 + h * x + v * y
         dir = pos - camerapos

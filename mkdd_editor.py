@@ -174,8 +174,6 @@ class GenEditor(QtWidgets.QMainWindow):
         self.dolphin = Game()
         self.level_view.dolphin = self.dolphin
 
-        self.first_time_3dview = True
-
         self.restore_geometry()
 
         self.fullscreen.setChecked(
@@ -486,7 +484,7 @@ class GenEditor(QtWidgets.QMainWindow):
                     DEFAULT_ZOOM = 80
                     self.level_view._zoom_factor = max(hzoom, vzoom, DEFAULT_ZOOM)
         else:
-            look = self.level_view.camera_direction.copy()
+            look = self.level_view.camera_direction
 
             if adjust_zoom:
                 MARGIN = 3000
@@ -495,8 +493,8 @@ class GenEditor(QtWidgets.QMainWindow):
             else:
                 fac = 5000
 
-            self.level_view.offset_z = -(z + look.y * fac)
-            self.level_view.offset_x = x - look.x * fac
+            self.level_view.camera_z = -(z + look.y * fac)
+            self.level_view.camera_x = x - look.x * fac
             self.level_view.camera_height = y - look.z * fac
 
         self.level_view.do_redraw()
@@ -1499,12 +1497,6 @@ class GenEditor(QtWidgets.QMainWindow):
         if checked:
             self.level_view.change_from_topdown_to_3d()
             self.statusbar.clearMessage()
-
-            # After switching to the 3D view for the first time, the view will be framed to help
-            # users find the objects in the world.
-            if self.first_time_3dview:
-                self.first_time_3dview = False
-                self.frame_selection(adjust_zoom=True)
 
     def setup_ui_toolbar(self):
         # self.toolbar = QtWidgets.QToolBar("Test", self)
