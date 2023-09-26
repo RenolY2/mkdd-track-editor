@@ -51,6 +51,7 @@ class Game:
             self.karts.append([None, Vector3(0.0, 0.0, 0.0)])
             self.kart_targets.append(Vector3(0.0, 0.0, 0.0))
             self.kart_headings.append(Vector3(0.0, 0.0, 0.0))
+
         self.stay_focused_on_player = -1
 
         self.last_angle = 0.0
@@ -60,6 +61,7 @@ class Game:
     def initialize(self):
         self.stay_focused_on_player = -1
         self.dolphin.reset()
+
         if not self.dolphin.find_dolphin():
             self.dolphin.reset()
             return "Dolphin not found."
@@ -90,121 +92,117 @@ class Game:
         return ""
 
     def render_visual(self, renderer: BolMapViewer, selected):
-        p = 0
-        for valid, kartpos in self.karts:
-            if valid:
-                glPushMatrix()
-                horiz = atan2(self.kart_headings[p].x, self.kart_headings[p].z) - pi / 2.0
+        for p, (valid, kartpos) in enumerate(self.karts):
+            if not valid:
+                continue
 
-                glTranslatef(kartpos.x, -kartpos.z, kartpos.y)
-                glRotatef(degrees(horiz), 0.0, 0.0, 1.0)
+            glPushMatrix()
+            horiz = atan2(self.kart_headings[p].x, self.kart_headings[p].z) - pi / 2.0
+            glTranslatef(kartpos.x, -kartpos.z, kartpos.y)
+            glRotatef(degrees(horiz), 0.0, 0.0, 1.0)
+            renderer.models.playercolors[p].render(valid in selected)
+            glPopMatrix()
 
-                renderer.models.playercolors[p].render(valid in selected)
-                glPopMatrix()
-
-                glBegin(GL_LINE_STRIP)
-                glColor3f(0.1, 0.1, 0.1)
-                glVertex3f(kartpos.x, -kartpos.z, kartpos.y)
-                glVertex3f(self.kart_targets[p].x, -self.kart_targets[p].z, self.kart_targets[p].y)
-                glEnd()
-
-                renderer.models.render_player_position_colored(self.kart_targets[p], False, p)
-            p += 1
+            glBegin(GL_LINE_STRIP)
+            glColor3f(0.1, 0.1, 0.1)
+            glVertex3f(kartpos.x, -kartpos.z, kartpos.y)
+            glVertex3f(self.kart_targets[p].x, -self.kart_targets[p].z, self.kart_targets[p].y)
+            glEnd()
+            renderer.models.render_player_position_colored(self.kart_targets[p], False, p)
 
     def render_collision(self, renderer: BolMapViewer, objlist, objselectioncls, selected):
-        if self.dolphin.initialized():
-            idbase = 0x100000
-            offset = len(objlist)
-            for ptr, pos in self.karts:
-                if ptr in selected:
-                    continue
-                objlist.append(
-                    objselectioncls(obj=ptr, pos1=pos, pos2=None, pos3=None, rotation=None))
-                renderer.models.render_generic_position_colored_id(pos, idbase + (offset) * 4)
-                offset += 1
+        if not self.dolphin.initialized():
+            return
+
+        idbase = 0x100000
+        offset = len(objlist)
+        for ptr, pos in self.karts:
+            if ptr in selected:
+                continue
+            objlist.append(objselectioncls(obj=ptr, pos1=pos, pos2=None, pos3=None, rotation=None))
+            renderer.models.render_generic_position_colored_id(pos, idbase + (offset) * 4)
+            offset += 1
 
     def logic(self, renderer: BolMapViewer, delta, diff):
-        if self.dolphin.initialized():
-            if self.region == "US":
-                kartctrlPtr = self.dolphin.read_uint32(0x803CC588)
-            elif self.region == "US_DEBUG":
-                kartctrlPtr = self.dolphin.read_uint32(0x804171a0)
+        if not self.dolphin.initialized():
+            return
 
-            if kartctrlPtr is None or not self.dolphin.address_valid(kartctrlPtr):
-                self.dolphin.reset()
-                for i in range(8):
-                    self.karts[i][0] = None
+        if self.region == "US":
+            kartctrlPtr = self.dolphin.read_uint32(0x803CC588)
+        elif self.region == "US_DEBUG":
+            kartctrlPtr = self.dolphin.read_uint32(0x804171a0)
+
+        if kartctrlPtr is None or not self.dolphin.address_valid(kartctrlPtr):
+            self.dolphin.reset()
+            for i in range(8):
+                self.karts[i][0] = None
+            return
+
+        for i in range(8):
+            kartPtr = self.dolphin.read_uint32(kartctrlPtr + 0xA0 + i * 4)
+            if not self.dolphin.address_valid(kartPtr):
+                continue
+
+            x = self.dolphin.read_float(kartPtr + 0x23C)
+            y = self.dolphin.read_float(kartPtr + 0x240)
+            z = self.dolphin.read_float(kartPtr + 0x244)
+            self.karts[i][0] = kartPtr
+
+            self.kart_headings[i].x = self.dolphin.read_float(kartPtr + 0x308)
+            self.kart_headings[i].y = self.dolphin.read_float(kartPtr + 0x30C)
+            self.kart_headings[i].z = self.dolphin.read_float(kartPtr + 0x310)
+
+            # This is equivalent to KartCtrl::getKartEnemy() (NTSC-U).
+            karttarget = self.dolphin.read_uint32(kartctrlPtr + 0x180 + i * 4)
+            if self.dolphin.address_valid(karttarget):
+                # 0x3C offset seen at 0x80235c1c (NTSC-U).
+                clpoint = self.dolphin.read_uint32(karttarget + 0x3C)
+                if self.dolphin.address_valid(clpoint):
+                    vec3ptr = clpoint + 0x28  # 0x28 offset seen at 0x802438fc (NTSC-U).
+                    if self.dolphin.address_valid(vec3ptr):
+                        self.kart_targets[i].x = self.dolphin.read_float(vec3ptr)
+                        self.kart_targets[i].y = self.dolphin.read_float(vec3ptr + 4)
+                        self.kart_targets[i].z = self.dolphin.read_float(vec3ptr + 8)
+
+            if self.karts[i][0] not in renderer.selected:
+                self.karts[i][1].x = x
+                self.karts[i][1].y = y
+                self.karts[i][1].z = z
             else:
-                for i in range(8):
-                    kartPtr = self.dolphin.read_uint32(kartctrlPtr + 0xA0 + i * 4)
-                    if self.dolphin.address_valid(kartPtr):
+                self.dolphin.write_float(kartPtr + 0x23C, self.karts[i][1].x)
+                self.dolphin.write_float(kartPtr + 0x240, self.karts[i][1].y)
+                self.dolphin.write_float(kartPtr + 0x244, self.karts[i][1].z)
 
-                        x = self.dolphin.read_float(kartPtr + 0x23C)
-                        y = self.dolphin.read_float(kartPtr + 0x240)
-                        z = self.dolphin.read_float(kartPtr + 0x244)
-                        self.karts[i][0] = kartPtr
+        if self.stay_focused_on_player >= 0:
+            if renderer.mode == MODE_TOPDOWN:
+                renderer.offset_x = -self.karts[self.stay_focused_on_player][1].x
+                renderer.offset_z = -self.karts[self.stay_focused_on_player][1].z
+            else:
+                x = self.kart_headings[self.stay_focused_on_player].x
+                z = self.kart_headings[self.stay_focused_on_player].z
 
-                        self.kart_headings[i].x = self.dolphin.read_float(kartPtr + 0x308)
-                        self.kart_headings[i].y = self.dolphin.read_float(kartPtr + 0x30C)
-                        self.kart_headings[i].z = self.dolphin.read_float(kartPtr + 0x310)
-
-                        # This is equivalent to KartCtrl::getKartEnemy() (NTSC-U).
-                        karttarget = self.dolphin.read_uint32(kartctrlPtr + 0x180 + i * 4)
-
-                        if self.dolphin.address_valid(karttarget):
-                            # 0x3C offset seen at 0x80235c1c (NTSC-U).
-                            clpoint = self.dolphin.read_uint32(karttarget + 0x3C)
-                            if self.dolphin.address_valid(clpoint):
-                                vec3ptr = clpoint + 0x28  # 0x28 offset seen at 0x802438fc (NTSC-U).
-                                if self.dolphin.address_valid(vec3ptr):
-                                    self.kart_targets[i].x = self.dolphin.read_float(vec3ptr)
-                                    self.kart_targets[i].y = self.dolphin.read_float(vec3ptr + 4)
-                                    self.kart_targets[i].z = self.dolphin.read_float(vec3ptr + 8)
-                    else:
-                        x = y = z = 0.0
-                        y = -50000
-                        self.karts[i][0] = None
-
-                    if self.karts[i][0] not in renderer.selected:
-                        self.karts[i][1].x = x
-                        self.karts[i][1].y = y
-                        self.karts[i][1].z = z
-                    else:
-                        self.dolphin.write_float(kartPtr + 0x23C, self.karts[i][1].x)
-                        self.dolphin.write_float(kartPtr + 0x240, self.karts[i][1].y)
-                        self.dolphin.write_float(kartPtr + 0x244, self.karts[i][1].z)
-
-            if self.stay_focused_on_player >= 0:
-                if renderer.mode == MODE_TOPDOWN:
-                    renderer.offset_x = -self.karts[self.stay_focused_on_player][1].x
-                    renderer.offset_z = -self.karts[self.stay_focused_on_player][1].z
+                angletmp = atan2(x, z) - pi / 2.0
+                diff1 = angle_diff(angletmp, self.last_angle)
+                diff2 = angle_diff(self.last_angle, angletmp)
+                if diff1 < diff2:
+                    diff = -diff1
                 else:
-                    x = self.kart_headings[self.stay_focused_on_player].x
-                    z = self.kart_headings[self.stay_focused_on_player].z
+                    diff = diff2
 
-                    angletmp = atan2(x, z) - pi / 2.0
-                    diff1 = angle_diff(angletmp, self.last_angle)
-                    diff2 = angle_diff(self.last_angle, angletmp)
-                    if diff1 < diff2:
-                        diff = -diff1
-                    else:
-                        diff = diff2
+                if abs(diff) < 0.001:
+                    angle = angletmp
+                else:
+                    angle = self.last_angle + diff * delta * 3
 
-                    if abs(diff) < 0.001:
-                        angle = angletmp
-                    else:
-                        angle = self.last_angle + diff * delta * 3
+                self.last_angle = angle
 
-                    self.last_angle = angle
+                newx = sin(angle + pi / 2.0)
+                newz = cos(angle + pi / 2.0)
 
-                    newx = sin(angle + pi / 2.0)
-                    newz = cos(angle + pi / 2.0)
+                renderer.camera_x = self.karts[self.stay_focused_on_player][1].x - newx * 1000
+                renderer.camera_z = -(self.karts[self.stay_focused_on_player][1].z - newz * 1000)
+                height = self.karts[self.stay_focused_on_player][1].y
+                renderer.camera_height = height + 500
+                renderer.camera_horiz = angle
 
-                    renderer.camera_x = self.karts[self.stay_focused_on_player][1].x - newx * 1000
-                    renderer.camera_z = -(self.karts[self.stay_focused_on_player][1].z -
-                                          newz * 1000)
-                    height = self.karts[self.stay_focused_on_player][1].y
-                    renderer.camera_height = height + 500
-                    renderer.camera_horiz = angle
-
-            renderer.do_redraw()
+        renderer.do_redraw()
