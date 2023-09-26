@@ -39,7 +39,7 @@ class ObjectModels(object):
             (0.0, 0.5, 1.0, 1.0),
             (1.0, 0.0, 0.5, 1.0),
         )
-        self.playercolors = [Cube(color) for color in PLAYER_COLORS]
+        self.playercolors = [GenericObject(color) for color in PLAYER_COLORS]
         self.playercolors_cylinder = [Cylinder(color) for color in PLAYER_COLORS]
         self.playercolors_cylinder_smaller = [
             Cylinder(color, scale=(0.5, 0.5, 2.0)) for color in PLAYER_COLORS
