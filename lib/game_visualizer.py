@@ -1,26 +1,45 @@
 import sys
+from math import (
+    atan2,
+    cos,
+    degrees,
+    pi,
+    sin,
+)
 
-from OpenGL.GL import *
-from math import pi, atan2, degrees, sin, cos
+from OpenGL.GL import (
+    GL_LINE_STRIP,
+    glBegin,
+    glColor3f,
+    glEnd,
+    glPopMatrix,
+    glPushMatrix,
+    glRotatef,
+    glTranslatef,
+    glVertex3f,
+)
 
 if sys.platform == "win32":
     from lib.memorylib import Dolphin
 else:
     from lib.memorylib_lin import Dolphin
-from mkdd_widgets import BolMapViewer
+
 from lib.vectors import Vector3
-from mkdd_widgets import MODE_TOPDOWN
+from mkdd_widgets import (
+    BolMapViewer,
+    MODE_TOPDOWN,
+)
 
 
 def angle_diff(angle1, angle2):
     angle1 = (angle1 + 2 * pi) % (2 * pi)
     angle2 = (angle2 + 2 * pi) % (2 * pi)
     if angle1 > angle2:
-        angle2 = (angle2 + 2 * pi)
+        angle2 = angle2 + 2 * pi
     return angle2 - angle1
 
 
-class Game(object):
+class Game:
 
     def __init__(self):
         self.dolphin = Dolphin()
@@ -28,7 +47,7 @@ class Game(object):
         self.kart_targets = []
         self.kart_headings = []
 
-        for i in range(8):
+        for _i in range(8):
             self.karts.append([None, Vector3(0.0, 0.0, 0.0)])
             self.kart_targets.append(Vector3(0.0, 0.0, 0.0))
             self.kart_headings.append(Vector3(0.0, 0.0, 0.0))
@@ -146,7 +165,7 @@ class Game(object):
                         y = -50000
                         self.karts[i][0] = None
 
-                    if not self.karts[i][0] in renderer.selected:
+                    if self.karts[i][0] not in renderer.selected:
                         self.karts[i][1].x = x
                         self.karts[i][1].y = y
                         self.karts[i][1].z = z
@@ -181,7 +200,7 @@ class Game(object):
                     newx = sin(angle + pi / 2.0)
                     newz = cos(angle + pi / 2.0)
 
-                    renderer.camera_x = (self.karts[self.stay_focused_on_player][1].x - newx * 1000)
+                    renderer.camera_x = self.karts[self.stay_focused_on_player][1].x - newx * 1000
                     renderer.camera_z = -(self.karts[self.stay_focused_on_player][1].z -
                                           newz * 1000)
                     height = self.karts[self.stay_focused_on_player][1].y
