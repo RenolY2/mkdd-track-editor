@@ -43,6 +43,7 @@ class Game:
 
     def __init__(self):
         self.dolphin = Dolphin()
+        self.kart_count = 0
         self.karts = []
         self.kart_targets = []
         self.kart_headings = []
@@ -92,7 +93,7 @@ class Game:
         return ""
 
     def render_visual(self, renderer: BolMapViewer, selected):
-        for p, (valid, kartpos) in enumerate(self.karts):
+        for p, (valid, kartpos) in enumerate(self.karts[:self.kart_count]):
             if not valid:
                 continue
 
@@ -116,7 +117,7 @@ class Game:
 
         idbase = 0x100000
         offset = len(objlist)
-        for ptr, pos in self.karts:
+        for ptr, pos in self.karts[:self.kart_count]:
             if ptr in selected:
                 continue
             objlist.append(objselectioncls(obj=ptr, pos1=pos, pos2=None, pos3=None, rotation=None))
@@ -134,11 +135,17 @@ class Game:
 
         if kartctrlPtr is None or not self.dolphin.address_valid(kartctrlPtr):
             self.dolphin.reset()
+            self.kart_count = 0
             for i in range(8):
                 self.karts[i][0] = None
             return
 
-        for i in range(8):
+        if self.region == "US":
+            self.kart_count = max(0, min(8, self.dolphin.read_uint32(0x803CB6B1) >> 24))
+        elif self.region == "US_DEBUG":
+            self.kart_count = max(0, min(8, self.dolphin.read_uint32(0x80416271) >> 24))
+
+        for i in range(self.kart_count):
             kartPtr = self.dolphin.read_uint32(kartctrlPtr + 0xA0 + i * 4)
             if not self.dolphin.address_valid(kartPtr):
                 continue
