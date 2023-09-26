@@ -11,15 +11,17 @@ from mkdd_widgets import BolMapViewer
 from lib.vectors import Vector3
 from mkdd_widgets import MODE_TOPDOWN
 
+
 def angle_diff(angle1, angle2):
-    angle1 = (angle1+2*pi)%(2*pi)
-    angle2 = (angle2+2*pi)%(2*pi)
+    angle1 = (angle1 + 2 * pi) % (2 * pi)
+    angle2 = (angle2 + 2 * pi) % (2 * pi)
     if angle1 > angle2:
-        angle2 = (angle2 + 2*pi)
-    return angle2-angle1
+        angle2 = (angle2 + 2 * pi)
+    return angle2 - angle1
 
 
 class Game(object):
+
     def __init__(self):
         self.dolphin = Dolphin()
         self.karts = []
@@ -58,13 +60,13 @@ class Game(object):
         if gameid != b"GM4E":
             gameid_str = str(gameid, encoding="ascii")
             return f"Game doesn't seem to be MKDD: Found Game ID '{gameid_str}'."
-        
-        stringcheck = self.dolphin.read_ram(0x80419020-0x80000000, 5)
+
+        stringcheck = self.dolphin.read_ram(0x80419020 - 0x80000000, 5)
         if stringcheck == b"title":
             self.region = "US_DEBUG"
         else:
             self.region = "US"
-        
+
         print("Success! Detected region", self.region)
         return ""
 
@@ -73,8 +75,7 @@ class Game(object):
         for valid, kartpos in self.karts:
             if valid:
                 glPushMatrix()
-                horiz = atan2(self.kart_headings[p].x,
-                              self.kart_headings[p].z) - pi / 2.0
+                horiz = atan2(self.kart_headings[p].x, self.kart_headings[p].z) - pi / 2.0
 
                 glTranslatef(kartpos.x, -kartpos.z, kartpos.y)
                 glRotatef(degrees(horiz), 0.0, 0.0, 1.0)
@@ -98,12 +99,8 @@ class Game(object):
             for ptr, pos in self.karts:
                 if ptr in selected:
                     continue
-                objlist.append(objselectioncls(
-                    obj=ptr,
-                    pos1=pos,
-                    pos2=None,
-                    pos3=None,
-                    rotation=None))
+                objlist.append(
+                    objselectioncls(obj=ptr, pos1=pos, pos2=None, pos3=None, rotation=None))
                 renderer.models.render_generic_position_colored_id(pos, idbase + (offset) * 4)
                 offset += 1
 
@@ -113,7 +110,7 @@ class Game(object):
                 kartctrlPtr = self.dolphin.read_uint32(0x803CC588)
             elif self.region == "US_DEBUG":
                 kartctrlPtr = self.dolphin.read_uint32(0x804171a0)
-                
+
             if kartctrlPtr is None or not self.dolphin.address_valid(kartctrlPtr):
                 self.dolphin.reset()
                 for i in range(8):
@@ -122,7 +119,7 @@ class Game(object):
                 for i in range(8):
                     kartPtr = self.dolphin.read_uint32(kartctrlPtr + 0xA0 + i * 4)
                     if self.dolphin.address_valid(kartPtr):
-                        
+
                         x = self.dolphin.read_float(kartPtr + 0x23C)
                         y = self.dolphin.read_float(kartPtr + 0x240)
                         z = self.dolphin.read_float(kartPtr + 0x244)
@@ -142,8 +139,8 @@ class Game(object):
                                 vec3ptr = clpoint + 0x28  # 0x28 offset seen at 0x802438fc (NTSC-U).
                                 if self.dolphin.address_valid(vec3ptr):
                                     self.kart_targets[i].x = self.dolphin.read_float(vec3ptr)
-                                    self.kart_targets[i].y = self.dolphin.read_float(vec3ptr+4)
-                                    self.kart_targets[i].z = self.dolphin.read_float(vec3ptr+8)
+                                    self.kart_targets[i].y = self.dolphin.read_float(vec3ptr + 4)
+                                    self.kart_targets[i].z = self.dolphin.read_float(vec3ptr + 8)
                     else:
                         x = y = z = 0.0
                         y = -50000
@@ -166,8 +163,7 @@ class Game(object):
                     x = self.kart_headings[self.stay_focused_on_player].x
                     z = self.kart_headings[self.stay_focused_on_player].z
 
-
-                    angletmp = atan2(x,z) - pi/2.0
+                    angletmp = atan2(x, z) - pi / 2.0
                     diff1 = angle_diff(angletmp, self.last_angle)
                     diff2 = angle_diff(self.last_angle, angletmp)
                     if diff1 < diff2:
@@ -178,18 +174,18 @@ class Game(object):
                     if abs(diff) < 0.001:
                         angle = angletmp
                     else:
-                        angle = self.last_angle + diff * delta*3
+                        angle = self.last_angle + diff * delta * 3
 
                     self.last_angle = angle
 
-                    newx = sin(angle + pi/2.0)
-                    newz = cos(angle + pi/2.0)
+                    newx = sin(angle + pi / 2.0)
+                    newz = cos(angle + pi / 2.0)
 
                     renderer.camera_x = (self.karts[self.stay_focused_on_player][1].x - newx * 1000)
                     renderer.camera_z = -(self.karts[self.stay_focused_on_player][1].z -
                                           newz * 1000)
                     height = self.karts[self.stay_focused_on_player][1].y
-                    renderer.camera_height = height+500
+                    renderer.camera_height = height + 500
                     renderer.camera_horiz = angle
 
             renderer.do_redraw()
