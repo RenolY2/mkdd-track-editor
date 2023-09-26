@@ -41,6 +41,9 @@ class ObjectModels(object):
         )
         self.playercolors = [Cube(color) for color in PLAYER_COLORS]
         self.playercolors_cylinder = [Cylinder(color) for color in PLAYER_COLORS]
+        self.playercolors_cylinder_smaller = [
+            Cylinder(color, scale=(0.5, 0.5, 2.0)) for color in PLAYER_COLORS
+        ]
 
         with open("resources/unitsphere.obj", "r") as f:
             self.sphere = Model.from_obj(f, rotate=True)
@@ -73,6 +76,8 @@ class ObjectModels(object):
         for model in self.playercolors:
             model.generate_displists()
         for model in self.playercolors_cylinder:
+            model.generate_displists()
+        for model in self.playercolors_cylinder_smaller:
             model.generate_displists()
 
         self.generic.generate_displists()
@@ -153,6 +158,9 @@ class ObjectModels(object):
 
     def render_player_position_colored(self, position, selected, player):
         self._render_generic_position(self.playercolors_cylinder[player], position, selected)
+
+    def render_player_position_colored_smaller(self, position, selected, player):
+        self._render_generic_position(self.playercolors_cylinder_smaller[player], position, selected)
 
     def render_generic_position_rotation(self, position, rotation, selected):
         self._render_generic_position_rotation("generic", position, rotation, selected)

@@ -8,10 +8,14 @@ from math import (
 )
 
 from OpenGL.GL import (
+    GL_LINE_STIPPLE,
     GL_LINES,
     glBegin,
     glColor3f,
+    glDisable,
+    glEnable,
     glEnd,
+    glLineStipple,
     glPopMatrix,
     glPushMatrix,
     glRotatef,
@@ -47,11 +51,13 @@ class Game:
         self.karts = []
         self.human_karts = [False] * 8
         self.kart_targets = []
+        self.item_targets = []
         self.kart_headings = []
 
         for _i in range(8):
             self.karts.append([None, Vector3(0.0, 0.0, 0.0)])
             self.kart_targets.append(Vector3(0.0, 0.0, 0.0))
+            self.item_targets.append(Vector3(0.0, 0.0, 0.0))
             self.kart_headings.append(Vector3(0.0, 0.0, 0.0))
 
         self.stay_focused_on_player = -1
@@ -123,6 +129,17 @@ class Game:
                     up_dir = (arrowpos - zf_or_campos).normalized()
                 renderer.models.draw_arrow_head(kartpos, arrowpos, up_dir, 100.0)
                 renderer.models.render_player_position_colored(kart_target, False, p)
+
+            item_target = self.item_targets[p]
+            glColor3f(0.2, 0.2, 0.2)
+            glEnable(GL_LINE_STIPPLE)
+            glLineStipple(1, 0b1111000011110000)
+            glBegin(GL_LINES)
+            glVertex3f(kartpos.x, -kartpos.z, kartpos.y)
+            glVertex3f(item_target.x, -item_target.z, item_target.y)
+            glEnd()
+            glDisable(GL_LINE_STIPPLE)
+            renderer.models.render_player_position_colored_smaller(item_target, False, p)
 
     def render_collision(self, renderer: BolMapViewer, objlist, objselectioncls, selected):
         if not self.dolphin.initialized():
@@ -199,6 +216,16 @@ class Game:
                         self.kart_targets[i].x = self.dolphin.read_float(vec3ptr)
                         self.kart_targets[i].y = self.dolphin.read_float(vec3ptr + 4)
                         self.kart_targets[i].z = self.dolphin.read_float(vec3ptr + 8)
+
+            itemtarget = self.dolphin.read_uint32(kartctrlPtr + 0x1C0 + i * 4)
+            if self.dolphin.address_valid(itemtarget):
+                clpoint = self.dolphin.read_uint32(itemtarget)
+                if self.dolphin.address_valid(clpoint):
+                    vec3ptr = self.dolphin.read_uint32(clpoint + 4)
+                    if self.dolphin.address_valid(vec3ptr):
+                        self.item_targets[i].x = self.dolphin.read_float(vec3ptr)
+                        self.item_targets[i].y = self.dolphin.read_float(vec3ptr + 4)
+                        self.item_targets[i].z = self.dolphin.read_float(vec3ptr + 8)
 
             if self.karts[i][0] not in renderer.selected:
                 self.karts[i][1].x = x

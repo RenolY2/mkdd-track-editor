@@ -583,12 +583,17 @@ class Cube(SelectableModel):
 
 
 class Cylinder(SelectableModel):
-    def __init__(self, color=(1.0, 1.0, 1.0, 1.0)):
+    def __init__(self, color=(1.0, 1.0, 1.0, 1.0), scale=None):
         super().__init__()
         with open("resources/cylinder.obj", "r", encoding='utf-8') as f:
             model = Model.from_obj(f, scale=150, rotate=True)
         self.mesh_list = model.mesh_list
         self.named_meshes = model.mesh_list
+
+        if scale is not None:
+            mesh = self.mesh_list[0]
+            mesh.vertices = [(vertex[0] * scale[0], vertex[1] * scale[1], vertex[2] * scale[2])
+                             for vertex in mesh.vertices]
 
         self.color = color
 
