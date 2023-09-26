@@ -9,18 +9,13 @@ else:
     from lib.memorylib_lin import Dolphin
 from mkdd_widgets import BolMapViewer
 from lib.vectors import Vector3
-from mkdd_widgets import MODE_TOPDOWN, MODE_3D
-EVERYTHING_OK = 0
-DOLPHIN_FOUND_NO_GAME = 1
-DOLPHIN_NOT_FOUND = 2
-WRONG_VERSION = 3
+from mkdd_widgets import MODE_TOPDOWN
 
 def angle_diff(angle1, angle2):
     angle1 = (angle1+2*pi)%(2*pi)
     angle2 = (angle2+2*pi)%(2*pi)
-    #print(angle1, angle2)
     if angle1 > angle2:
-        angle2 = (angle2 + 2*pi)#%(2*pi)
+        angle2 = (angle2 + 2*pi)
     return angle2-angle1
 
 
@@ -37,16 +32,8 @@ class Game(object):
             self.kart_headings.append(Vector3(0.0, 0.0, 0.0))
         self.stay_focused_on_player = -1
 
-        self.timer = 0.0
         self.last_angle = 0.0
-        self.last_x = 0.0
-        self.last_z = 0.0
-        
-        self.last_kart_x = None
-        self.last_kart_z = None
 
-        self.last_angles = []
-        
         self.region = None
 
     def initialize(self):
@@ -66,7 +53,6 @@ class Game(object):
             return "Game ID cannot be read from memory."
 
         gameid = bytes(gameid_buffer)
-        print(gameid)
         if gameid in (b"GM4P", b"GM4J"):
             return "PAL/NTSC-J version of MKDD currently isn't supported for Dolphin hooking."
         if gameid != b"GM4E":
@@ -87,26 +73,6 @@ class Game(object):
         for valid, kartpos in self.karts:
             if valid:
                 glPushMatrix()
-                forward = self.kart_headings[p]
-                up = Vector3(0.0, 1.0, 0.0)
-                right = forward.cross(up)
-                #up = right.cross(forward)
-
-                """glMultMatrixf([
-                    forward.x, forward.y, forward.z, 0,
-
-                    right.x, right.y, right.z, 0,
-                    up.x, up.y, up.z, 0,
-                    kartpos.x, -kartpos.z, kartpos.y, 1]
-                )"""
-
-                """glMultMatrixf([
-                    forward.x, right.x, up.x, 0,
-                    -forward.z, -right.z, -up.z, 0,
-                    forward.y, right.y, up.y, 0,
-
-                    kartpos.x, -kartpos.z, kartpos.y, 1]
-                )"""
                 horiz = atan2(self.kart_headings[p].x,
                               self.kart_headings[p].z) - pi / 2.0
 
@@ -114,7 +80,6 @@ class Game(object):
                 glRotatef(degrees(horiz), 0.0, 0.0, 1.0)
 
                 renderer.models.playercolors[p].render(valid in selected)
-                #renderer.models.render_player_position_colored(kartpos, valid in selected, p)
                 glPopMatrix()
 
                 glBegin(GL_LINE_STRIP)
@@ -143,7 +108,6 @@ class Game(object):
                 offset += 1
 
     def logic(self, renderer: BolMapViewer, delta, diff):
-        self.timer += delta
         if self.dolphin.initialized():
             if self.region == "US":
                 kartctrlPtr = self.dolphin.read_uint32(0x803CC588)
@@ -180,12 +144,6 @@ class Game(object):
                                     self.kart_targets[i].x = self.dolphin.read_float(vec3ptr)
                                     self.kart_targets[i].y = self.dolphin.read_float(vec3ptr+4)
                                     self.kart_targets[i].z = self.dolphin.read_float(vec3ptr+8)
-                                    
-                                    if self.last_kart_x is None:
-                                        self.last_kart_x = self.kart_targets[i].x
-                                    
-                                    if self.last_kart_z is None:
-                                        self.last_kart_z = self.kart_targets[i].z
                     else:
                         x = y = z = 0.0
                         y = -50000
@@ -196,15 +154,6 @@ class Game(object):
                         self.karts[i][1].y = y
                         self.karts[i][1].z = z
                     else:
-                        """diff_x = self.last_kart_x - x 
-                        diff_z = self.last_kart_z - z 
-                        
-                        self.last_kart_x = x
-                        self.last_kart_z = z
-                        
-                        self.dolphin.write_float(kartPtr + 0x23C, x + diff_x)
-                        self.dolphin.write_float(kartPtr + 0x240, self.karts[i][1].y)
-                        self.dolphin.write_float(kartPtr + 0x244, z+diff_z)"""
                         self.dolphin.write_float(kartPtr + 0x23C, self.karts[i][1].x)
                         self.dolphin.write_float(kartPtr + 0x240, self.karts[i][1].y)
                         self.dolphin.write_float(kartPtr + 0x244, self.karts[i][1].z)
@@ -236,46 +185,11 @@ class Game(object):
                     newx = sin(angle + pi/2.0)
                     newz = cos(angle + pi/2.0)
 
-                    #renderer.camera_x = (self.karts[self.stay_focused_on_player][1].x
-                    #                     - self.kart_headings[self.stay_focused_on_player].x*1000)
-                    #renderer.camera_z = -(self.karts[self.stay_focused_on_player][1].z
-                    #                      - self.kart_headings[self.stay_focused_on_player].z*1000)
                     renderer.camera_x = (self.karts[self.stay_focused_on_player][1].x - newx * 1000)
                     renderer.camera_z = -(self.karts[self.stay_focused_on_player][1].z -
                                           newz * 1000)
                     height = self.karts[self.stay_focused_on_player][1].y
-                    #if height < renderer.camera_height:
                     renderer.camera_height = height+500
-
-                    #angle = atan2(self.kart_headings[self.stay_focused_on_player].x,
-                    #              self.kart_headings[self.stay_focused_on_player].z) - pi/2.0
                     renderer.camera_horiz = angle
 
-                    if diff >= 1/60.0 and False:
-                        diffx = x - self.last_x
-                        diffz = z - self.last_z
-
-                        x += diffx*0.01
-                        z += diffz*0.01
-                        renderer.camera_horiz = atan2(x, z) - pi/2.0
-
-                        self.last_x = x
-                        self.last_z = z
-                        #self.last_angles.append()
-                        """interpolate = (self.timer % 10.0)/10.0
-                        if interpolate <= 0.01:
-                            #renderer.camera_horiz = angle
-                            #self.last_angle = angle
-                            self.last_x = (1-interpolate)*self.last_x + interpolate*x
-                            self.last_z = (1 - interpolate) * self.last_z + interpolate * z
-                            #renderer.camera_horiz = atan2(x, z) - pi/2.0
-                        else:
-                            tmpx = (1-interpolate)*self.last_x + interpolate*x
-                            tmpz = (1 - interpolate) * self.last_z + interpolate * z
-                            renderer.camera_horiz = atan2(tmpx, tmpz) - pi / 2.0
-                        print(renderer.camera_horiz)"""
-                    #renderer.canvas_height =
             renderer.do_redraw()
-
-        if self.timer >= 60.0:
-            self.timer = 0.0
