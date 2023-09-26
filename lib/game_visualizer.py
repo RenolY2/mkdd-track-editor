@@ -8,7 +8,7 @@ from math import (
 )
 
 from OpenGL.GL import (
-    GL_LINE_STRIP,
+    GL_LINES,
     glBegin,
     glColor3f,
     glEnd,
@@ -93,7 +93,9 @@ class Game:
         print("Success! Detected region", self.region)
         return ""
 
-    def render_visual(self, renderer: BolMapViewer, selected):
+    def render_visual(self, renderer: BolMapViewer, selected, zf_or_campos):
+        topdown = renderer.mode == MODE_TOPDOWN
+
         for p, (valid, kartpos) in enumerate(self.karts[:self.kart_count]):
             if not valid:
                 continue
@@ -106,12 +108,21 @@ class Game:
             glPopMatrix()
 
             if not self.human_karts[p]:
-                glBegin(GL_LINE_STRIP)
+                kart_target = self.kart_targets[p]
                 glColor3f(0.1, 0.1, 0.1)
+                glBegin(GL_LINES)
                 glVertex3f(kartpos.x, -kartpos.z, kartpos.y)
-                glVertex3f(self.kart_targets[p].x, -self.kart_targets[p].z, self.kart_targets[p].y)
+                glVertex3f(kart_target.x, -kart_target.z, kart_target.y)
                 glEnd()
-                renderer.models.render_player_position_colored(self.kart_targets[p], False, p)
+                distance = (kart_target - kartpos).length()
+                direction = (kart_target - kartpos) / distance
+                arrowpos = kartpos + direction * max(0, distance - 150)
+                if topdown:
+                    up_dir = Vector3(0.0, 1.0, 0.0)
+                else:
+                    up_dir = (arrowpos - zf_or_campos).normalized()
+                renderer.models.draw_arrow_head(kartpos, arrowpos, up_dir, 100.0)
+                renderer.models.render_player_position_colored(kart_target, False, p)
 
     def render_collision(self, renderer: BolMapViewer, objlist, objselectioncls, selected):
         if not self.dolphin.initialized():

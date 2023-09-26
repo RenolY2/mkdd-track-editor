@@ -1027,7 +1027,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         glEnable(GL_ALPHA_TEST)
         glAlphaFunc(GL_GEQUAL, 0.5)
 
-        self.dolphin.render_visual(self, self.selected)
+        self.dolphin.render_visual(self, self.selected, zf if self.mode == MODE_TOPDOWN else campos)
 
         if self.level_file is not None:
             selected = self.selected
