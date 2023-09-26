@@ -45,6 +45,7 @@ class Game:
         self.dolphin = Dolphin()
         self.kart_count = 0
         self.karts = []
+        self.human_karts = [False] * 8
         self.kart_targets = []
         self.kart_headings = []
 
@@ -104,12 +105,13 @@ class Game:
             renderer.models.playercolors[p].render(valid in selected)
             glPopMatrix()
 
-            glBegin(GL_LINE_STRIP)
-            glColor3f(0.1, 0.1, 0.1)
-            glVertex3f(kartpos.x, -kartpos.z, kartpos.y)
-            glVertex3f(self.kart_targets[p].x, -self.kart_targets[p].z, self.kart_targets[p].y)
-            glEnd()
-            renderer.models.render_player_position_colored(self.kart_targets[p], False, p)
+            if not self.human_karts[p]:
+                glBegin(GL_LINE_STRIP)
+                glColor3f(0.1, 0.1, 0.1)
+                glVertex3f(kartpos.x, -kartpos.z, kartpos.y)
+                glVertex3f(self.kart_targets[p].x, -self.kart_targets[p].z, self.kart_targets[p].y)
+                glEnd()
+                renderer.models.render_player_position_colored(self.kart_targets[p], False, p)
 
     def render_collision(self, renderer: BolMapViewer, objlist, objselectioncls, selected):
         if not self.dolphin.initialized():
@@ -145,6 +147,12 @@ class Game:
         elif self.region == "US_DEBUG":
             self.kart_count = max(0, min(8, self.dolphin.read_uint32(0x80416271) >> 24))
 
+        # Check whether "Player Karts: Enable Auto Pilot [Ralf]" is on.
+        if self.region == "US":
+            autopilot = self.dolphin.read_uint32(0x802C60F4) == 0x60000000
+        elif self.region == "US_DEBUG":
+            autopilot = self.dolphin.read_uint32(0x80306644) == 0x60000000
+
         for i in range(self.kart_count):
             kartPtr = self.dolphin.read_uint32(kartctrlPtr + 0xA0 + i * 4)
             if not self.dolphin.address_valid(kartPtr):
@@ -154,6 +162,16 @@ class Game:
             y = self.dolphin.read_float(kartPtr + 0x240)
             z = self.dolphin.read_float(kartPtr + 0x244)
             self.karts[i][0] = kartPtr
+
+            if autopilot:
+                human = False
+            else:
+                # Reduced version of ObjUtility::isPlayerDriver().
+                if self.region == "US":
+                    human = bool(self.dolphin.read_uint32(0x803B145C + 0x34 + 0x18 * i))
+                elif self.region == "US_DEBUG":
+                    human = bool(self.dolphin.read_uint32(0x803FBFA8 + 0x34 + 0x18 * i))
+            self.human_karts[i] = human
 
             self.kart_headings[i].x = self.dolphin.read_float(kartPtr + 0x308)
             self.kart_headings[i].y = self.dolphin.read_float(kartPtr + 0x30C)
