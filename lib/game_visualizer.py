@@ -62,6 +62,9 @@ class Game:
 
         self.stay_focused_on_player = -1
 
+        self.show_target_enemy_path_points = True
+        self.show_target_item_points = True
+
         self.last_angle = 0.0
 
         self.region = None
@@ -112,7 +115,7 @@ class Game:
             renderer.models.playercolors[p].render(valid in selected)
             glPopMatrix()
 
-            if not self.human_karts[p]:
+            if self.show_target_enemy_path_points and not self.human_karts[p]:
                 kart_target = self.kart_targets[p]
                 glColor3f(0.1, 0.1, 0.1)
                 glBegin(GL_LINES)
@@ -129,16 +132,17 @@ class Game:
                 renderer.models.draw_arrow_head(kartpos, arrowpos, up_dir, 100.0)
                 renderer.models.render_player_position_colored(kart_target, False, p)
 
-            item_target = self.item_targets[p]
-            glColor3f(0.2, 0.2, 0.2)
-            glEnable(GL_LINE_STIPPLE)
-            glLineStipple(1, 0b1111000011110000)
-            glBegin(GL_LINES)
-            glVertex3f(kartpos.x, -kartpos.z, kartpos.y)
-            glVertex3f(item_target.x, -item_target.z, item_target.y)
-            glEnd()
-            glDisable(GL_LINE_STIPPLE)
-            renderer.models.render_player_position_colored_smaller(item_target, False, p)
+            if self.show_target_item_points:
+                item_target = self.item_targets[p]
+                glColor3f(0.2, 0.2, 0.2)
+                glEnable(GL_LINE_STIPPLE)
+                glLineStipple(1, 0b1111000011110000)
+                glBegin(GL_LINES)
+                glVertex3f(kartpos.x, -kartpos.z, kartpos.y)
+                glVertex3f(item_target.x, -item_target.z, item_target.y)
+                glEnd()
+                glDisable(GL_LINE_STIPPLE)
+                renderer.models.render_player_position_colored_smaller(item_target, False, p)
 
     def render_collision(self, renderer: BolMapViewer, objlist, objselectioncls, selected):
         if not self.dolphin.initialized():

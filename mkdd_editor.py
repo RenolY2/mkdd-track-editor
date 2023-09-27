@@ -147,6 +147,11 @@ class GenEditor(QtWidgets.QMainWindow):
         self.editorconfig = self.configuration["editor"]
         self.current_gen_path = None
 
+        self.dolphin.show_target_enemy_path_points = self.editorconfig.get(
+            'show_target_enemy_path_points', 'true') == 'true'
+        self.dolphin.show_target_item_points = self.editorconfig.get('show_target_item_points',
+                                                                     'true') == 'true'
+
         self.setup_ui()
 
         self.level_view.level_file = self.level_file
@@ -974,6 +979,31 @@ class GenEditor(QtWidgets.QMainWindow):
             action.triggered.connect(make_func(i))
 
             self.dolphin_menu.addAction(action)
+
+        self.dolphin_menu.addSeparator()
+
+        def show_target_enemy_path_points(checked: bool):
+            self.dolphin.show_target_enemy_path_points = checked
+            self.update_3d()
+            self.editorconfig['show_target_enemy_path_points'] = 'true' if checked else 'false'
+            save_cfg(self.configuration)
+
+        show_target_enemy_path_points_action = self.dolphin_menu.addAction(
+            'Show Target Enemy Path Points')
+        show_target_enemy_path_points_action.setCheckable(True)
+        show_target_enemy_path_points_action.setChecked(self.dolphin.show_target_enemy_path_points)
+        show_target_enemy_path_points_action.triggered[bool].connect(show_target_enemy_path_points)
+
+        def show_target_item_points(checked):
+            self.dolphin.show_target_item_points = checked
+            self.update_3d()
+            self.editorconfig['show_target_item_points'] = 'true' if checked else 'false'
+            save_cfg(self.configuration)
+
+        show_target_item_points_action = self.dolphin_menu.addAction('Show Target Item Points')
+        show_target_item_points_action.setCheckable(True)
+        show_target_item_points_action.setChecked(self.dolphin.show_target_item_points)
+        show_target_item_points_action.triggered[bool].connect(show_target_item_points)
 
         if self.editorconfig.get('debug_ui'):
             self.debug_menu = self.menubar.addMenu('Debug')
