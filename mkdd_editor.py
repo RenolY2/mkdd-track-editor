@@ -931,9 +931,8 @@ class GenEditor(QtWidgets.QMainWindow):
             (self.windowState() | QtCore.Qt.WindowFullScreen)
             if checked else (self.windowState() & ~QtCore.Qt.WindowFullScreen)))
 
-        # Misc
-        self.misc_menu = QtWidgets.QMenu(self.menubar)
-        self.misc_menu.setTitle("Dolphin")
+        self.dolphin_menu = QtWidgets.QMenu(self.menubar)
+        self.dolphin_menu.setTitle("Dolphin")
 
         self.menubar.addAction(self.file_menu.menuAction())
         self.menubar.addAction(self.edit_menu.menuAction())
@@ -942,16 +941,16 @@ class GenEditor(QtWidgets.QMainWindow):
         self.menubar.addAction(self.tools_menu.menuAction())
         self.menubar.addAction(self.minimap_menu.menuAction())
         self.menubar.addAction(self.view_menu.menuAction())
-        self.menubar.addAction(self.misc_menu.menuAction())
+        self.menubar.addAction(self.dolphin_menu.menuAction())
         self.setMenuBar(self.menubar)
 
         self.last_obj_select_pos = 0
 
-        self.misc_menu.addSeparator()
+        self.dolphin_menu.addSeparator()
 
         self.dolphin_action = QtGui.QAction("Hook into Dolphin", self)
         self.dolphin_action.triggered.connect(self.action_hook_into_dolphion)
-        self.misc_menu.addAction(self.dolphin_action)
+        self.dolphin_menu.addAction(self.dolphin_action)
 
         self.camera_actions = [QtGui.QAction("Unfollow", self)]
 
@@ -967,7 +966,7 @@ class GenEditor(QtWidgets.QMainWindow):
             action = self.camera_actions[i+1]
             action.triggered.connect(make_func(i))
 
-            self.misc_menu.addAction(action)
+            self.dolphin_menu.addAction(action)
 
         if self.editorconfig.get('debug_ui'):
             self.debug_menu = self.menubar.addMenu('Debug')
