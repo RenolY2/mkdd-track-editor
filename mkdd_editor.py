@@ -954,7 +954,8 @@ class GenEditor(QtWidgets.QMainWindow):
         self.dolphin_menu.addSeparator()
 
         self.dolphin_action = QtGui.QAction("Hook into Dolphin", self)
-        self.dolphin_action.triggered.connect(self.action_hook_into_dolphion)
+        self.dolphin_action.setCheckable(True)
+        self.dolphin_action.triggered[bool].connect(self.action_hook_into_dolphion)
         self.dolphin_menu.addAction(self.dolphin_action)
 
         self.dolphin_menu.addSeparator()
@@ -1013,10 +1014,20 @@ class GenEditor(QtWidgets.QMainWindow):
             self.profile_action.triggered.connect(self.action_profile_start_stop)
             self.profile = None
 
-    def action_hook_into_dolphion(self):
+    def action_hook_into_dolphion(self, checked: bool):
+        self.dolphin.autoconnect = False
+
+        if not checked:
+            self.dolphin.reset()
+            return
+
         error = self.dolphin.initialize()
         if error != "":
             open_error_dialog(error, self)
+            self.dolphin_action.setChecked(False)
+        else:
+            # If successful, let it reconnect quietly from now on.
+            self.dolphin.autoconnect = True
 
     def action_profile_start_stop(self):
         if self.profile is None:

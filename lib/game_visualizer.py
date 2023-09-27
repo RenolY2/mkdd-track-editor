@@ -1,4 +1,7 @@
+import contextlib
+import io
 import sys
+import time
 from math import (
     atan2,
     cos,
@@ -68,6 +71,15 @@ class Game:
         self.last_angle = 0.0
 
         self.region = None
+
+        self.autoconnect = False
+        self.last_autoconnect = time.monotonic()
+
+    def reset(self):
+        self.dolphin.reset()
+        self.kart_count = 0
+        for i in range(8):
+            self.karts[i][0] = None
 
     def initialize(self):
         self.dolphin.reset()
@@ -159,7 +171,17 @@ class Game:
 
     def logic(self, renderer: BolMapViewer, delta, diff):
         if not self.dolphin.initialized():
-            return
+            if self.autoconnect and (time.monotonic() - self.last_autoconnect > 1.0):
+                self.last_autoconnect = time.monotonic()
+
+                sink = io.StringIO()
+                with contextlib.redirect_stdout(sink), contextlib.redirect_stderr(sink):
+                    self.initialize()
+
+                if not self.dolphin.initialized():
+                    return
+            else:
+                return
 
         if self.region == "US":
             kartctrlPtr = self.dolphin.read_uint32(0x803CC588)
