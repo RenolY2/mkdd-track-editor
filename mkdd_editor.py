@@ -131,6 +131,7 @@ class GenEditor(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.level_file = BOL()
+        self.dolphin = Game()
 
         self.undo_history: list[UndoEntry] = []
         self.redo_history: list[UndoEntry] = []
@@ -171,7 +172,6 @@ class GenEditor(QtWidgets.QMainWindow):
 
         self._dontselectfromtree = False
 
-        self.dolphin = Game()
         self.level_view.dolphin = self.dolphin
 
         self.restore_geometry()
@@ -952,6 +952,8 @@ class GenEditor(QtWidgets.QMainWindow):
         self.dolphin_action.triggered.connect(self.action_hook_into_dolphion)
         self.dolphin_menu.addAction(self.dolphin_action)
 
+        self.dolphin_menu.addSeparator()
+
         self.camera_actions = [QtGui.QAction("Unfollow", self)]
 
         for i in range(8):
@@ -962,8 +964,13 @@ class GenEditor(QtWidgets.QMainWindow):
                 self.dolphin.stay_focused_on_player = i
             return action_follow_player
 
+        self.camera_actions_group = QtGui.QActionGroup(self)
+
         for i in range(-1, 8):
             action = self.camera_actions[i+1]
+            self.camera_actions_group.addAction(action)
+            action.setCheckable(True)
+            action.setChecked(i == self.dolphin.stay_focused_on_player)
             action.triggered.connect(make_func(i))
 
             self.dolphin_menu.addAction(action)

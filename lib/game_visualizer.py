@@ -67,7 +67,6 @@ class Game:
         self.region = None
 
     def initialize(self):
-        self.stay_focused_on_player = -1
         self.dolphin.reset()
 
         if not self.dolphin.find_dolphin():
