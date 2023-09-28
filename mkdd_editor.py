@@ -26,6 +26,7 @@ import widgets.tree_view as tree_view
 from configuration import read_config, make_default_config, save_cfg
 
 import mkdd_widgets # as mkddwidgets
+from widgets import utils
 from widgets.side_widget import PikminSideWidget
 from widgets.editor_widgets import open_error_dialog, open_info_dialog, catch_exception_with_dialog
 from mkdd_widgets import BolMapViewer, MODE_TOPDOWN, SnappingMode
@@ -936,7 +937,7 @@ class GenEditor(QtWidgets.QMainWindow):
             (self.windowState() | QtCore.Qt.WindowFullScreen)
             if checked else (self.windowState() & ~QtCore.Qt.WindowFullScreen)))
 
-        self.dolphin_menu = QtWidgets.QMenu(self.menubar)
+        self.dolphin_menu = utils.NonAutodismissibleMenu(self.menubar)
         self.dolphin_menu.setTitle("Dolphin")
 
         self.menubar.addAction(self.file_menu.menuAction())
