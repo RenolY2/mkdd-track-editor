@@ -26,6 +26,7 @@ import widgets.tree_view as tree_view
 from configuration import read_config, make_default_config, save_cfg
 
 import mkdd_widgets # as mkddwidgets
+from widgets import utils
 from widgets.side_widget import PikminSideWidget
 from widgets.editor_widgets import open_error_dialog, open_info_dialog, catch_exception_with_dialog
 from mkdd_widgets import BolMapViewer, MODE_TOPDOWN, SnappingMode
@@ -131,6 +132,7 @@ class GenEditor(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.level_file = BOL()
+        self.dolphin = Game()
 
         self.undo_history: list[UndoEntry] = []
         self.redo_history: list[UndoEntry] = []
@@ -145,6 +147,11 @@ class GenEditor(QtWidgets.QMainWindow):
         self.pathsconfig = self.configuration["default paths"]
         self.editorconfig = self.configuration["editor"]
         self.current_gen_path = None
+
+        self.dolphin.show_target_enemy_path_points = self.editorconfig.get(
+            'show_target_enemy_path_points', 'true') == 'true'
+        self.dolphin.show_target_item_points = self.editorconfig.get('show_target_item_points',
+                                                                     'true') == 'true'
 
         self.setup_ui()
 
@@ -171,7 +178,6 @@ class GenEditor(QtWidgets.QMainWindow):
 
         self._dontselectfromtree = False
 
-        self.dolphin = Game()
         self.level_view.dolphin = self.dolphin
 
         self.restore_geometry()
@@ -931,9 +937,8 @@ class GenEditor(QtWidgets.QMainWindow):
             (self.windowState() | QtCore.Qt.WindowFullScreen)
             if checked else (self.windowState() & ~QtCore.Qt.WindowFullScreen)))
 
-        # Misc
-        self.misc_menu = QtWidgets.QMenu(self.menubar)
-        self.misc_menu.setTitle("Dolphin")
+        self.dolphin_menu = utils.NonAutodismissibleMenu(self.menubar)
+        self.dolphin_menu.setTitle("Dolphin")
 
         self.menubar.addAction(self.file_menu.menuAction())
         self.menubar.addAction(self.edit_menu.menuAction())
@@ -942,16 +947,19 @@ class GenEditor(QtWidgets.QMainWindow):
         self.menubar.addAction(self.tools_menu.menuAction())
         self.menubar.addAction(self.minimap_menu.menuAction())
         self.menubar.addAction(self.view_menu.menuAction())
-        self.menubar.addAction(self.misc_menu.menuAction())
+        self.menubar.addAction(self.dolphin_menu.menuAction())
         self.setMenuBar(self.menubar)
 
         self.last_obj_select_pos = 0
 
-        self.misc_menu.addSeparator()
+        self.dolphin_menu.addSeparator()
 
         self.dolphin_action = QtGui.QAction("Hook into Dolphin", self)
-        self.dolphin_action.triggered.connect(self.action_hook_into_dolphion)
-        self.misc_menu.addAction(self.dolphin_action)
+        self.dolphin_action.setCheckable(True)
+        self.dolphin_action.triggered[bool].connect(self.action_hook_into_dolphion)
+        self.dolphin_menu.addAction(self.dolphin_action)
+
+        self.dolphin_menu.addSeparator()
 
         self.camera_actions = [QtGui.QAction("Unfollow", self)]
 
@@ -963,11 +971,41 @@ class GenEditor(QtWidgets.QMainWindow):
                 self.dolphin.stay_focused_on_player = i
             return action_follow_player
 
+        self.camera_actions_group = QtGui.QActionGroup(self)
+
         for i in range(-1, 8):
             action = self.camera_actions[i+1]
+            self.camera_actions_group.addAction(action)
+            action.setCheckable(True)
+            action.setChecked(i == self.dolphin.stay_focused_on_player)
             action.triggered.connect(make_func(i))
 
-            self.misc_menu.addAction(action)
+            self.dolphin_menu.addAction(action)
+
+        self.dolphin_menu.addSeparator()
+
+        def show_target_enemy_path_points(checked: bool):
+            self.dolphin.show_target_enemy_path_points = checked
+            self.update_3d()
+            self.editorconfig['show_target_enemy_path_points'] = 'true' if checked else 'false'
+            save_cfg(self.configuration)
+
+        show_target_enemy_path_points_action = self.dolphin_menu.addAction(
+            'Show Target Enemy Path Points')
+        show_target_enemy_path_points_action.setCheckable(True)
+        show_target_enemy_path_points_action.setChecked(self.dolphin.show_target_enemy_path_points)
+        show_target_enemy_path_points_action.triggered[bool].connect(show_target_enemy_path_points)
+
+        def show_target_item_points(checked):
+            self.dolphin.show_target_item_points = checked
+            self.update_3d()
+            self.editorconfig['show_target_item_points'] = 'true' if checked else 'false'
+            save_cfg(self.configuration)
+
+        show_target_item_points_action = self.dolphin_menu.addAction('Show Target Item Points')
+        show_target_item_points_action.setCheckable(True)
+        show_target_item_points_action.setChecked(self.dolphin.show_target_item_points)
+        show_target_item_points_action.triggered[bool].connect(show_target_item_points)
 
         if self.editorconfig.get('debug_ui'):
             self.debug_menu = self.menubar.addMenu('Debug')
@@ -977,10 +1015,20 @@ class GenEditor(QtWidgets.QMainWindow):
             self.profile_action.triggered.connect(self.action_profile_start_stop)
             self.profile = None
 
-    def action_hook_into_dolphion(self):
+    def action_hook_into_dolphion(self, checked: bool):
+        self.dolphin.autoconnect = False
+
+        if not checked:
+            self.dolphin.reset()
+            return
+
         error = self.dolphin.initialize()
         if error != "":
             open_error_dialog(error, self)
+            self.dolphin_action.setChecked(False)
+        else:
+            # If successful, let it reconnect quietly from now on.
+            self.dolphin.autoconnect = True
 
     def action_profile_start_stop(self):
         if self.profile is None:
