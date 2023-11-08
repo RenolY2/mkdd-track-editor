@@ -779,9 +779,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     offset = len(objlist)
 
                 if vismenu.cameras.is_selectable():
-                    for i, obj in enumerate(obj for obj in self.level_file.cameras if obj not in selected):
-                        if obj.name == "para":
-                            continue
+                    for i, obj in enumerate(obj for obj in self.level_file.cameras
+                                            if obj not in selected and obj.name != "para"):
                         if obj.camtype in (5, 6):
                             objlist.append(
                                 ObjectSelectionEntry(obj=obj,
