@@ -402,7 +402,7 @@ class GenEditor(QtWidgets.QMainWindow):
                 for row in reversed(selected_item_data):
                     item = item.child(row)
                 item.setSelected(True)
-                if isinstance(item.bound_to, libbol.Checkpoint):
+                if hasattr(item, 'bound_to') and isinstance(item.bound_to, libbol.Checkpoint):
                     # Handled as a special case.
                     continue
                 items_to_select.append(item)
