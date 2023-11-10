@@ -29,6 +29,7 @@ def make_default_config():
         "hidden_collision_type_groups": "",
         "filter_view": "",
         "addi_file_on_load": "Choose",
+        "validate_bol_file": "True",
     }
 
     with open("editor_config.ini", "w") as f:

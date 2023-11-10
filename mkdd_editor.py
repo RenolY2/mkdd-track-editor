@@ -333,7 +333,7 @@ class GenEditor(QtWidgets.QMainWindow):
 
         bol_changed = current_undo_entry.bol_hash != undo_entry.bol_hash
 
-        self.level_file = BOL.from_bytes(undo_entry.bol_document)
+        self.level_file = BOL.from_bytes(undo_entry.bol_document, self.validate_bol_file)
 
         # The BOL document cannot store information on empty enemy paths; this information is
         # sourced from a separate list.
@@ -676,6 +676,8 @@ class GenEditor(QtWidgets.QMainWindow):
         self.error_analyzer_button = ErrorAnalyzerButton()
         self.error_analyzer_button.clicked.connect(lambda _checked: self.analyze_for_mistakes())
         self.statusbar.addPermanentWidget(self.error_analyzer_button)
+
+        self.validate_bol_file = self.editorconfig.getboolean("validate_bol_file")
 
         self.connect_actions()
 
@@ -1858,7 +1860,7 @@ class GenEditor(QtWidgets.QMainWindow):
                         root_name = self.loaded_archive.root.name
                         coursename = find_file(self.loaded_archive.root, "_course.bol")
                         bol_file = self.loaded_archive[root_name + "/" + coursename]
-                        bol_data = BOL.from_file(bol_file)
+                        bol_data = BOL.from_file(bol_file, self.validate_bol_file)
                         self.setup_bol_file(bol_data, filepath, update_config)
                         self.leveldatatreeview.set_objects(bol_data)
                         self.current_gen_path = filepath
@@ -1902,7 +1904,7 @@ class GenEditor(QtWidgets.QMainWindow):
             else:
                 with open(filepath, "rb") as f:
                     try:
-                        bol_file = BOL.from_file(f)
+                        bol_file = BOL.from_file(f, self.validate_bol_file)
                         self.setup_bol_file(bol_file, filepath, update_config)
                         self.leveldatatreeview.set_objects(bol_file)
                         self.current_gen_path = filepath
@@ -2031,7 +2033,7 @@ class GenEditor(QtWidgets.QMainWindow):
 
     def load_bol_file(self, filepath, additional=None):
         with open(filepath, "rb") as f:
-            bol_file = BOL.from_file(f)
+            bol_file = BOL.from_file(f, self.validate_bol_file)
             self.setup_bol_file(bol_file, filepath)
             self.leveldatatreeview.set_objects(bol_file)
             self.current_gen_path = filepath
@@ -2082,7 +2084,7 @@ class GenEditor(QtWidgets.QMainWindow):
                 root_name = self.loaded_archive.root.name
                 coursename = find_file(self.loaded_archive.root, "_course.bol")
                 bol_file = self.loaded_archive[root_name + "/" + coursename]
-                bol_data = BOL.from_file(bol_file)
+                bol_data = BOL.from_file(bol_file, self.validate_bol_file)
                 self.setup_bol_file(bol_data, filepath)
                 self.leveldatatreeview.set_objects(bol_data)
                 self.current_gen_path = filepath

@@ -149,7 +149,7 @@ class Rotation(object):
         return cls(forward, up, left)
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, validate_file= True):
         return cls.from_mkdd_rotation(
             read_int16(f), read_int16(f), read_int16(f),
             read_int16(f), read_int16(f), read_int16(f)
@@ -242,7 +242,7 @@ class ColorRGB(object):
         self.b = b
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, validate_file= True):
         return cls(read_uint8(f), read_uint8(f), read_uint8(f))
 
     def write(self, f):
@@ -255,7 +255,7 @@ class ColorRGBA(ColorRGB):
         self.a = a
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, validate_file= True):
         return cls(*unpack(">BBBB", f.read(4)))
 
     def write(self, f):
@@ -305,13 +305,14 @@ class EnemyPoint(object):
         )
 
     @classmethod
-    def from_file(cls, f, old_bol=False):
+    def from_file(cls, f, old_bol=False, validate_file= True):
         start = f.tell()
         args = [Vector3(*unpack(">fff", f.read(12)))]
         if not old_bol:
             args.extend(unpack(">HhfbBBBBBB", f.read(15)))
             padding = f.read(5)  # padding
-            assert padding == b"\x00" * 5
+            if validate_file:
+                assert padding == b"\x00" * 5
         else:
             args.extend(unpack(">HhfHBB", f.read(12)))
             args.extend((0, 0, 0, 0))
@@ -393,13 +394,13 @@ class EnemyPointGroups(object):
         self.groups = []
 
     @classmethod
-    def from_file(cls, f, count, old_bol=False):
+    def from_file(cls, f, count, old_bol=False, validate_file=True):
         enemypointgroups = cls()
         group_ids = {}
         curr_group = None
 
         for i in range(count):
-            enemypoint = EnemyPoint.from_file(f, old_bol)
+            enemypoint = EnemyPoint.from_file(f, old_bol, validate_file)
             if enemypoint.group not in group_ids:
                 # start of group
                 curr_group = EnemyPointGroup()
@@ -562,7 +563,7 @@ class CheckpointGroup(object):
         self.points = self.points[:pos+1]
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, validate_file= True):
         pointcount = read_uint16(f)
         checkpointgroup = cls(read_uint16(f))
         checkpointgroup._pointcount = pointcount
@@ -600,14 +601,15 @@ class Checkpoint(object):
 
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, validate_file= True):
         startoff = f.tell()
         start = Vector3(*unpack(">fff", f.read(12)))
         end = Vector3(*unpack(">fff", f.read(12)))
         unk1, unk2, unk3, unk4 = unpack(">BBBB", f.read(4))
-        assert unk2 == 0 or unk2 == 1
-        assert unk3 == 0 or unk3 == 1
-        assert unk4 in (0, 1)  # 1 expected only for the custom "Lap Checkpoint" parameter
+        if validate_file:
+            assert unk2 == 0 or unk2 == 1
+            assert unk3 == 0 or unk3 == 1
+            assert unk4 in (0, 1)  # 1 expected only for the custom "Lap Checkpoint" parameter
         return cls(start, end, unk1, unk2, unk3, unk4)
 
     def write(self, f):
@@ -621,16 +623,16 @@ class CheckpointGroups(object):
         self.groups = []
 
     @classmethod
-    def from_file(cls, f, count):
+    def from_file(cls, f, count, validate_file= True):
         checkpointgroups = cls()
 
         for i in range(count):
-            group = CheckpointGroup.from_file(f)
+            group = CheckpointGroup.from_file(f, validate_file)
             checkpointgroups.groups.append(group)
 
         for group in checkpointgroups.groups:
             for i in range(group._pointcount):
-                checkpoint = Checkpoint.from_file(f)
+                checkpoint = Checkpoint.from_file(f, validate_file)
                 group.points.append(checkpoint)
 
         return checkpointgroups
@@ -670,18 +672,20 @@ class Route(object):
 
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, validate_file= True):
         route = cls()
         route._pointcount = read_uint16(f)
         route._pointstart = read_uint16(f)
         #pad = f.read(4)
         #assert pad == b"\x00\x00\x00\x00"
         route.unk1 = read_uint32(f)
-        assert route.unk1 in (0, 1)
         route.unk2 = read_uint8(f)
-        assert route.unk2 == 0
         pad = f.read(7)
-        assert pad == b"\x00"*7
+
+        if validate_file:
+            assert route.unk1 in (0, 1)
+            assert route.unk2 == 0
+            assert pad == b"\x00"*7
 
         return route
 
@@ -714,14 +718,15 @@ class RoutePoint(object):
 
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, validate_file= True):
         position = Vector3(*unpack(">fff", f.read(12)))
         point = cls(position)
 
         point.unk = read_uint32(f)
 
         padding = f.read(16)
-        assert padding == b"\x00"*16
+        if validate_file: 
+            assert padding == b"\x00"*16
         return point
 
     def write(self, f):
@@ -754,7 +759,7 @@ class MapObject(object):
         return cls(Vector3(0.0, 0.0, 0.0), 1)
 
     @classmethod
-    def from_file(cls, f, routes: ObjectContainer):
+    def from_file(cls, f, routes: ObjectContainer, validate_file=True):
         start = f.tell()
         position = Vector3(*unpack(">fff", f.read(12)))
         scale = Vector3(*unpack(">fff", f.read(12)))
@@ -784,9 +789,10 @@ class MapObject(object):
         obj.unk_flag = read_uint8(f)
         obj.unk_2f = read_uint8(f)
 
-        assert obj.unk_28 == 0
-        assert obj.unk_2f == 0
-        assert obj.presence in (0, 1, 2, 3)
+        if validate_file:
+            assert obj.unk_28 == 0
+            assert obj.unk_2f == 0
+            assert obj.presence in (0, 1, 2, 3)
 
         for i in range(8):
             obj.userdata[i] = read_int16(f)
@@ -837,11 +843,11 @@ class MapObjects(object):
         self.objects = []
 
     @classmethod
-    def from_file(cls, f, objectcount, routes: ObjectContainer):
+    def from_file(cls, f, objectcount, routes: ObjectContainer, validate_file=True):
         mapobjs = cls()
 
         for i in range(objectcount):
-            obj = MapObject.from_file(f, routes)
+            obj = MapObject.from_file(f, routes, validate_file)
             mapobjs.objects.append(obj)
 
         return mapobjs
@@ -873,7 +879,7 @@ class KartStartPoint(object):
         return cls(Vector3(0.0, 0.0, 0.0))
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, validate_file= True):
         position = Vector3(*unpack(">fff", f.read(12)))
 
         kstart = cls(position)
@@ -897,7 +903,7 @@ class KartStartPoints(object):
         self.positions = []
 
     @classmethod
-    def from_file(cls, f, count):
+    def from_file(cls, f, count, validate_file=True):
         kspoints = cls()
 
         for i in range(count):
@@ -952,7 +958,7 @@ class Area(object):
         return cls(Vector3(0.0, 0.0, 0.0))
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, validate_file= True):
         position = Vector3(*unpack(">fff", f.read(12)))
 
         area = cls(position)
@@ -969,8 +975,9 @@ class Area(object):
         area.shadow_id = read_int16(f)
         area.lightparam_index = read_int16(f)
 
-        assert area.shape in (0, 1)
-        assert area.area_type in list(AREA_TYPES.keys())
+        if validate_file:
+            assert area.shape in (0, 1)
+            assert area.area_type in list(AREA_TYPES.keys())
 
         return area
 
@@ -1006,10 +1013,10 @@ class Areas(object):
         self.areas = []
 
     @classmethod
-    def from_file(cls, f, count):
+    def from_file(cls, f, count, validate_file=True):
         areas = cls()
         for i in range(count):
-            areas.areas.append(Area.from_file(f))
+            areas.areas.append(Area.from_file(f, validate_file))
 
         return areas
 
@@ -1053,7 +1060,7 @@ class Camera(object):
         return cls(Vector3(0.0, 0.0, 0.0))
 
     @classmethod
-    def from_file(cls, f, routes: ObjectContainer):
+    def from_file(cls, f, routes: ObjectContainer, validate_file=True):
         position = Vector3(*unpack(">fff", f.read(12)))
 
         cam = cls(position)
@@ -1142,7 +1149,7 @@ class JugemPoint(object):
         return cls(Vector3(0.0, 0.0, 0.0))
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, validate_file= True):
         position = Vector3(*unpack(">fff", f.read(12)))
         jugem = cls(position)
         jugem.rotation = Rotation.from_file(f)
@@ -1174,7 +1181,7 @@ class LightParam(object):
         return cls()
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, validate_file= True):
         lp = cls()
         lp.color1 = ColorRGBA.from_file(f)
         lp.unkvec = Vector3(*unpack(">fff", f.read(12)))
@@ -1202,7 +1209,7 @@ class MGEntry(object):
         return cls()
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, validate_file= True):
         mgentry = MGEntry()
         mgentry.unk1 = read_int16(f)
         mgentry.unk2 = read_int16(f)
@@ -1312,10 +1319,11 @@ class BOL(object):
         return objects
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, validate_file= True):
         bol = cls()
         magic = f.read(4)
-        assert magic == b"0015" or magic == b"0012"
+        if validate_file:
+            assert magic == b"0015" or magic == b"0012"
         old_bol = magic == b"0012"
 
         bol.roll = read_uint8(f)
@@ -1339,72 +1347,77 @@ class BOL(object):
         bol.fog_endz = read_float(f)
         bol.lod_bias = read_uint8(f)
         bol.dummy_start_line = read_uint8(f)
-        assert bol.lod_bias in (0, 1)
-        assert bol.dummy_start_line in (0, 1)
+        if validate_file:
+            assert bol.lod_bias in (0, 1)
+            assert bol.dummy_start_line in (0, 1)
         bol.snow_effects = read_uint8(f)
         bol.shadow_opacity = read_uint8(f)
         bol.shadow_color = ColorRGB.from_file(f)
         bol.starting_point_count = read_uint8(f)
         bol.sky_follow = read_uint8(f)
-        assert bol.sky_follow in (0, 1)
+        if validate_file:
+            assert bol.sky_follow in (0, 1)
 
         sectioncounts[LIGHTPARAM] = read_uint8(f)
         sectioncounts[MINIGAME] = read_uint8(f)
         padding = read_uint8(f)
-        assert padding == 0
+        if validate_file:
+            assert padding == 0
 
         filestart = read_uint32(f)
-        assert filestart == 0
+        if validate_file:
+            assert filestart == 0
 
         sectionoffsets = {}
         for i in range(11):
             sectionoffsets[i+1] = read_uint32(f)
 
         padding = f.read(12) # padding
-        assert padding == b"\x00"*12
+        if validate_file:
+            assert padding == b"\x00"*12
         endofheader = f.tell()
 
 
         #calculated_count = (sectionoffsets[CHECKPOINT] - sectionoffsets[ENEMYITEMPOINT])//0x20
         #assert sectioncounts[ENEMYITEMPOINT] == calculated_count
         f.seek(sectionoffsets[ENEMYITEMPOINT])
-        bol.enemypointgroups = EnemyPointGroups.from_file(f, sectioncounts[ENEMYITEMPOINT], old_bol)
+        bol.enemypointgroups = EnemyPointGroups.from_file(f, sectioncounts[ENEMYITEMPOINT], old_bol, validate_file)
 
         f.seek(sectionoffsets[CHECKPOINT])
-        bol.checkpoints = CheckpointGroups.from_file(f, sectioncounts[CHECKPOINT])
+        bol.checkpoints = CheckpointGroups.from_file(f, sectioncounts[CHECKPOINT], validate_file)
 
         f.seek(sectionoffsets[ROUTEGROUP])
-        bol.routes = ObjectContainer.from_file(f, sectioncounts[ROUTEGROUP], Route)
+        bol.routes = ObjectContainer.from_file(f, sectioncounts[ROUTEGROUP], Route, validate_file)
 
         f.seek(sectionoffsets[ROUTEPOINT])
         routepoints = []
         count = (sectionoffsets[OBJECTS] - sectionoffsets[ROUTEPOINT])//0x20
         for i in range(count):
-            routepoints.append(RoutePoint.from_file(f))
+            routepoints.append(RoutePoint.from_file(f, validate_file))
 
         for route in bol.routes:
             route.add_routepoints(routepoints)
 
         f.seek(sectionoffsets[OBJECTS])
-        bol.objects = MapObjects.from_file(f, sectioncounts[OBJECTS], bol.routes)
+        bol.objects = MapObjects.from_file(f, sectioncounts[OBJECTS], bol.routes, validate_file)
 
         f.seek(sectionoffsets[KARTPOINT])
-        bol.kartpoints = KartStartPoints.from_file(f, (sectionoffsets[AREA] - sectionoffsets[KARTPOINT])//0x28)
+        bol.kartpoints = KartStartPoints.from_file(f, (sectionoffsets[AREA] - sectionoffsets[KARTPOINT])//0x28, validate_file)
 
         # on the dekoboko dev track from a MKDD demo this assertion doesn't hold for some reason
-        if not old_bol:
+        if not old_bol and validate_file:
             assert len(bol.kartpoints.positions) == bol.starting_point_count
-        else:
+        elif old_bol:
             print("Old bol detected, fixing starting point count and player id of first kart position...")
             bol.starting_point_count = bol.kartpoints.positions
             if len(bol.kartpoints.positions) > 0:
                 bol.kartpoints.positions[0].playerid = 0xFF
 
         f.seek(sectionoffsets[AREA])
-        bol.areas = Areas.from_file(f, sectioncounts[AREA])
+        bol.areas = Areas.from_file(f, sectioncounts[AREA], validate_file)
 
         f.seek(sectionoffsets[CAMERA])
-        bol.cameras = ObjectContainer.from_file(f, sectioncounts[CAMERA], Camera, bol.routes)
+        bol.cameras = ObjectContainer.from_file(f, sectioncounts[CAMERA], Camera, bol.routes, validate_file)
         for camera in bol.cameras:
             camera.setnextcam(bol.cameras)
 
@@ -1412,20 +1425,20 @@ class BOL(object):
             area.setcam(bol.cameras)
 
         f.seek(sectionoffsets[RESPAWNPOINT])
-        bol.respawnpoints = ObjectContainer.from_file(f, sectioncounts[RESPAWNPOINT], JugemPoint)
+        bol.respawnpoints = ObjectContainer.from_file(f, sectioncounts[RESPAWNPOINT], JugemPoint, validate_file)
 
         f.seek(sectionoffsets[LIGHTPARAM])
 
-        bol.lightparams = ObjectContainer.from_file(f, sectioncounts[LIGHTPARAM], LightParam)
+        bol.lightparams = ObjectContainer.from_file(f, sectioncounts[LIGHTPARAM], LightParam, validate_file)
 
         f.seek(sectionoffsets[MINIGAME])
-        bol.mgentries = ObjectContainer.from_file(f, sectioncounts[MINIGAME], MGEntry)
+        bol.mgentries = ObjectContainer.from_file(f, sectioncounts[MINIGAME], MGEntry, validate_file)
 
         return bol
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> 'BOL':
-        return BOL.from_file(BytesIO(data))
+    def from_bytes(cls, data: bytes, validate_file) -> 'BOL':
+        return BOL.from_file(BytesIO(data), validate_file)
 
     def write(self, f):
         f.write(b"0015")
