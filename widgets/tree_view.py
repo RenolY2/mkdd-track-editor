@@ -386,6 +386,18 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
 
     def _reset(self):
         with QtCore.QSignalBlocker(self):  # Avoid triggering item selection changed events.
+            self.bolheader.setSelected(False)
+            self.enemyroutes.setSelected(False)
+            self.checkpointgroups.setSelected(False)
+            self.routes.setSelected(False)
+            self.objects.setSelected(False)
+            self.kartpoints.setSelected(False)
+            self.areas.setSelected(False)
+            self.cameras.setSelected(False)
+            self.respawnpoints.setSelected(False)
+            self.lightparams.setSelected(False)
+            self.mgentries.setSelected(False)
+
             self.enemyroutes.remove_children()
             self.checkpointgroups.remove_children()
             self.routes.remove_children()
