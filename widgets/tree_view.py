@@ -480,11 +480,17 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
         self._set_expansion_states(self.checkpointgroups, checkpointgroups_expansion_states)
         self._set_expansion_states(self.routes, routes_expansion_states)
 
-        # And restore previous selection (but only if item counts match, or else indexes could be
-        # unreliable).
+        # And restore previous selection, but only if item counts match, or else indexes could be
+        # unreliable. Top-level items always exist, so they can be restored even when the count has
+        # changed.
         items_to_select = []
-        if selected_item_indexes_list and initial_item_count == self.count_items():
+        if selected_item_indexes_list:
+            only_top_level_items = initial_item_count != self.count_items()
+
             for selected_item_indexes in selected_item_indexes_list:
+                if only_top_level_items and len(selected_item_indexes) != 1:
+                    continue
+
                 item = self.topLevelItem(selected_item_indexes.pop(0))
                 while selected_item_indexes:
                     index = selected_item_indexes.pop(0)
