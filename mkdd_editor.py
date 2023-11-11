@@ -2783,8 +2783,6 @@ class GenEditor(QtWidgets.QMainWindow):
         self.level_view.MOVE_UP = 0
         self.level_view.MOVE_DOWN = 0
         self.level_view.shift_is_pressed = False
-        self.level_view.rotation_is_pressed = False
-        self.level_view.change_height_is_pressed = False
 
     def action_rotate_object(self, deltarotation):
         #obj.set_rotation((None, round(angle, 6), None))
