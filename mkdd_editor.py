@@ -2724,6 +2724,13 @@ class GenEditor(QtWidgets.QMainWindow):
         self.set_has_unsaved_changes(True)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent):
+        if event.key() == QtCore.Qt.Key_Plus:
+            self.level_view.zoom_in()
+        elif event.key() == QtCore.Qt.Key_Minus:
+            self.level_view.zoom_out()
+
+        if event.isAutoRepeat():
+            return
 
         if event.key() == QtCore.Qt.Key_Escape:
             self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
@@ -2748,12 +2755,10 @@ class GenEditor(QtWidgets.QMainWindow):
         elif event.key() == QtCore.Qt.Key_E:
             self.level_view.MOVE_DOWN = 1
 
-        if event.key() == QtCore.Qt.Key_Plus:
-            self.level_view.zoom_in()
-        elif event.key() == QtCore.Qt.Key_Minus:
-            self.level_view.zoom_out()
-
     def keyReleaseEvent(self, event: QtGui.QKeyEvent):
+        if event.isAutoRepeat():
+            return
+
         if event.key() == QtCore.Qt.Key_Shift:
             self.level_view.shift_is_pressed = False
 
