@@ -108,6 +108,62 @@ class ErrorAnalyzer(QtWidgets.QDialog):
         def write_line(line):
             lines.append(line)
 
+        # The number of kart start points is used to determine which extra checkers need to be
+        # enabled for the current course, as race tracks and battle stages have different
+        # requirements.
+        is_battle_stage = len(bol.kartpoints.positions) == 8
+
+        # Validate kart start points.
+        if len(bol.kartpoints.positions) not in (1, 8):
+            write_line('Course should have either 1 kart start point (race tracks), or 8 kart '
+                       f'start points (battle stages), but it has {len(bol.kartpoints.positions)} '
+                       'kart start points.')
+        elif is_battle_stage:
+            player_ids = [None] * 8
+            for i, pos in enumerate(bol.kartpoints.positions):
+                if pos.playerid == 0xFF:
+                    write_line(f'Kart start point #{i} is set to All Players, but specific player '
+                               'IDs need to be used in battle stages.')
+                elif not (0 <= pos.playerid < 8):
+                    write_line(
+                        f'Invalid player ID {pos.playerid + 1} used in kart start point #{i}.')
+                elif player_ids[pos.playerid] is not None:
+                    write_line(f'Player ID {pos.playerid + 1} used in kart start point #{i} is '
+                               f'already used in #{player_ids[pos.playerid]}.')
+                else:
+                    player_ids[pos.playerid] = i
+        else:
+            if bol.kartpoints.positions[0].playerid != 0xFF:
+                write_line('Kart start point in race tracks must be set to All Players.')
+
+        # Check respawn points have unique IDs.
+        respawn_point_ids = {}
+        for i, respawn_point in enumerate(bol.respawnpoints):
+            if respawn_point.respawn_id in respawn_point_ids:
+                previous_i = respawn_point_ids[respawn_point.respawn_id]
+                write_line(f'Respawn points #{previous_i} and #{i} have the same ID: '
+                           f'{respawn_point.respawn_id}')
+            else:
+                respawn_point_ids[respawn_point.respawn_id] = i
+
+        if is_battle_stage:
+            if bol.enemypointgroups.groups:
+                write_line('Battle stages must not have enemy paths.')
+            if bol.checkpoints.groups:
+                write_line('Battle stages must not have checkpoint groups.')
+
+            cls.check_mini_game_params(bol, write_line)
+        else:
+            cls.check_enemy_path_points(bol, write_line)
+            cls.check_checkpoints(bol, write_line)
+
+        return lines
+
+    @classmethod
+    def check_enemy_path_points(cls, bol, write_line):
+        if not bol.enemypointgroups.groups:
+            write_line('At least one enemy path is needed.')
+
         # Check enemy point linkage errors
         links = {}
         for group_index, group in enumerate(bol.enemypointgroups.groups):
@@ -145,6 +201,11 @@ class ErrorAnalyzer(QtWidgets.QDialog):
             else:
                 enemy_paths_ids[enemy_path.id] = enemy_path_index
 
+    @classmethod
+    def check_checkpoints(cls, bol, write_line):
+        if not bol.checkpoints.groups:
+            write_line('At least one checkpoint group is needed.')
+
         # Check prev/next groups of checkpoints
         for i, group in enumerate(bol.checkpoints.groups):
             for index in chain(group.prevgroup, group.nextgroup):
@@ -154,65 +215,7 @@ class ErrorAnalyzer(QtWidgets.QDialog):
                             i, index
                         ))
 
-        # Validate path id in objects
-        #for object in bol.objects.objects:
-        #    if object.pathid < -1 or object.pathid + 1 > len(bol.routes):
-        #        write_line("Map object {0} uses path id {1} that does not exist".format(
-        #            get_full_name(object.objectid), object.pathid
-        #        ))
-
-        # Validate Kart start positions
-        if len(bol.kartpoints.positions) == 0:
-            write_line("Map contains no kart start points")
-        else:
-            exist = [False for x in range(8)]
-
-            for i, kartstartpos in enumerate(bol.kartpoints.positions):
-                if kartstartpos.playerid == 0xFF:
-                    if all(exist):
-                        write_line("Duplicate kart start point for all karts")
-                    exist = [True for x in range(8)]
-                elif kartstartpos.playerid > 8:
-                    write_line("A kart start point with an invalid player id exists: {0}".format(
-                        kartstartpos.playerid
-                    ))
-                elif exist[kartstartpos.playerid]:
-                    write_line("Duplicate kart start point for player id {0}".format(
-                        kartstartpos.playerid))
-                else:
-                    exist[kartstartpos.playerid] = True
-
-        # Check camera indices in areas
-        #for i, area in enumerate(bol.areas.areas):
-        #    if area.camera_index < -1 or area.camera_index + 1 > len(bol.cameras):
-        #        write_line("Area {0} uses invalid camera index {1}".format(i, area.camera_index))
-
-        # Check cameras
-        #for i, camera in enumerate(bol.cameras):
-        #    if camera.nextcam < -1 or camera.nextcam + 1 > len(bol.cameras):
-        #        write_line("Camera {0} uses invalid nextcam (next camera) index {1}".format(
-        #            i, camera.nextcam
-        #        ))
-
-        # Check respawn points have unique IDs.
-        respawn_point_ids = {}
-        for i, respawn_point in enumerate(bol.respawnpoints):
-            if respawn_point.respawn_id in respawn_point_ids:
-                previous_i = respawn_point_ids[respawn_point.respawn_id]
-                write_line(f'Respawn points #{previous_i} and #{i} have the same ID: '
-                           f'{respawn_point.respawn_id}')
-            else:
-                respawn_point_ids[respawn_point.respawn_id] = i
-
-        if len(bol.checkpoints.groups) == 0:
-            write_line("You need at least one checkpoint group!")
-
-        if len(bol.enemypointgroups.groups) == 0:
-            write_line("You need at least one enemy point group!")
-
         cls.check_checkpoints_convex(bol, write_line)
-
-        return lines
 
     @classmethod
     def check_checkpoints_convex(cls, bol, write_line):
@@ -220,6 +223,7 @@ class ErrorAnalyzer(QtWidgets.QDialog):
 
         for gindex, group in enumerate(checkpoint_groups):
             if not group.points:
+                write_line(f'Checkpoint group #{gindex} is empty.')
                 continue
 
             # Check every two consecutive points.
@@ -238,6 +242,12 @@ class ErrorAnalyzer(QtWidgets.QDialog):
                 if not check_checkpoints(c1, c2):
                     write_line(f"Quad formed by checkpoint group {gindex} and {next_gindex} "
                                f"is not convex.")
+
+    @classmethod
+    def check_mini_game_params(cls, bol, write_line):
+        if len(bol.mgentries) != 8:
+            write_line(f'Battle stages should have 8 mini game params, but {len(bol.mgentries)} '
+                       'params are present.')
 
 
 def check_checkpoints(c1, c2):
