@@ -247,6 +247,10 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                          GL_FLOAT, None)
             glBindTexture(GL_TEXTURE_2D, 0)
 
+    def focusOutEvent(self, event: QtGui.QFocusEvent):
+        super().focusOutEvent(event)
+        self.editor.reset_move_flags()
+
     @catch_exception
     def set_editorconfig(self, config):
         self.editorconfig = config
