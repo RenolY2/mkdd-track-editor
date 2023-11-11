@@ -2150,6 +2150,9 @@ class GenEditor(QtWidgets.QMainWindow):
     @catch_exception_with_dialog
     def button_save_level(self, *args, **kwargs):
         if self.current_gen_path is not None:
+            if not self._check_errors_on_saving():
+                return
+
             if self.loaded_archive is not None:
                 assert self.loaded_archive_file is not None
                 root_name = self.loaded_archive.root.name
@@ -2181,6 +2184,9 @@ class GenEditor(QtWidgets.QMainWindow):
 
     @catch_exception_with_dialog
     def _button_save_level_as(self, modify_current_path, *args, **kwargs):
+        if not self._check_errors_on_saving():
+            return
+
         filepath, _chosentype = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save File",
             self.pathsconfig["bol"],
@@ -2224,8 +2230,26 @@ class GenEditor(QtWidgets.QMainWindow):
 
             self.statusbar.showMessage("Saved to {0}".format(filepath))
 
+    def _check_errors_on_saving(self) -> bool:
+        error_count = self.error_analyzer_button.get_error_count()
+        if error_count > 0:
+            msgbox = QtWidgets.QMessageBox(self)
+            size = self.fontMetrics().height() * 3
+            msgbox.setIconPixmap(QtGui.QIcon('resources/warning.svg').pixmap(size, size))
+            msgbox.setWindowTitle("Course Errors")
+            if error_count == 1:
+                text = f'There os {error_count} error in the course.'
+            else:
+                text = f'There are {error_count} errors in the course.'
+            text += '\n\nWould you like to save the document anyway?'
+            msgbox.setText(text)
+            msgbox.addButton('Cancel', QtWidgets.QMessageBox.RejectRole)
+            save_button = msgbox.addButton('Save Anyway', QtWidgets.QMessageBox.DestructiveRole)
+            msgbox.exec()
+            if msgbox.clickedButton() != save_button:
+                return False
 
-
+        return True
 
     def button_load_collision_obj(self):
         try:

@@ -269,8 +269,11 @@ class ErrorAnalyzerButton(QtWidgets.QPushButton):
         self.setStyleSheet("QPushButton { border: 0px; padding: 2px; } "
                            f"QPushButton:hover {{ background: {background_color}; }}")
 
+        self._lines = []
+
     def analyze_bol(self, bol: libbol.BOL):
         lines = ErrorAnalyzer.analyze_bol(bol)
+        self._lines = lines
         if lines:
             self.setIcon(self.warning_icon)
             self.setText(str(len(lines)))
@@ -278,6 +281,9 @@ class ErrorAnalyzerButton(QtWidgets.QPushButton):
             self.setIcon(self.success_icon)
             self.setText(str())
         self.setEnabled(True)
+
+    def get_error_count(self):
+        return len(self._lines)
 
 
 class AddPikObjectWindow(QtWidgets.QDialog):
