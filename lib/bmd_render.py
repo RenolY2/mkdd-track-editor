@@ -15,7 +15,7 @@ def superbmd_to_obj(src):
     checksum = md5sum(src)
     cached_dir = os.path.join(tempfile.gettempdir(), f'mkdd_track_editor_tmp_{checksum}')
 
-    if os.path.isdir(cached_dir):
+    if os.path.isdir(cached_dir) and os.path.exists(os.path.join(cached_dir, "temp.obj")):
         shutil.rmtree('lib/temp')
         shutil.copytree(cached_dir, 'lib/temp')
         return
@@ -35,7 +35,7 @@ def superbmd_to_obj(src):
             raise RuntimeError(
                 f'BMD conversion failed (code: {process.returncode}):\n{error_output}')
 
-    shutil.copytree('lib/temp', cached_dir)
+    shutil.copytree('lib/temp', cached_dir, dirs_exist_ok=True)
 
 
 def clear_temp_folder():
