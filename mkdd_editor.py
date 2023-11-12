@@ -3630,7 +3630,13 @@ if __name__ == "__main__":
 
     QtWidgets.QToolTip.setPalette(palette)
     padding = QtGui.QFontMetrics(QtGui.QFont()).height() // 2
-    app.setStyleSheet(f'QToolTip {{ padding: {padding}px; }}')
+    app.setStyleSheet(f"""
+        QToolTip {{
+            padding: {padding}px;
+            border: 1px solid #202020;
+            background: #282828;
+        }}
+    """)
 
     if platform.system() == "Windows":
         import ctypes
