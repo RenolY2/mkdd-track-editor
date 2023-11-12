@@ -659,7 +659,7 @@ class UserControl(object):
             mapx, mapz = editor.mouse_coord_to_world_coord(x, y)
 
             if editor.collision is not None:
-                height = editor.collision.collide_ray_downwards(mapx, -mapz)
+                height = editor.collision.collide_ray_downwards(mapx, -mapz, editor.editorconfig.getint("topdown_cull_height")-10)
 
                 if height is not None:
                     editor.position_update.emit((round(mapx, 2), round(height, 2), round(-mapz, 2)))

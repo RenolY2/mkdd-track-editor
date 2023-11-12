@@ -29,6 +29,7 @@ def make_default_config():
         "hidden_collision_type_groups": "",
         "filter_view": "",
         "addi_file_on_load": "Choose",
+        "topdown_cull_height": 80000
     }
 
     with open("editor_config.ini", "w") as f:

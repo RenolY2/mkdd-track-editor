@@ -582,9 +582,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             zf = self.zoom_factor
             camera_width = width*zf
             camera_height = height*zf
-
+            clipheight = -self.editorconfig.getint("topdown_cull_height")
             glOrtho(-camera_width / 2 - offset_x, camera_width / 2 - offset_x,
-                    -camera_height / 2 + offset_z, camera_height / 2 + offset_z, -120000.0, 80000.0)
+                    -camera_height / 2 + offset_z, camera_height / 2 + offset_z, clipheight, 80000.0)
 
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
