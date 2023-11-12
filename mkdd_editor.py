@@ -960,7 +960,9 @@ class GenEditor(QtWidgets.QMainWindow):
         self.dolphin_menu.addAction(self.dolphin_action)
 
         self.dolphin_menu.addSeparator()
-
+        self.freeze_player_action = QtGui.QAction("Freeze Player 1")
+        self.freeze_player_action.setCheckable(True)
+        self.dolphin_menu.addAction(self.freeze_player_action)
         self.camera_actions = [QtGui.QAction("Unfollow", self)]
 
         for i in range(8):

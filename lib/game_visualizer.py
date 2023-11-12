@@ -2,6 +2,9 @@ import contextlib
 import io
 import sys
 import time
+
+from struct import pack
+
 from math import (
     atan2,
     cos,
@@ -26,6 +29,7 @@ from OpenGL.GL import (
     glVertex3f,
 )
 
+
 if sys.platform == "win32":
     from lib.memorylib import Dolphin
 else:
@@ -47,7 +51,6 @@ def angle_diff(angle1, angle2):
 
 
 class Game:
-
     def __init__(self):
         self.dolphin = Dolphin()
         self.kart_count = 0
@@ -183,10 +186,149 @@ class Game:
             else:
                 return
 
+        if self.region == "US_DEBUG":
+            # Compare address 801bc4c4 in US Debug
+            racemgrPtr = self.dolphin.read_uint32(0x8041bf80-0x5BD8)
+            coursePtr = self.dolphin.read_uint32(racemgrPtr+0x44)
+            courseDataPtr = self.dolphin.read_uint32(coursePtr+0x04DC)
+            bolPtr = self.dolphin.read_uint32(courseDataPtr+4)  # This is the pointer to BOL data
+
+            pathpointoffset = bolPtr+self.dolphin.read_uint32(bolPtr+0x50)
+            objectsoffset = bolPtr+self.dolphin.read_uint32(bolPtr+0x54)
+            startpoints = bolPtr + self.dolphin.read_uint32(bolPtr + 0x58)
+            bolareas = bolPtr + self.dolphin.read_uint32(bolPtr + 0x5C)
+            cameras = bolPtr + self.dolphin.read_uint32(bolPtr + 0x60)
+            respawnpoints = bolPtr + self.dolphin.read_uint32(bolPtr + 0x64)
+            lightparams = bolPtr + self.dolphin.read_uint32(bolPtr + 0x68)
+
+            count = (objectsoffset-pathpointoffset)//0x20
+            geographyMgrPtr = self.dolphin.read_uint32(0x8041bf80-0x54B0)
+
+            areas = self.dolphin.read_uint32(coursePtr+0x0528)
+
+
+            renderer.level_file.routes
+            pointoffset = 0
+
+            for route in renderer.level_file.routes:
+                for i, point in enumerate(route.points):
+                    j = i + pointoffset
+                    if pathpointoffset+j*0x20 < objectsoffset:
+                        self.dolphin.write_float(pathpointoffset+j*0x20, point.position.x)
+                        self.dolphin.write_float(pathpointoffset+j*0x20+4, point.position.y)
+                        self.dolphin.write_float(pathpointoffset+j*0x20+8, point.position.z)
+                    else:
+                        print("exceeded route points")
+
+
+                pointoffset += len(route.points)
+
+            for objoffset in (0x350, 0x380): # , 0x398): 398 is stringbridge but won't move
+                next = self.dolphin.read_uint32(geographyMgrPtr+objoffset)
+                start = next
+                while next != 0:
+                    currobj = self.dolphin.read_uint32(next)
+                    next = self.dolphin.read_uint32(next+12)
+                    """if objoffset == 0x398:
+                        print(hex(start), hex(next), hex(currobj), hex(self.dolphin.read_uint32(currobj)))
+                        print(hex(self.dolphin.read_uint32(currobj+232)))"""
+
+                    # Trick: Use sobj pointer to calculate index into BOL object data
+                    sobj = self.dolphin.read_uint32(currobj+232)
+                    if sobj != 0:
+                        if (sobj - objectsoffset) % 0x40 == 0:
+                            objindex = (sobj - objectsoffset)//0x40
+                            objs = renderer.level_file.objects.objects
+                            obj = objs[objindex]
+                            if obj in renderer.selected:
+                                if obj.route is None:
+                                    self.dolphin.write_float(currobj+4, obj.position.x)
+
+                                    if obj.objectid in (1, ):
+                                        self.dolphin.write_float(currobj + 8, obj.position.y+obj.userdata[0])
+                                    else:
+                                        self.dolphin.write_float(currobj+8, obj.position.y)
+                                    self.dolphin.write_float(currobj+12, obj.position.z)
+                                    if obj in renderer.selected:
+                                        print(hex(currobj))
+
+                                    f, u, l = obj.rotation.get_vectors()
+                                    self.dolphin.write_float(currobj + 0x10, l.x)
+                                    self.dolphin.write_float(currobj + 0x10 + 4, u.x)
+                                    self.dolphin.write_float(currobj + 0x10 + 8, f.x)
+
+                                    self.dolphin.write_float(currobj + 0x20, l.y)
+                                    self.dolphin.write_float(currobj + 0x20 + 4, u.y)
+                                    self.dolphin.write_float(currobj + 0x20 + 8, f.y)
+
+                                    self.dolphin.write_float(currobj + 0x30, l.z)
+                                    self.dolphin.write_float(currobj + 0x30 + 4, u.z)
+                                    self.dolphin.write_float(currobj + 0x30 + 8, f.z)
+
+                                #f, u, l = obj.rotation.get_vectors()
+                                self.dolphin.write_ram(sobj-0x80000000+0x30, pack(">hhhhhhhh",
+                                                                             *obj.userdata))
+
+
+                                self.dolphin.write_float(currobj + 0x40, obj.scale.x)
+                                self.dolphin.write_float(currobj + 0x40 + 4, obj.scale.y)
+                                self.dolphin.write_float(currobj + 0x40 + 8, obj.scale.z)
+
+                        else:
+                            print("failed to calc obj index")
+
+                    if next == start:
+                        print("hit the start, oops")
+                        break
+
+            for i, area in enumerate(renderer.level_file.areas.areas):
+                self.dolphin.write_float(areas + i*0x4C+4, area.position.x)
+                self.dolphin.write_float(areas + i*0x4C+8, area.position.y)
+                self.dolphin.write_float(areas + i*0x4C+12, area.position.z)
+
+                f,u,l = area.rotation.get_vectors()
+                self.dolphin.write_float(areas + i * 0x4C + 0x10, f.x)
+                self.dolphin.write_float(areas + i * 0x4C + 0x10+4, f.y)
+                self.dolphin.write_float(areas + i * 0x4C + 0x10+8, f.z)
+
+                self.dolphin.write_float(areas + i * 0x4C + 0x1C, u.x)
+                self.dolphin.write_float(areas + i * 0x4C + 0x1C+4, u.y)
+                self.dolphin.write_float(areas + i * 0x4C + 0x1C+8, u.z)
+
+                self.dolphin.write_float(areas + i * 0x4C + 0x28, l.x)
+                self.dolphin.write_float(areas + i * 0x4C + 0x28+4, l.y)
+                self.dolphin.write_float(areas + i * 0x4C + 0x28+8, l.z)
+
+                self.dolphin.write_float(areas + i * 0x4C + 0x34, area.scale.x*50)
+                self.dolphin.write_float(areas + i * 0x4C + 0x38, area.scale.y*100)
+                self.dolphin.write_float(areas + i * 0x4C + 0x3C, area.scale.z*50)
+
+            for i, camera in enumerate(renderer.level_file.cameras):
+                self.dolphin.write_vector(cameras + i*0x48, camera.position)
+                self.dolphin.write_vector(cameras + i*0x48+0x18, camera.position2)
+                self.dolphin.write_vector(cameras + i*0x48+0x24, camera.position3)
+
+                f, u, l = camera.rotation.get_vectors()
+                self.dolphin.write_ram(cameras + i*0x48+0x8-0x80000000,
+                                                                pack(">hhhhhh",
+                                                                int(f.x*10000),
+                                                                    int(f.y*10000),
+                                                                    int(f.z*10000),
+                                                                    int(u.x*10000),
+                                                                    int(u.y*10000),
+                                                                    int(u.z*10000)))
+
+                self.dolphin.write_ushort(cameras + i*0x48+0x30, camera.camtype)
+                self.dolphin.write_ushort(cameras + i*0x48+0x32, camera.fov.start)
+                self.dolphin.write_ushort(cameras + i*0x48+0x3E, camera.routespeed)
+                self.dolphin.write_ushort(cameras + i*0x48+0x40, camera.fov.end)
+
         if self.region == "US":
             kartctrlPtr = self.dolphin.read_uint32(0x803CC588)
         elif self.region == "US_DEBUG":
             kartctrlPtr = self.dolphin.read_uint32(0x804171a0)
+        else:
+            kartctrlPtr = None
 
         if kartctrlPtr is None or not self.dolphin.address_valid(kartctrlPtr):
             self.dolphin.reset()
@@ -205,6 +347,7 @@ class Game:
             autopilot = self.dolphin.read_uint32(0x802C60F4) == 0x60000000
         elif self.region == "US_DEBUG":
             autopilot = self.dolphin.read_uint32(0x80306644) == 0x60000000
+
 
         for i in range(self.kart_count):
             kartPtr = self.dolphin.read_uint32(kartctrlPtr + 0xA0 + i * 4)
@@ -252,14 +395,15 @@ class Game:
                         self.item_targets[i].y = self.dolphin.read_float(vec3ptr + 4)
                         self.item_targets[i].z = self.dolphin.read_float(vec3ptr + 8)
 
-            if self.karts[i][0] not in renderer.selected:
-                self.karts[i][1].x = x
-                self.karts[i][1].y = y
-                self.karts[i][1].z = z
-            else:
+            if (self.karts[i][0] in renderer.selected
+                or (i == 0 and renderer.editor.freeze_player_action.isChecked())):
                 self.dolphin.write_float(kartPtr + 0x23C, self.karts[i][1].x)
                 self.dolphin.write_float(kartPtr + 0x240, self.karts[i][1].y)
                 self.dolphin.write_float(kartPtr + 0x244, self.karts[i][1].z)
+            else:
+                self.karts[i][1].x = x
+                self.karts[i][1].y = y
+                self.karts[i][1].z = z
 
         if self.stay_focused_on_player >= 0:
             if renderer.mode == MODE_TOPDOWN:
