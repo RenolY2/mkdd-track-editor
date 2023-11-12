@@ -2936,6 +2936,29 @@ class GenEditor(QtWidgets.QMainWindow):
         self.level_view.do_redraw()
         self.set_has_unsaved_changes(True)
 
+    def can_distribute_objects(self):
+        return len(self.level_view.selected_positions) >= 3
+
+    def action_distribute_objects(self):
+        if not self.can_distribute_objects():
+            return
+
+        positions = self.level_view.selected_positions
+        start_position = positions[0]
+        last_position = positions[-1]
+        delta = (last_position - start_position) / (len(positions) - 1)
+
+        for i, position in enumerate(positions[1:-1]):
+            position.x = start_position.x + delta.x * (i + 1)
+            position.y = start_position.y + delta.y * (i + 1)
+            position.z = start_position.z + delta.z * (i + 1)
+
+        self.pik_control.update_info()
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
+                                              self.level_view.selected_rotations)
+        self.set_has_unsaved_changes(True)
+        self.level_view.do_redraw()
+
     def on_cut_action_triggered(self):
         self.on_copy_action_triggered()
         self.action_delete_objects()
