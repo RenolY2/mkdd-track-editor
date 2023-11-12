@@ -998,7 +998,7 @@ class ObjectEdit(DataEditor):
         self.presence_filter = self.add_maskbox(
             "Game Mode Presence", "presence_filter", {
                 0b00000001: ('🎈', 'Balloon Battle'),
-                0b00000010: ('🥷', 'Robbery (Yanked)'),
+                0b00000010: ('💰', 'Robbery (Yanked)'),
                 0b00000100: ('💣', 'Bob-omb Blast'),
                 0b00001000: ('🌟', 'Shine Thief'),
                 0b10000000: ('⏱️', 'Time Trials'),
