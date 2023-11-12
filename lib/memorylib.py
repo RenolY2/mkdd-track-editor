@@ -198,6 +198,14 @@ class Dolphin(object):
         assert addr >= 0x80000000
         return self.write_ram(addr - 0x80000000, pack(">f", val))
 
+    def write_ushort(self, addr, val):
+        assert addr >= 0x80000000
+        return self.write_ram(addr - 0x80000000, pack(">H", val))
+
+    def write_vector(self, addr, v):
+        assert addr >= 0x80000000
+        return self.write_ram(addr - 0x80000000, pack(">fff", v.x, v.y, v.z))
+
     
 """with open("ctypes.txt", "w") as f:
     for a in ctypes.__dict__:
