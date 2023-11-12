@@ -2840,7 +2840,13 @@ class GenEditor(QtWidgets.QMainWindow):
         self.set_has_unsaved_changes(True)
         self.pik_control.update_info()
 
+    def can_ground_objects(self):
+        return bool(self.level_view.selected_positions)
+
     def action_ground_objects(self, objects=None):
+        if not self.can_ground_objects():
+            return
+
         for pos in objects or self.level_view.selected_positions:
             if self.level_view.collision is None:
                 return None
@@ -2855,8 +2861,32 @@ class GenEditor(QtWidgets.QMainWindow):
         self.set_has_unsaved_changes(True)
         self.level_view.do_redraw()
 
+    def can_delete_objects(self):
+        DELETABLE_TYPES = (
+            libbol.EnemyPoint,
+            libbol.RoutePoint,
+            libbol.Checkpoint,
+            libbol.MapObject,
+            libbol.KartStartPoint,
+            libbol.JugemPoint,
+            libbol.Area,
+            libbol.Camera,
+            libbol.CheckpointGroup,
+            libbol.EnemyPointGroup,
+            libbol.Route,
+            libbol.LightParam,
+            libbol.MGEntry,
+        )
+
+        for obj in self.level_view.selected:
+            if isinstance(obj, DELETABLE_TYPES):
+                return True
+        return False
+
     def action_delete_objects(self):
-        tobedeleted = []
+        if not self.can_delete_objects():
+            return
+
         for obj in self.level_view.selected:
             if isinstance(obj, libbol.EnemyPoint):
                 for group in self.level_file.enemypointgroups.groups:
