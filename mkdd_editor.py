@@ -844,7 +844,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.tools_menu.addAction(self.show_code_patch_fields_action)
 
         self.tools_menu.addSeparator()
-        self.rotation_mode = QtGui.QAction("Rotate Positions around Pivot", self)
+        self.rotation_mode = QtGui.QAction("Rotate Around Median Point", self)
         self.rotation_mode.setCheckable(True)
         self.rotation_mode.setChecked(True)
         self.tools_menu.addAction(self.rotation_mode)
