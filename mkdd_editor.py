@@ -3375,10 +3375,10 @@ class GenEditor(QtWidgets.QMainWindow):
     def action_update_info(self):
         if self.level_file is not None:
             selected = self.level_view.selected
+            objects = []
             if len(selected) == 1:
                 currentobj = selected[0]
                 if isinstance(currentobj, Route):
-                    objects = []
                     index = self.level_file.routes.index(currentobj)
                     for object in self.level_file.objects.objects:
                         if object.route == currentobj:
@@ -3386,16 +3386,24 @@ class GenEditor(QtWidgets.QMainWindow):
                     for i, camera in enumerate(self.level_file.cameras):
                         if camera.route == currentobj:
                             objects.append("Camera {0}".format(i))
-
-                    self.pik_control.set_info(currentobj, self.update_3d, objects)
-                else:
-                    self.pik_control.set_info(currentobj, self.update_3d)
-
-                self.pik_control.update_info()
             else:
                 self.pik_control.reset_info("{0} objects selected".format(len(self.level_view.selected)))
                 self.pik_control.set_objectlist(selected)
 
+                # Without emitting any signal, programmatically update the currently selected item
+                # in the tree view.
+                with QtCore.QSignalBlocker(self.leveldatatreeview):
+                    if selected:
+                        self.select_tree_item_bound_to(selected)
+                    else:
+                        # If no selection occurred, ensure that no tree item remains selected. This
+                        # is relevant to ensure that non-pickable objects (such as the top-level
+                        # items) do not remain selected when the user clicks on an empty space in
+                        # the viewport.
+                        for selected_item in self.leveldatatreeview.selectedItems():
+                            selected_item.setSelected(False)
+            self.pik_control.set_info(selected, self.update_3d)
+            self.pik_control.update_info()
     @catch_exception
     def mapview_showcontextmenu(self, position):
         self.reset_move_flags()

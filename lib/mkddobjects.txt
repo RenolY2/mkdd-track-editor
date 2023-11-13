@@ -158,3 +158,4 @@
 157: Object ID: 26b3 (dec: 9907) FunPointer: 0x801f02f4 Symbol: GeographyObj::New<13GeoRabbitMark>(CrsData::SObject const &)
 158: Object ID: 3 (dec: 3) FunPointer: 0x801f051c Symbol: ExGeographyObj::ExNew<13GeoJumpNarrow>(CrsData::SObject const &)
 159: Object ID: 7 (dec: 7) FunPointer: 0x801f0564 Symbol: ExGeographyObj::ExNew<12StringBridge>(CrsData::SObject const &)
+160: Object ID: 0 (dec: 0) FunPointer: 0x801ed4a0 Symbol: GeographyObj::NewS<10GeoItemBox>(CrsData::SObject const &)
