@@ -985,14 +985,23 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                 glColor3f(0.0, 0.0, 0.0)
                 glBegin(GL_POINTS)
                 points = self._get_snapping_points()
+                if self.mode == MODE_TOPDOWN:
+                    clipheight = self.editorconfig.getint("topdown_cull_height")
+                    no_clip = False
+                else:
+                    clipheight = None
+                    no_clip = True
+
                 for point in points:
-                    glVertex3f(point.x, point.y, point.z)
+                    if no_clip or point.z < clipheight:
+                        glVertex3f(point.x, point.y, point.z)
                 glEnd()
                 glPointSize(3)
                 glColor3f(1.0, 1.0, 1.0)
                 glBegin(GL_POINTS)
                 for point in points:
-                    glVertex3f(point.x, point.y, point.z)
+                    if no_clip or point.z < clipheight:
+                        glVertex3f(point.x, point.y, point.z)
                 glEnd()
                 glPointSize(1)
 
@@ -1555,10 +1564,12 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
     def get_closest_snapping_point(self, mousex, mousey, is3d=True):
         if is3d:
             ray = self.create_ray_from_mouseclick(mousex, mousey)
+            clip_y = None
         else:
             mapx, mapz = self.mouse_coord_to_world_coord(mousex, mousey)
-            ray = Line(Vector3(mapx, mapz, 99999999.0), Vector3(0.0, 0.0, -1.0))
-        return self.collision.get_closest_point(ray, self._get_snapping_points())
+            clip_y = self.editorconfig.getint("topdown_cull_height")-10
+            ray = Line(Vector3(mapx, mapz, clip_y), Vector3(0.0, 0.0, -1.0))
+        return self.collision.get_closest_point(ray, self._get_snapping_points(), clip_y)
 
 
 def create_object_type_pixmap(canvas_size: int, directed: bool,
