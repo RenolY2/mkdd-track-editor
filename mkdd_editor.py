@@ -661,11 +661,11 @@ class GenEditor(QtWidgets.QMainWindow):
         self.pik_control = PikminSideWidget(self)
         self.horizontalLayout.addWidget(self.pik_control)
 
-        snapping_toggle_shortcut = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_V), self)
-        snapping_toggle_shortcut.activated.connect(self.level_view.toggle_snapping)
-        snapping_cycle_shortcut = QtGui.QShortcut(
+        self.snapping_toggle_shortcut = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_V), self)
+        self.snapping_toggle_shortcut.activated.connect(self.level_view.toggle_snapping)
+        self.snapping_cycle_shortcut = QtGui.QShortcut(
             QtGui.QKeySequence(QtCore.Qt.Key_V | QtCore.Qt.SHIFT), self)
-        snapping_cycle_shortcut.activated.connect(self.level_view.cycle_snapping_mode)
+        self.snapping_cycle_shortcut.activated.connect(self.level_view.cycle_snapping_mode)
 
         QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_G), self).activated.connect(self.action_ground_objects)
         #QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_A, self).activated.connect(self.shortcut_open_add_item_window)
@@ -1601,6 +1601,37 @@ class GenEditor(QtWidgets.QMainWindow):
         self.leveldatatreeview.select_area_assoc.connect(self.select_area_assoc)
         self.leveldatatreeview.select_route_assoc.connect(self.select_route_assoc)
         self.leveldatatreeview.select_route_points.connect(self.select_route_points)
+
+        viewer_toolbar = self.level_view.viewer_toolbar
+
+        viewer_toolbar.transform_gizmo_button.clicked.connect(self.transform_gizmo.trigger)
+        self.transform_gizmo.triggered[bool].connect(
+            viewer_toolbar.transform_gizmo_button.setChecked)
+        viewer_toolbar.rotate_around_median_point_button.clicked.connect(self.rotation_mode.trigger)
+        self.rotation_mode.triggered[bool].connect(
+            viewer_toolbar.rotate_around_median_point_button.setChecked)
+        snapping_button_menu = viewer_toolbar.snapping_button.get_or_create_menu()
+        snapping_button_menu.aboutToShow.connect(self.on_snapping_menu_aboutToShow)
+        snapping_button_menu.addActions(self.snapping_menu.actions())
+        for action in snapping_button_menu.actions():
+            action.triggered[bool].connect(
+                lambda checked: checked and viewer_toolbar.snapping_button.setChecked(
+                    self.level_view.snapping_enabled))
+        self.snapping_toggle_shortcut.activated.connect(
+            lambda: viewer_toolbar.snapping_button.setChecked(self.level_view.snapping_enabled))
+        self.snapping_cycle_shortcut.activated.connect(
+            lambda: viewer_toolbar.snapping_button.setChecked(self.level_view.snapping_enabled))
+
+        viewer_toolbar.delete_button.clicked.connect(self.action_delete_objects)
+        viewer_toolbar.ground_button.clicked.connect(self.action_ground_objects)
+        viewer_toolbar.distribute_button.clicked.connect(self.action_distribute_objects)
+
+        viewer_toolbar.view_topdown_button.clicked.connect(
+            self.change_to_topdownview_action.trigger)
+        self.change_to_topdownview_action.toggled[bool].connect(
+            viewer_toolbar.view_topdown_button.setChecked)
+        viewer_toolbar.view_3d_button.clicked.connect(self.change_to_3dview_action.trigger)
+        self.change_to_3dview_action.toggled[bool].connect(viewer_toolbar.view_3d_button.setChecked)
 
     def split_group_checkpoint(self, group_item, item):
         group = group_item.bound_to
@@ -3478,6 +3509,11 @@ class GenEditor(QtWidgets.QMainWindow):
             else:
                 self.pik_control.reset_info("{0} objects selected".format(len(self.level_view.selected)))
                 self.pik_control.set_objectlist(selected)
+
+            viewer_toolbar = self.level_view.viewer_toolbar
+            viewer_toolbar.delete_button.setEnabled(self.can_delete_objects())
+            viewer_toolbar.ground_button.setEnabled(self.can_ground_objects())
+            viewer_toolbar.distribute_button.setEnabled(self.can_distribute_objects())
 
     @catch_exception
     def mapview_showcontextmenu(self, position):
