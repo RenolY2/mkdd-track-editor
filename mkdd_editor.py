@@ -1582,10 +1582,6 @@ class GenEditor(QtWidgets.QMainWindow):
         self.level_view.move_points_to.connect(self.action_move_objects_to)
         self.level_view.create_waypoint.connect(self.action_add_object)
         self.level_view.create_waypoint_3d.connect(self.action_add_object_3d)
-        self.pik_control.button_ground_object.clicked.connect(
-            lambda _checked: self.action_ground_objects())
-        self.pik_control.button_remove_object.clicked.connect(
-            lambda _checked: self.action_delete_objects())
 
         delete_shortcut = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Delete), self)
         delete_shortcut.activated.connect(self.action_delete_objects)
