@@ -50,6 +50,11 @@ import subprocess
 import tempfile
 from typing import Type
 
+try:
+    from vectors import Vector3
+except ImportError:
+    from .vectors import Vector3
+
 
 class iovec(ctypes.Structure):
     _fields_ = [('iov_base', ctypes.c_void_p), ('iov_len', ctypes.c_size_t)]
@@ -222,6 +227,32 @@ class DolphinProxy:
         assert addr >= 0x80000000
         return self.write_ram(addr - 0x80000000, struct.pack(">f", val))
 
+    def read_ushort(self, addr):
+        assert addr >= 0x80000000
+        success, value = self.read_ram(addr - 0x80000000, 4)
+
+        if success:
+            return struct.unpack(">H", value)[0]
+
+        return None
+
+    def write_ushort(self, addr, val):
+        assert addr >= 0x80000000
+        return self.write_ram(addr - 0x80000000, struct.pack(">H", val))
+
+    def read_vector(self, addr):
+        assert addr >= 0x80000000
+        success, value = self.read_ram(addr - 0x80000000, 12)
+
+        if success:
+            return struct.unpack(">fff", value)
+
+        return None
+
+    def write_vector(self, addr, val):
+        assert addr >= 0x80000000
+        return self.write_ram(addr - 0x80000000, struct.pack(">fff", *val))
+
 
 HOST = '127.0.0.1'
 PORT = 0
@@ -237,6 +268,10 @@ COMMAND_READ_UINT32 = 0x04
 COMMAND_WRITE_UINT32 = 0x05
 COMMAND_READ_FLOAT = 0x06
 COMMAND_WRITE_FLOAT = 0x07
+COMMAND_READ_UINT16 = 0x08
+COMMAND_WRITE_UINT16 = 0x09
+COMMAND_READ_VECTOR = 0x0A
+COMMAND_WRITE_VECTOR = 0x0B
 
 port_temp_filepath = os.path.join(tempfile.gettempdir(), PORT_TEMP_FILENAME)
 
@@ -347,6 +382,42 @@ class DolphinServer:
                     if not ok:
                         return_code = 13
                         error_message = 'Unable to write float'
+
+                elif command_type == COMMAND_READ_UINT16:
+                    addr = struct.unpack('>Q', input_data[5 + 0:])[0]
+
+                    value = self.dolphin_proxy.read_ushort(addr)
+                    if value is not None:
+                        result = struct.pack('>H', value)
+                    else:
+                        return_code = 14
+                        error_message = 'Unable to read ushort'
+
+                elif command_type == COMMAND_WRITE_UINT16:
+                    addr, value = struct.unpack('>QH', input_data[5 + 0:])
+
+                    ok = self.dolphin_proxy.write_ushort(addr, value)
+                    if not ok:
+                        return_code = 15
+                        error_message = 'Unable to write ushort'
+
+                elif command_type == COMMAND_READ_VECTOR:
+                    addr = struct.unpack('>Q', input_data[5 + 0:])[0]
+
+                    value = self.dolphin_proxy.read_vector(addr)
+                    if value is not None:
+                        result = struct.pack('>fff', *value)
+                    else:
+                        return_code = 16
+                        error_message = 'Unable to read vector'
+
+                elif command_type == COMMAND_WRITE_VECTOR:
+                    addr, *value = struct.unpack('>Qfff', input_data[5 + 0:])
+
+                    ok = self.dolphin_proxy.write_vector(addr, value)
+                    if not ok:
+                        return_code = 17
+                        error_message = 'Unable to write vector'
 
                 else:
                     return_code = 3
@@ -497,6 +568,60 @@ class DolphinClient:
         if return_code != 0:
             error_message = result.decode('utf-8')
             print(f'Failed to write float: {error_message}')
+
+        return return_code == 0
+
+    def read_ushort(self, addr):
+        output_data = MAGIC_NUMBER + bytes((COMMAND_READ_UINT16, ))
+        output_data += struct.pack('>Q', addr)
+
+        input_data = self.__send_data(output_data)
+        return_code, result = self.__parse_received_data(input_data)
+
+        if return_code != 0:
+            error_message = result.decode('utf-8')
+            print(f'Failed to read ushort: {error_message}')
+            return None
+
+        return struct.unpack('>H', result)[0]
+
+    def write_ushort(self, addr, val):
+        output_data = MAGIC_NUMBER + bytes((COMMAND_WRITE_UINT16, ))
+        output_data += struct.pack('>Q', addr) + struct.pack('>H', val)
+
+        input_data = self.__send_data(output_data)
+        return_code, result = self.__parse_received_data(input_data)
+
+        if return_code != 0:
+            error_message = result.decode('utf-8')
+            print(f'Failed to write ushort: {error_message}')
+
+        return return_code == 0
+
+    def read_vector(self, addr):
+        output_data = MAGIC_NUMBER + bytes((COMMAND_READ_VECTOR, ))
+        output_data += struct.pack('>Q', addr)
+
+        input_data = self.__send_data(output_data)
+        return_code, result = self.__parse_received_data(input_data)
+
+        if return_code != 0:
+            error_message = result.decode('utf-8')
+            print(f'Failed to read vector: {error_message}')
+            return None
+
+        return Vector3(*struct.unpack('>fff', result))
+
+    def write_vector(self, addr, v):
+        output_data = MAGIC_NUMBER + bytes((COMMAND_WRITE_VECTOR, ))
+        output_data += struct.pack('>Q', addr) + struct.pack('>fff', v.x, v.y, v.z)
+
+        input_data = self.__send_data(output_data)
+        return_code, result = self.__parse_received_data(input_data)
+
+        if return_code != 0:
+            error_message = result.decode('utf-8')
+            print(f'Failed to write vector: {error_message}')
 
         return return_code == 0
 
