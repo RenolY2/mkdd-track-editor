@@ -661,11 +661,11 @@ class GenEditor(QtWidgets.QMainWindow):
         self.pik_control = PikminSideWidget(self)
         self.horizontalLayout.addWidget(self.pik_control)
 
-        snapping_toggle_shortcut = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_V), self)
-        snapping_toggle_shortcut.activated.connect(self.level_view.toggle_snapping)
-        snapping_cycle_shortcut = QtGui.QShortcut(
+        self.snapping_toggle_shortcut = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_V), self)
+        self.snapping_toggle_shortcut.activated.connect(self.level_view.toggle_snapping)
+        self.snapping_cycle_shortcut = QtGui.QShortcut(
             QtGui.QKeySequence(QtCore.Qt.Key_V | QtCore.Qt.SHIFT), self)
-        snapping_cycle_shortcut.activated.connect(self.level_view.cycle_snapping_mode)
+        self.snapping_cycle_shortcut.activated.connect(self.level_view.cycle_snapping_mode)
 
         QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_G), self).activated.connect(self.action_ground_objects)
         #QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_A, self).activated.connect(self.shortcut_open_add_item_window)
@@ -844,7 +844,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.tools_menu.addAction(self.show_code_patch_fields_action)
 
         self.tools_menu.addSeparator()
-        self.rotation_mode = QtGui.QAction("Rotate Positions around Pivot", self)
+        self.rotation_mode = QtGui.QAction("Rotate Around Median Point", self)
         self.rotation_mode.setCheckable(True)
         self.rotation_mode.setChecked(True)
         self.tools_menu.addAction(self.rotation_mode)
@@ -1582,10 +1582,6 @@ class GenEditor(QtWidgets.QMainWindow):
         self.level_view.move_points_to.connect(self.action_move_objects_to)
         self.level_view.create_waypoint.connect(self.action_add_object)
         self.level_view.create_waypoint_3d.connect(self.action_add_object_3d)
-        self.pik_control.button_ground_object.clicked.connect(
-            lambda _checked: self.action_ground_objects())
-        self.pik_control.button_remove_object.clicked.connect(
-            lambda _checked: self.action_delete_objects())
 
         delete_shortcut = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Delete), self)
         delete_shortcut.activated.connect(self.action_delete_objects)
@@ -1601,6 +1597,37 @@ class GenEditor(QtWidgets.QMainWindow):
         self.leveldatatreeview.select_area_assoc.connect(self.select_area_assoc)
         self.leveldatatreeview.select_route_assoc.connect(self.select_route_assoc)
         self.leveldatatreeview.select_route_points.connect(self.select_route_points)
+
+        viewer_toolbar = self.level_view.viewer_toolbar
+
+        viewer_toolbar.transform_gizmo_button.clicked.connect(self.transform_gizmo.trigger)
+        self.transform_gizmo.triggered[bool].connect(
+            viewer_toolbar.transform_gizmo_button.setChecked)
+        viewer_toolbar.rotate_around_median_point_button.clicked.connect(self.rotation_mode.trigger)
+        self.rotation_mode.triggered[bool].connect(
+            viewer_toolbar.rotate_around_median_point_button.setChecked)
+        snapping_button_menu = viewer_toolbar.snapping_button.get_or_create_menu()
+        snapping_button_menu.aboutToShow.connect(self.on_snapping_menu_aboutToShow)
+        snapping_button_menu.addActions(self.snapping_menu.actions())
+        for action in snapping_button_menu.actions():
+            action.triggered[bool].connect(
+                lambda checked: checked and viewer_toolbar.snapping_button.setChecked(
+                    self.level_view.snapping_enabled))
+        self.snapping_toggle_shortcut.activated.connect(
+            lambda: viewer_toolbar.snapping_button.setChecked(self.level_view.snapping_enabled))
+        self.snapping_cycle_shortcut.activated.connect(
+            lambda: viewer_toolbar.snapping_button.setChecked(self.level_view.snapping_enabled))
+
+        viewer_toolbar.delete_button.clicked.connect(self.action_delete_objects)
+        viewer_toolbar.ground_button.clicked.connect(self.action_ground_objects)
+        viewer_toolbar.distribute_button.clicked.connect(self.action_distribute_objects)
+
+        viewer_toolbar.view_topdown_button.clicked.connect(
+            self.change_to_topdownview_action.trigger)
+        self.change_to_topdownview_action.toggled[bool].connect(
+            viewer_toolbar.view_topdown_button.setChecked)
+        viewer_toolbar.view_3d_button.clicked.connect(self.change_to_3dview_action.trigger)
+        self.change_to_3dview_action.toggled[bool].connect(viewer_toolbar.view_3d_button.setChecked)
 
     def split_group_checkpoint(self, group_item, item):
         group = group_item.bound_to
@@ -2840,7 +2867,13 @@ class GenEditor(QtWidgets.QMainWindow):
         self.set_has_unsaved_changes(True)
         self.pik_control.update_info()
 
+    def can_ground_objects(self):
+        return bool(self.level_view.selected_positions)
+
     def action_ground_objects(self, objects=None):
+        if not self.can_ground_objects():
+            return
+
         for pos in objects or self.level_view.selected_positions:
             if self.level_view.collision is None:
                 return None
@@ -2855,8 +2888,32 @@ class GenEditor(QtWidgets.QMainWindow):
         self.set_has_unsaved_changes(True)
         self.level_view.do_redraw()
 
+    def can_delete_objects(self):
+        DELETABLE_TYPES = (
+            libbol.EnemyPoint,
+            libbol.RoutePoint,
+            libbol.Checkpoint,
+            libbol.MapObject,
+            libbol.KartStartPoint,
+            libbol.JugemPoint,
+            libbol.Area,
+            libbol.Camera,
+            libbol.CheckpointGroup,
+            libbol.EnemyPointGroup,
+            libbol.Route,
+            libbol.LightParam,
+            libbol.MGEntry,
+        )
+
+        for obj in self.level_view.selected:
+            if isinstance(obj, DELETABLE_TYPES):
+                return True
+        return False
+
     def action_delete_objects(self):
-        tobedeleted = []
+        if not self.can_delete_objects():
+            return
+
         for obj in self.level_view.selected:
             if isinstance(obj, libbol.EnemyPoint):
                 for group in self.level_file.enemypointgroups.groups:
@@ -2905,6 +2962,29 @@ class GenEditor(QtWidgets.QMainWindow):
         self.level_view.gizmo.hidden = True
         self.level_view.do_redraw()
         self.set_has_unsaved_changes(True)
+
+    def can_distribute_objects(self):
+        return len(self.level_view.selected_positions) >= 3
+
+    def action_distribute_objects(self):
+        if not self.can_distribute_objects():
+            return
+
+        positions = self.level_view.selected_positions
+        start_position = positions[0]
+        last_position = positions[-1]
+        delta = (last_position - start_position) / (len(positions) - 1)
+
+        for i, position in enumerate(positions[1:-1]):
+            position.x = start_position.x + delta.x * (i + 1)
+            position.y = start_position.y + delta.y * (i + 1)
+            position.z = start_position.z + delta.z * (i + 1)
+
+        self.pik_control.update_info()
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
+                                              self.level_view.selected_rotations)
+        self.set_has_unsaved_changes(True)
+        self.level_view.do_redraw()
 
     def on_cut_action_triggered(self):
         self.on_copy_action_triggered()
@@ -3426,6 +3506,11 @@ class GenEditor(QtWidgets.QMainWindow):
                 self.pik_control.reset_info("{0} objects selected".format(len(self.level_view.selected)))
                 self.pik_control.set_objectlist(selected)
 
+            viewer_toolbar = self.level_view.viewer_toolbar
+            viewer_toolbar.delete_button.setEnabled(self.can_delete_objects())
+            viewer_toolbar.ground_button.setEnabled(self.can_ground_objects())
+            viewer_toolbar.distribute_button.setEnabled(self.can_distribute_objects())
+
     @catch_exception
     def mapview_showcontextmenu(self, position):
         self.reset_move_flags()
@@ -3630,7 +3715,13 @@ if __name__ == "__main__":
 
     QtWidgets.QToolTip.setPalette(palette)
     padding = QtGui.QFontMetrics(QtGui.QFont()).height() // 2
-    app.setStyleSheet(f'QToolTip {{ padding: {padding}px; }}')
+    app.setStyleSheet(f"""
+        QToolTip {{
+            padding: {padding}px;
+            border: 1px solid #202020;
+            background: #282828;
+        }}
+    """)
 
     if platform.system() == "Windows":
         import ctypes

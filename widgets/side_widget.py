@@ -13,17 +13,8 @@ class PikminSideWidget(QtWidgets.QWidget):
 
         # Top bottoms.
         self.button_add_object = QtWidgets.QPushButton()
-        self.button_remove_object = QtWidgets.QPushButton()
-        self.button_ground_object = QtWidgets.QPushButton()
-
         self.button_add_object.setText("Add Object")
-        self.button_remove_object.setText("Remove Object(s)")
-        self.button_ground_object.setText("Ground Object(s)")
-
         self.button_add_object.setToolTip("Hotkey: Ctrl+A")
-        self.button_remove_object.setToolTip("Hotkey: Delete")
-        self.button_ground_object.setToolTip("Hotkey: G")
-
         self.button_add_object.setCheckable(True)
 
         # More buttons.
@@ -71,8 +62,6 @@ class PikminSideWidget(QtWidgets.QWidget):
         # Main layout.
         verticalLayout = QtWidgets.QVBoxLayout(self)
         verticalLayout.addWidget(self.button_add_object)
-        verticalLayout.addWidget(self.button_remove_object)
-        verticalLayout.addWidget(self.button_ground_object)
         verticalLayout.addWidget(self.more_buttons)
         verticalLayout.addWidget(scroll_area)
 

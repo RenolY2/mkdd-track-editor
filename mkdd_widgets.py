@@ -20,6 +20,7 @@ from gizmo import Gizmo
 from lib.object_models import ObjectModels
 from editor_controls import UserControl
 from lib.libbol import BOL
+from widgets import viewer_toolbar
 import numpy
 
 ObjectSelectionEntry = namedtuple("ObjectSelectionEntry", ["obj", "pos1", "pos2", "pos3", "rotation"])
@@ -185,6 +186,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
         self.minimap = Minimap(Vector3(-1000.0, 0.0, -1000.0), Vector3(1000.0, 0.0, 1000.0), 0,
                                None)
+
+        self.viewer_toolbar = viewer_toolbar.ViewerToolbar(self)
 
     @catch_exception_with_dialog
     def initializeGL(self):
