@@ -1,14 +1,14 @@
 Get the newest version of SuperBMD at https://github.com/RenolY2/SuperBMD/releases
-This copy of SuperBMD is only meant for use with the MKDD Bol Editor's BMD rendering feature which works by converting 
+This copy of SuperBMD is only meant for use with the MKDD Bol Editor's BMD rendering feature which works by converting
 the bmd into a wavefront obj file and then rendering the obj file.
 
 
 ## Attribution
-Special thanks to Gamma (Sage-of-Mirrors) for creating SuperBMD, to LagoLunatic for the work on their fork that 
+Special thanks to Gamma (Sage-of-Mirrors) for creating SuperBMD, to LagoLunatic for the work on their fork that
 this fork is now based on (based on LagoLunatic's fork from December 2018), and to Hackio for their contributions to this fork.
 And special thanks goes out to everybody who uses this fork, reports issues and helps makes it a better tool.
 
-This project uses a number of external libraries or parts of them in the code which will be listed here 
+This project uses a number of external libraries or parts of them in the code which will be listed here
 together with their license if necessary:
 
 * BrawlLib: Tristripping algorithm by ernie, blackjax & tfautre:  https://github.com/libertyernie/brawltools
