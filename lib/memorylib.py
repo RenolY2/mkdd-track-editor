@@ -36,8 +36,8 @@ class PROCESSENTRY32(ctypes.Structure):
                  ( 'pcPriClassBase' , LONG) ,
                  ( 'dwFlags' , DWORD) ,
                  ( 'szExeFile' , ctypes.c_char * 260 ) ]
-                 
-                 
+
+
 class MEMORY_BASIC_INFORMATION(ctypes.Structure):
     _fields_ = [    ( 'BaseAddress' , ctypes.c_void_p),
                     ( 'AllocationBase' , ctypes.c_void_p),
@@ -47,8 +47,8 @@ class MEMORY_BASIC_INFORMATION(ctypes.Structure):
                     ( 'State' , DWORD),
                     ( 'Protect' , DWORD),
                     ( 'Type' , DWORD)]
- 
- 
+
+
 class PSAPI_WORKING_SET_EX_BLOCK(ctypes.Structure):
     _fields_ = [    ( 'Flags', ULONG_PTR),
                     ( 'Valid', ULONG_PTR),
@@ -61,8 +61,8 @@ class PSAPI_WORKING_SET_EX_BLOCK(ctypes.Structure):
                     ( 'Reserved', ULONG_PTR),
                     ( 'Bad', ULONG_PTR),
                     ( 'ReservedUlong', ULONG_PTR)]
-                    
-                    
+
+
 #class PSAPI_WORKING_SET_EX_INFORMATION(ctypes.Structure):
 #    _fields_ = [    ( 'VirtualAddress' , ctypes.c_void_p),
 #                    ( 'VirtualAttributes' , PSAPI_WORKING_SET_EX_BLOCK)]
@@ -80,13 +80,13 @@ class PSAPI_WORKING_SET_EX_INFORMATION(ctypes.Structure):
                     #( 'Reserved', ULONG_PTR),
                     #( 'Bad', ULONG_PTR),
                     #( 'ReservedUlong', ULONG_PTR)]
-                    
+
     #def print_values(self):
     #    for i,v in self._fields_:
     #        print(i, getattr(self, i))
 
 
-# The find_dolphin function is based on WindowsDolphinProcess::findPID() from 
+# The find_dolphin function is based on WindowsDolphinProcess::findPID() from
 # aldelaro5's Dolphin memory engine
 # https://github.com/aldelaro5/Dolphin-memory-engine
 
@@ -117,11 +117,11 @@ SOFTWARE."""
 class Dolphin(object):
     def __init__(self):
         self.pid = -1
-        self.memory = None 
-        
+        self.memory = None
+
     def reset(self):
         self.pid = -1
-        self.memory = None 
+        self.memory = None
 
     def initialized(self):
         return self.memory is not None
@@ -133,30 +133,30 @@ class Dolphin(object):
         if skip_pids is None:
             skip_pids = set()
         entry = PROCESSENTRY32()
-        
+
         entry.dwSize = sizeof(PROCESSENTRY32)
         snapshot = ctypes.windll.kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL)
         print(addressof(entry), hex(addressof(entry)))
         a = ULONG(addressof(entry))
-        
+
         self.pid = -1
-        
-        if ctypes.windll.kernel32.Process32First(snapshot, pointer(entry)):   
+
+        if ctypes.windll.kernel32.Process32First(snapshot, pointer(entry)):
             if entry.th32ProcessID not in skip_pids and entry.szExeFile in (b"Dolphin.exe", b"DolphinQt2.exe", b"DolphinWx.exe"):
-                self.pid = entry.th32ProcessID 
+                self.pid = entry.th32ProcessID
             else:
                 while ctypes.windll.kernel32.Process32Next(snapshot, pointer(entry)):
                     if entry.th32ProcessID in skip_pids:
                         continue
                     if entry.szExeFile in (b"Dolphin.exe", b"DolphinQt2.exe", b"DolphinWx.exe"):
-                        self.pid = entry.th32ProcessID 
-                    
-            
+                        self.pid = entry.th32ProcessID
+
+
         ctypes.windll.kernel32.CloseHandle(snapshot)
-        
+
         if self.pid == -1:
-            return False 
-        
+            return False
+
         return True
 
     def init(self):
@@ -165,13 +165,13 @@ class Dolphin(object):
             return True
         except FileNotFoundError:
             return False
-        
+
     def read_ram(self, offset, size):
         return self.memory.buf[offset:offset+size]
-    
+
     def write_ram(self, offset, data):
         self.memory.buf[offset:offset+len(data)] = data
-    
+
     def read_uint32(self, addr):
         assert addr >= 0x80000000
         value = self.read_ram(addr-0x80000000, 4)
@@ -180,7 +180,7 @@ class Dolphin(object):
             return None
         else:
             return unpack(">I", value)[0]
-    
+
     def write_uint32(self, addr, val):
         assert addr >= 0x80000000
         return self.write_ram(addr - 0x80000000, pack(">I", val))
@@ -206,16 +206,16 @@ class Dolphin(object):
         assert addr >= 0x80000000
         return self.write_ram(addr - 0x80000000, pack(">fff", v.x, v.y, v.z))
 
-    
+
 """with open("ctypes.txt", "w") as f:
     for a in ctypes.__dict__:
         f.write(str(a))
         f.write("\n")"""
-        
+
 if __name__ == "__main__":
     dolphin = Dolphin()
-    import multiprocessing 
-    
+    import multiprocessing
+
     if dolphin.find_dolphin():
 
         print("Found Dolphin!")
@@ -223,29 +223,28 @@ if __name__ == "__main__":
         print("Didn't find Dolphin")
 
     print(dolphin.pid)
-    
+
     dolphin.init_shared_memory()
     if dolphin.init_shared_memory():
         print("We found MEM1 and/or MEM2!")
     else:
         print("We didn't find it...")
-    
-    import random 
+
+    import random
     randint = random.randint
     from timeit import default_timer
-    
+
     start = default_timer()
-    
+
     print("Testing Shared Memory Method")
     start = default_timer()
     count = 500000
     for i in range(count):
         value = randint(0, 2**32-1)
         dolphin.write_uint32(0x80000000, value)
-        
+
         result = dolphin.read_uint32(0x80000000)
         assert result == value
-    diff = default_timer()-start 
+    diff = default_timer()-start
     print(count/diff, "per sec")
     print("time: ", diff)
-    

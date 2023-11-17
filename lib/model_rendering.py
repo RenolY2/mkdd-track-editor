@@ -947,16 +947,14 @@ class CollisionModel(object):
         out vec3 vecColor;
         vec3 selectedcol = vec3(1.0, 0.0, 0.0);
         vec3 lightvec = normalize(vec3(0.3, 0.0, -1.0));
-        
+
         void main(void)
         {
             vecNormal = normal;
             vec3 col = (1-interpolate) * color + interpolate*selectedcol;
             vecColor = col*clamp(1.0-dot(lightvec, normal), 0.3, 1.0);
             gl_Position = gl_ModelViewProjectionMatrix * vert;
-            
         }
-        
         """
 
         fragshader = """
@@ -964,9 +962,9 @@ class CollisionModel(object):
         in vec3 vecNormal;
         in vec3 vecColor;
         out vec4 finalColor;
-        
+
         void main (void)
-        {   
+        {
             finalColor = vec4(vecColor, 1.0);
         }"""
 

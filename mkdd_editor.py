@@ -739,7 +739,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.paste_action.setShortcut(QtGui.QKeySequence('Ctrl+V'))
         self.paste_action.triggered.connect(self.on_paste_action_triggered)
 
-        # ---- Visibility 
+        # ---- Visibility
         self.visibility_menu = mkdd_widgets.FilterViewMenu(self)
         self.visibility_menu.filter_update.connect(self.on_filter_update)
         filters = self.editorconfig["filter_view"].split(",")

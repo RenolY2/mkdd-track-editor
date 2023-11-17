@@ -358,7 +358,7 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
             select_all_group.triggered.connect(emit_select_route)
 
             context_menu.addAction(select_all_group)
-        
+
         if isinstance(item, (ObjectEntry, CameraEntry)):
             if item.bound_to.route is not None:
                 select_assoc_action = QtGui.QAction("Select Associated Route", self)
