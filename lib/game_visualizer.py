@@ -362,11 +362,12 @@ class Game:
             if autopilot:
                 human = False
             else:
-                # Reduced version of ObjUtility::isPlayerDriver().
-                if self.region == "US":
-                    human = bool(self.dolphin.read_uint32(0x803B145C + 0x34 + 0x18 * i))
-                elif self.region == "US_DEBUG":
-                    human = bool(self.dolphin.read_uint32(0x803FBFA8 + 0x34 + 0x18 * i))
+                # Equivalent to KartCheck::CheckAllClearKey().
+                checkallclearkey_arg = self.dolphin.read_uint32(kartPtr + 200)
+                checkallclearkey_local = self.dolphin.read_uint32(
+                    self.dolphin.read_uint32(checkallclearkey_arg) + 0x578)
+                cpu_managed = checkallclearkey_local & 4 and checkallclearkey_local & 8
+                human = not cpu_managed
             self.human_karts[i] = human
 
             self.kart_headings[i].x = self.dolphin.read_float(kartPtr + 0x308)
