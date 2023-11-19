@@ -26,9 +26,7 @@ import numpy
 ObjectSelectionEntry = namedtuple("ObjectSelectionEntry", ["obj", "pos1", "pos2", "pos3", "rotation"])
 
 MOUSE_MODE_NONE = 0
-MOUSE_MODE_MOVEWP = 1
-MOUSE_MODE_ADDWP = 2
-MOUSE_MODE_CONNECTWP = 3
+MOUSE_MODE_ADDWP = 1
 
 MODE_TOPDOWN = 0
 MODE_3D = 1
@@ -518,7 +516,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         self.collision = Collision(triangles)
 
     def set_mouse_mode(self, mode):
-        assert mode in (MOUSE_MODE_NONE, MOUSE_MODE_ADDWP, MOUSE_MODE_CONNECTWP, MOUSE_MODE_MOVEWP)
+        assert mode in (MOUSE_MODE_NONE, MOUSE_MODE_ADDWP)
 
         self.mousemode = mode
 

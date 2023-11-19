@@ -8,9 +8,7 @@ from lib.vectors import Vector3, Plane
 from gizmo import AXIS_X, AXIS_Y, AXIS_Z
 import numpy
 MOUSE_MODE_NONE = 0
-MOUSE_MODE_MOVEWP = 1
-MOUSE_MODE_ADDWP = 2
-MOUSE_MODE_CONNECTWP = 3
+MOUSE_MODE_ADDWP = 1
 
 MODE_TOPDOWN = 0
 MODE_3D = 1
