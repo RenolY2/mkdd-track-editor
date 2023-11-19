@@ -8,7 +8,7 @@ from collections import OrderedDict
 from math import inf
 from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint, Route, RoutePoint,
                         MapObject, KartStartPoint, Area, Camera, BOL, JugemPoint, MapObject,
-                        LightParam, MGEntry, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS,
+                        LightParam, MGEntry, PositionedObject, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS,
                         SWERVE_IDS, REVERSE_SWERVE_IDS, REVERSE_AREA_TYPES,
                         KART_START_POINTS_PLAYER_IDS, REVERSE_KART_START_POINTS_PLAYER_IDS,
                         read_object_parameters, all_same_type, get_average_obj)
@@ -312,12 +312,8 @@ class DataEditor(QtWidgets.QWidget):
         layout = self.create_labeled_widget(self, text, checkbox)
 
         def checked(state):
-            if state == 0:
-                for obj in self.bound_to:
-                    setattr(obj, attribute, off_value)
-            else:
-                for obj in self.bound_to:
-                    setattr(obj, attribute, on_value)
+            for obj in self.bound_to:
+                setattr(obj, attribute, off_value if state == 0 else on_value)
 
         checkbox.stateChanged.connect(checked)
         self.vbox.addLayout(layout)
@@ -705,7 +701,11 @@ MAX_UNSIGNED_INT = 2**32 - 1
 
 
 def choose_data_editor(objs):
-    if not objs or not all_same_type(objs):
+    if not objs:
+        return None
+    if not all_same_type(objs):
+        if all(isinstance(obj, PositionedObject) for obj in objs):
+            return PositionedEdit
         return None
 
     obj = objs[0]
@@ -818,7 +818,7 @@ class EnemyPointEdit(DataEditor):
         self.driftsupplement.setValueQuiet(obj.driftsupplement)
         self.nomushroomzone.setChecked(bool(obj.nomushroomzone))
 
-        name = SWERVE_IDS[obj.swerve] if obj.swerve in SWERVE_IDS else SWERVE_IDS[0]
+        name = SWERVE_IDS[obj.swerve if obj.swerve in SWERVE_IDS else 0]
         index = self.swerve.findText(name)
         self.swerve.setCurrentIndex(index)
         set_tool_tip(self.swerve, ttl.enemypoints['Swerve'])
@@ -1406,9 +1406,10 @@ class CameraEdit(DataEditor):
         self.name.setText(obj.name)
 
     def update_name(self):
-        if self.bound_to.widget is None:
-            return
-        self.bound_to.widget.update_name()
+        for camera in self.bound_to:
+            if camera.widget is None:
+                continue
+            camera.widget.update_name()
 
 
 class RespawnPointEdit(DataEditor):
@@ -1458,9 +1459,9 @@ class LightParamEdit(DataEditor):
         self.color1 = self.add_color_input("RGBA 1", "color1", with_alpha=True)
         for i in self.color1:
             set_tool_tip(i, ttl.lightparam["Light"])
-        self.unkvec = self.add_multiple_decimal_input("Position", "unkvec", ["x", "y", "z"],
+        self.position = self.add_multiple_decimal_input("Position", "unkvec", ["x", "y", "z"],
                                                       -inf, +inf)
-        for i in self.unkvec:
+        for i in self.position:
             set_tool_tip(i, ttl.lightparam["Position"])
         self.color2 = self.add_color_input("RGBA 2", "color2", with_alpha=True)
         for i in self.color2:
@@ -1478,9 +1479,9 @@ class LightParamEdit(DataEditor):
         self.color2[2].setValue(obj.color2.b)
         self.color2[3].setValue(obj.color2.a)
 
-        self.unkvec[0].setValueQuiet(obj.unkvec.x)
-        self.unkvec[1].setValueQuiet(obj.unkvec.y)
-        self.unkvec[2].setValueQuiet(obj.unkvec.z)
+        self.position[0].setValueQuiet(obj.position.x)
+        self.position[1].setValueQuiet(obj.position.y)
+        self.unkpositionvec[2].setValueQuiet(obj.position.z)
 
 
 class MGEntryEdit(DataEditor):
@@ -1495,7 +1496,7 @@ class MGEntryEdit(DataEditor):
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
 
     def update_data(self):
-        obj: MGEntry = self.bound_to
+        obj: MGEntry = get_average_obj(self.bound_to)
         self.unk1.setValueQuiet(obj.unk1)
         self.unk2.setValueQuiet(obj.unk2)
         self.unk3.setValueQuiet(obj.unk3)
@@ -1528,3 +1529,15 @@ class MinimapEdit(DataEditor):
         self.bottomright[2].setValueQuiet(obj.corner2.z)
 
         self.orientation.setCurrentIndex(obj.orientation)
+
+
+class PositionedEdit(DataEditor):
+    def setup_widgets(self):
+        self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
+                                                        -inf, +inf)
+
+    def update_data(self):
+        obj: PositionedObject = get_average_obj(self.bound_to)
+        self.position[0].setValueQuiet(obj.position.x)
+        self.position[1].setValueQuiet(obj.position.y)
+        self.position[2].setValueQuiet(obj.position.z)

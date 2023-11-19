@@ -273,15 +273,28 @@ class ColorRGBA(ColorRGB):
         self.b += other.b
         self.a += other.a
 
+        return self
+
     def __itruediv__(self, count):
         self.r //= count
         self.g //= count
         self.b //= count
         self.a //= count
 
+        return self
+
 class PositionedObject():
     def __init__(self, position):
         self.position = position
+
+    def __iadd__(self, other):
+        self.position += other.position
+        return self
+
+    def __itruediv__(self, count):
+        self.position /= count
+        return self
+
 
 # Section 1
 # Enemy/Item Route Code Start
@@ -363,6 +376,9 @@ class EnemyPoint(PositionedObject):
 
     def __iadd__(self, other):
         self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
         combine_attr(self, other, "link", -1)
         combine_attr(self, other, "swerve", 0)
         combine_attr(self, other, "itemsonly", 0)
@@ -376,7 +392,7 @@ class EnemyPoint(PositionedObject):
         return self
 
     def __itruediv__(self, count):
-        self.position = self.position / count
+        self.position /= count
         self.scale /= count
         self.driftacuteness = self.driftacuteness // count
         self.driftduration = self.driftduration // count
@@ -819,9 +835,9 @@ class Route(object):
 
 # Section 4
 # Route point for use with routes from section 3
-class RoutePoint(object):
+class RoutePoint(PositionedObject):
     def __init__(self, position):
-        self.position = position
+        super().__init__(position)
         self.unk = 0
 
     @classmethod
@@ -850,6 +866,9 @@ class RoutePoint(object):
 
     def __iadd__(self, other):
         self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
         combine_attr(self, other, "unk", 0)
         return self
 
@@ -861,9 +880,9 @@ class RoutePoint(object):
 
 # Section 5
 # Objects
-class MapObject(object):
+class MapObject(PositionedObject):
     def __init__(self, position, objectid):
-        self.position = position
+        super().__init__(position)
         self.scale = Vector3(1.0, 1.0, 1.0)
         self.rotation = Rotation.default()
         self.objectid = objectid
@@ -973,6 +992,9 @@ class MapObject(object):
 
     def __iadd__(self, other):
         self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
         self.scale += other.scale
         combine_attr(self, other, "objectid", 0)
         self.unk_28 += other.unk_28
@@ -1038,9 +1060,9 @@ POLE_LEFT = 0
 POLE_RIGHT = 1
 
 
-class KartStartPoint(object):
+class KartStartPoint(PositionedObject):
     def __init__(self, position):
-        self.position = position
+        super().__init__(position)
         self.scale = Vector3(1.0, 1.0, 1.0)
         self.rotation = Rotation.default()
         self.poleposition = POLE_LEFT
@@ -1088,6 +1110,9 @@ class KartStartPoint(object):
 
     def __iadd__(self, other):
         self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
         self.scale += other.scale
         combine_attr(self, other, "poleposition", POLE_LEFT)
         self.unknown += other.unknown
@@ -1150,9 +1175,9 @@ class Feather:
 
         return self
 
-class Area(object):
+class Area(PositionedObject):
     def __init__(self, position):
-        self.position = position
+        super().__init__(position)
         self.scale = Vector3(1.0, 1.0, 1.0)
         self.rotation = Rotation.default()
         self.shape = 0
@@ -1238,6 +1263,9 @@ class Area(object):
 
     def __iadd__(self, other):
         self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
         self.scale += other.scale
         combine_attr(self, other, "shape", 0)
         combine_attr(self, other, "area_type", 0)
@@ -1254,8 +1282,8 @@ class Area(object):
         self.position /= count
         self.scale /= count
         self.feather /= count
-        self.unkfixedpoint /= count
-        self.unkshort /= count
+        self.unkfixedpoint //= count
+        self.unkshort //= count
         return self
 
 class Areas(object):
@@ -1310,9 +1338,9 @@ class Shimmer:
         return self
 
 
-class Camera(object):
+class Camera(PositionedObject):
     def __init__(self, position):
-        self.position = position
+        super().__init__(position)
         self.position2 = Vector3(0.0, 0.0, 0.0)
         self.position3 = Vector3(0.0, 0.0, 0.0)
         self.rotation = Rotation.default()
@@ -1422,6 +1450,9 @@ class Camera(object):
 
     def __iadd__(self, other):
         self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
         self.position2 += other.position2
         self.position3 += other.position3
         combine_attr(self, other, "camtype", 0)
@@ -1442,18 +1473,18 @@ class Camera(object):
         self.position2 /= count
         self.position3 /= count
         self.fov /= count
-        self.camduration /= count
+        self.camduration //= count
         self.shimmer /= count
-        self.routespeed /= count
+        self.routespeed //= count
 
         return self
 
 
 # Section 9
 # Jugem Points
-class JugemPoint(object):
+class JugemPoint(PositionedObject):
     def __init__(self, position):
-        self.position = position
+        super().__init__(position)
         self.rotation = Rotation.default()
         self.respawn_id = 0
         self.unk1 = 0
@@ -1496,6 +1527,9 @@ class JugemPoint(object):
 
     def __iadd__(self, other):
         self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
         combine_attr(self, other, "respawn_id", 0)
         combine_attr(self, other, "unk1", -1)
         combine_attr(self, other, "unk2", -1)
@@ -1510,44 +1544,47 @@ class JugemPoint(object):
 
 # Section 10
 # LightParam
-class LightParam(object):
-    def __init__(self):
+class LightParam(PositionedObject):
+    def __init__(self, position):
+        super().__init__(position)
         self.color1 = ColorRGBA(0x64, 0x64, 0x64, 0xFF)
         self.color2 = ColorRGBA(0x64, 0x64, 0x64, 0x00)
-        self.unkvec = Vector3(0.0, 0.0, 0.0)
-
-
 
     @classmethod
     def new(cls):
-        return cls()
+        return cls(Vector3(0.0, 0.0, 0.0))
 
     @classmethod
     def from_file(cls, f):
-        lp = cls()
+        lp = cls.new()
         lp.color1 = ColorRGBA.from_file(f)
-        lp.unkvec = Vector3(*unpack(">fff", f.read(12)))
+        lp.position = Vector3(*unpack(">fff", f.read(12)))
         lp.color2 = ColorRGBA.from_file(f)
 
         return lp
 
     def write(self, f):
         self.color1.write(f)
-        f.write(pack(">fff", self.unkvec.x, self.unkvec.y, self.unkvec.z))
+        f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         self.color2.write(f)
 
     def copy(self):
         return deepcopy(self)
 
     def __iadd__(self, other):
-        self.unkvec += other.unkvec
+        self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
         self.color1 += other.color1
         self.color2 += other.color2
+
+        print(self)
 
         return self
 
     def __itruediv__(self, count):
-        self.unkvec /= count
+        self.position /= count
         self.color1 /= count
         self.color2 /= count
 
@@ -1578,6 +1615,23 @@ class MGEntry(object):
 
     def write(self, f):
         f.write(pack(">hhhh", self.unk1, self.unk2, self.unk3, self.unk4))
+
+
+    def __iadd__(self, other):
+        self.unk1 += other.unk1
+        self.unk2 += other.unk2
+        self.unk3 += other.unk3
+        self.unk4 += other.unk4
+
+        return self
+
+    def __itruediv__(self, count):
+        self.unk1 /= count
+        self.unk2 /= count
+        self.unk3 /= count
+        self.unk4 /= count
+
+        return self
 
 
 class BOL(object):
@@ -1988,7 +2042,7 @@ def temp_add_invalid_id(id):
 
 
 def all_same_type(objs):
-    return all(isinstance(x, type(objs[0])) for x in objs)
+    return all(isinstance(obj, type(objs[0])) for obj in objs)
 
 
 def get_average_obj(objs):
