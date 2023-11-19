@@ -104,6 +104,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         self.level_file:BOL = None
 
         self.mousemode = MOUSE_MODE_NONE
+        self.crosshair_cursor = QtGui.QCursor(
+            QtGui.QIcon('resources/icons/crosshair.svg').pixmap(32, 32))
 
         self.editorconfig = None
         self.visibility_menu = None
@@ -525,7 +527,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         else:
             self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
 
-        cursor_shape = QtCore.Qt.ArrowCursor if mode == MOUSE_MODE_NONE else QtCore.Qt.CrossCursor
+        cursor_shape = QtCore.Qt.ArrowCursor if mode == MOUSE_MODE_NONE else self.crosshair_cursor
         self.setCursor(cursor_shape)
 
     @property
