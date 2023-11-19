@@ -1,6 +1,6 @@
 {
     "Object Parameters": [
-        "Index",
+        "Sound Index",
         "Unused",
         "Unused",
         "Unused",
@@ -12,9 +12,19 @@
     "Assets": [
         ""
     ],
+	"Tooltips": [
+        "Sound to be played. Award sounds are only used in the Award track.",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+    ],
     "RouteInfo": "None",
     "DefaultValues": [
-        6,
+        1,
         0,
         0,
         0,
@@ -22,5 +32,17 @@
         0,
         0,
         0
+    ],
+	"Widgets": [
+        ["combobox", {"Ship horn": 0, "Pianta 1": 1, "Pianta 2": 2, "Pianta 3": 3, "Noki": 4, 
+		"Award 1": 5, "Award 2": 6, "Award 3": 7, "Award 4": 8, "Award 5": 9, "Award 6": 10, "Award 7": 11,
+		"Award 8": 12,"Award 9": 13,"Award 10": 14, "Award 11": 15,"Award 12": 16}],
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
     ]
 }

@@ -1,21 +1,21 @@
 {
     "Object Parameters": [
-        "Unknown 1",
-        "Unknown 2",
-        "Unknown 3",
-        "Unknown 4",
-        "Unknown 5",
-        "Unknown 6",
-        "Unknown 7",
-        "Unknown 8"
+        "Item Type",
+        "Throw Strength",
+        "Spawn Distance",
+        "Throw Direction",
+        "Spawn Height",
+        "Unused",
+        "Unused",
+        "Unused"
     ],
     "Assets": [],
     "Tooltips": [
-        "",
-        "",
-        "",
-        "",
-        "",
+        "The item being thrown by the generator. Can also disable the generator.",
+        "How far/high the item should be thrown. Value of 0 defaults to 100.",
+        "Distance from which the item is thrown.",
+        "Direction in which the item should be thrown.",
+        "Height from which the item is thrown.",
         "",
         "",
         ""
@@ -30,5 +30,20 @@
         0,
         0,
         0
+    ],
+	"Widgets": [
+        ["combobox", {"Random": 100, "Bob-omb": 101, "Banana": 102, "Star": 103, "Mushroom": 104, "Disabled": 0}],
+        null,
+        null,
+        ["combobox", {
+            "Object Direction": 0,
+            "Object Direction(Alt)": 1,
+            "Object Direction(Reversed)": 2,
+            "Kart Direction": 3,
+            "Random (360°)": 4}],
+        null,
+        null,
+        null,
+        null
     ]
 }
