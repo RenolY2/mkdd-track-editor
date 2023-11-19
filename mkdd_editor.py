@@ -2517,7 +2517,7 @@ class GenEditor(QtWidgets.QMainWindow):
 
         elif self.object_to_be_added is not None:
             self.pik_control.button_add_object.setChecked(True)
-            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
+            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_INSERTION)
 
     @catch_exception
     def action_add_object(self, x, z):
@@ -2670,7 +2670,7 @@ class GenEditor(QtWidgets.QMainWindow):
                 pos = group.get_index_of_point(obj)
             self.object_to_be_added = [libbol.EnemyPoint.new(), group_id, pos + 1]
             self.pik_control.button_add_object.setChecked(True)
-            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
+            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_INSERTION)
 
         elif option == "add_checkpointgroup":
             self.level_file.checkpoints.add_group()
@@ -2683,7 +2683,7 @@ class GenEditor(QtWidgets.QMainWindow):
                 group_id, pos = self.level_file.checkpoints.find_group_of_point(obj)
             self.object_to_be_added = [libbol.Checkpoint.new(), group_id, pos + 1]
             self.pik_control.button_add_object.setChecked(True)
-            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
+            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_INSERTION)
         elif option == "add_route":
             self.level_file.routes.append(libbol.Route.new())
             object_to_select = self.level_file.routes[-1]
@@ -2700,11 +2700,11 @@ class GenEditor(QtWidgets.QMainWindow):
                 pos = self.level_file.routes[group_id].get_index_of_point(obj)
             self.object_to_be_added = [libbol.RoutePoint.new(), group_id, pos + 1]
             self.pik_control.button_add_object.setChecked(True)
-            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
+            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_INSERTION)
         elif option == "add_startpoint":
             self.object_to_be_added = [libbol.KartStartPoint.new(), -1, -1]
             self.pik_control.button_add_object.setChecked(True)
-            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
+            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_INSERTION)
         elif option == "route_object":
             new_route = libbol.Route.new()
             forward, up, left = obj.rotation.get_vectors()
@@ -2723,7 +2723,7 @@ class GenEditor(QtWidgets.QMainWindow):
         elif option == "add_respawn":
             self.object_to_be_added = [libbol.JugemPoint.new(), -1, 0]
             self.pik_control.button_add_object.setChecked(True)
-            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
+            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_INSERTION)
 
 
         self.leveldatatreeview.set_objects(self.level_file)
