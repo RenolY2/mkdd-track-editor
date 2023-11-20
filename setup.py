@@ -4,7 +4,7 @@ import shutil
 
 from cx_Freeze import setup, Executable
 
-version = "1.2"
+version = "1.3"
 # Dependencies are automatically detected, but it might need fine tuning.
 
 include_files = [
