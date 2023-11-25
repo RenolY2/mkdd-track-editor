@@ -107,7 +107,8 @@ for relative_path in sorted(tuple(set(unwelcome_files))):
     path = os.path.join(pyside_dir, relative_path)
 
     print(f'Remove: "{path}"')
-
+    if not os.path.exists(path) and "\\examples" in path:
+        continue
     assert os.path.exists(path)
     if os.path.isfile(path):
         os.remove(path)
