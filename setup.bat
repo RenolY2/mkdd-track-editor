@@ -11,9 +11,7 @@ python -m venv venv
 call venv/Scripts/activate.bat
 
 rem Install cx_Freeze and its dependencies.
-python -m pip install cx-Freeze==6.14.9
-python -m pip install cx-Logging==3.1.0
-python -m pip install lief==0.12.3
+python -m pip install cx-Freeze==6.15.10 cx-Logging==3.1.0 lief==0.13.2
 
 rem Retrieve a fresh checkout from the repository to avoid a potentially
 rem polluted local checkout.
