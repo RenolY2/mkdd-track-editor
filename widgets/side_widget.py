@@ -1,7 +1,6 @@
 from PySide6 import QtCore, QtWidgets, QtGui
 
 from widgets.data_editor import choose_data_editor
-from widgets.more_buttons import MoreButtons
 
 
 class PikminSideWidget(QtWidgets.QWidget):
@@ -10,16 +9,6 @@ class PikminSideWidget(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
 
         self.boleditor = editor
-
-        # Top bottoms.
-        self.button_add_object = QtWidgets.QPushButton()
-        self.button_add_object.setText("Add Object")
-        self.button_add_object.setToolTip("Hotkey: Ctrl+A")
-        self.button_add_object.setCheckable(True)
-
-        # More buttons.
-        self.more_buttons = MoreButtons(None)
-        self.more_buttons.add_buttons(None)
 
         # Scroll area.
         scroll_area = QtWidgets.QScrollArea()
@@ -32,7 +21,6 @@ class PikminSideWidget(QtWidgets.QWidget):
         palette.setBrush(scroll_area_frame.backgroundRole(), palette.dark())
         scroll_area_frame.setPalette(palette)
         self.scroll_area_frame_layout = QtWidgets.QVBoxLayout(scroll_area_frame)
-        self.scroll_area_frame_layout.addStretch(0)
         self.scroll_area_frame_layout.setSpacing(self.fontMetrics().height())
         scroll_area.setWidget(scroll_area_frame)
 
@@ -56,14 +44,15 @@ class PikminSideWidget(QtWidgets.QWidget):
         self.scroll_area_frame_layout.addWidget(self.comment_label)
         self.comment_label.hide()
 
+        self.scroll_area_frame_layout.addStretch()
+
         # Data editor.
         self.object_data_edit = None
 
         # Main layout.
         verticalLayout = QtWidgets.QVBoxLayout(self)
-        verticalLayout.addWidget(self.button_add_object)
-        verticalLayout.addWidget(self.more_buttons)
         verticalLayout.addWidget(scroll_area)
+        verticalLayout.setContentsMargins(0, 0, 0, 0)
 
         self.reset_info()
 
@@ -95,7 +84,8 @@ class PikminSideWidget(QtWidgets.QWidget):
         if editor is not None:
             bol = self.boleditor.level_file
             self.object_data_edit = editor(self, bol, obj)
-            self.scroll_area_frame_layout.addWidget(self.object_data_edit)
+            self.scroll_area_frame_layout.insertWidget(self.scroll_area_frame_layout.count() - 1,
+                                                       self.object_data_edit)
             self.object_data_edit.emit_3d_update.connect(update3d)
 
         self.comment_label.setText("")
@@ -121,6 +111,3 @@ class PikminSideWidget(QtWidgets.QWidget):
 
         self.comment_label.setText(text)
         self.comment_label.setVisible(bool(text))
-
-    def set_buttons(self, obj):
-        self.more_buttons.add_buttons(obj)
