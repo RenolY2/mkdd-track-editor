@@ -17,7 +17,7 @@ python -m pip install lief==0.12.3
 
 rem Retrieve a fresh checkout from the repository to avoid a potentially
 rem polluted local checkout.
-git clone git@github.com:RenolY2/mkdd-track-editor.git
+git clone https://github.com/RenolY2/mkdd-track-editor.git
 cd mkdd-track-editor
 
 rem Install the application's dependencies.
