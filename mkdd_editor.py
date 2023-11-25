@@ -669,7 +669,6 @@ class GenEditor(QtWidgets.QMainWindow):
         self.snapping_cycle_shortcut.activated.connect(self.level_view.cycle_snapping_mode)
 
         QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_G), self).activated.connect(self.action_ground_objects)
-        #QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_A, self).activated.connect(self.shortcut_open_add_item_window)
         self.statusbar = QtWidgets.QStatusBar(self)
         self.statusbar.setObjectName("statusbar")
         self.setStatusBar(self.statusbar)
@@ -690,8 +689,6 @@ class GenEditor(QtWidgets.QMainWindow):
             QtGui.QKeySequence(QtCore.QKeyCombination(QtCore.Qt.ControlModifier, QtCore.Qt.Key_V)),
             self.file_menu)
         save_file_shortcut.activated.connect(self.button_save_level)
-        #QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_O, self.file_menu).activated.connect(self.button_load_level)
-        #QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_Alt + QtCore.Qt.Key_S, self.file_menu).activated.connect(self.button_save_level_as)
 
         self.file_load_action = QtGui.QAction("Load", self)
         self.file_load_recent_menu = QtWidgets.QMenu("Load Recent", self)
