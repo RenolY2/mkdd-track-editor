@@ -664,7 +664,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.snapping_toggle_shortcut = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_V), self)
         self.snapping_toggle_shortcut.activated.connect(self.level_view.toggle_snapping)
         self.snapping_cycle_shortcut = QtGui.QShortcut(
-            QtGui.QKeySequence(QtCore.Qt.Key_V | QtCore.Qt.Key_Shift), self)
+            QtGui.QKeySequence(QtCore.Qt.Key_V | QtCore.Qt.SHIFT), self)
         self.snapping_cycle_shortcut.activated.connect(self.level_view.cycle_snapping_mode)
 
         QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_G), self).activated.connect(self.action_ground_objects)
@@ -685,7 +685,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.file_menu = QtWidgets.QMenu(self)
         self.file_menu.setTitle("File")
 
-        save_file_shortcut = QtGui.QShortcut(QtCore.Qt.Key_Control | QtCore.Qt.Key_S, self.file_menu)
+        save_file_shortcut = QtGui.QShortcut(QtCore.Qt.CTRL | QtCore.Qt.Key_S, self.file_menu)
         save_file_shortcut.activated.connect(self.button_save_level)
         #QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_O, self.file_menu).activated.connect(self.button_load_level)
         #QtGui.QShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_Alt + QtCore.Qt.Key_S, self.file_menu).activated.connect(self.button_save_level_as)
