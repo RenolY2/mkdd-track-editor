@@ -36,7 +36,9 @@ def catch_exception_with_dialog(func):
             return func(*args, **kwargs)
         except Exception as e:
             traceback.print_exc()
-            open_error_dialog(str(e), None)
+
+            parent = QtWidgets.QApplication.instance().editor_gui
+            open_error_dialog(str(e), parent)
     return handle
 
 
@@ -46,7 +48,9 @@ def catch_exception_with_dialog_nokw(func):
             return func(*args, **kwargs)
         except Exception as e:
             traceback.print_exc()
-            open_error_dialog(str(e), None)
+
+            parent = QtWidgets.QApplication.instance().editor_gui
+            open_error_dialog(str(e), parent)
     return handle
 
 

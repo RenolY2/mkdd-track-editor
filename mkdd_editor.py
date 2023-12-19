@@ -3792,6 +3792,8 @@ if __name__ == "__main__":
 
         editor_gui.show()
 
+        app.editor_gui = editor_gui
+
         if args.load is not None:
             def load():
                 editor_gui.load_file(args.load, additional=args.additional)
