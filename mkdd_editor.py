@@ -18,8 +18,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import py_obj
 
 from lib import bti
+from widgets.data_editor import choose_data_editor
 from widgets.editor_widgets import catch_exception
-from widgets.editor_widgets import AddPikObjectWindow
 from widgets.tree_view import LevelDataTreeView
 from widgets.tooltip_list import markdown_to_html
 import widgets.tree_view as tree_view
@@ -153,6 +153,23 @@ class GenEditor(QtWidgets.QMainWindow):
         self.dolphin.show_target_item_points = self.editorconfig.get('show_target_item_points',
                                                                      'true') == 'true'
 
+        self._template_enemy_path = libbol.EnemyPointGroup.new()
+        self._template_enemy_path_point = libbol.EnemyPoint.new()
+        self._template_enemy_path_point.scale = 2000.0
+        self._template_checkpoint_group = libbol.CheckpointGroup.new()
+        self._template_checkpoint = libbol.Checkpoint.new()
+        self._template_route = libbol.Route.new()
+        self._template_route_point = libbol.RoutePoint.new()
+        self._template_object = libbol.MapObject.new()
+        self._template_kart_start_point = libbol.KartStartPoint.new()
+        self._template_area = libbol.Area.new()
+        self._template_area.scale *= 100.0
+        self._template_camera = libbol.Camera.new()
+        self._template_respawn_point = libbol.JugemPoint.new()
+        self._template_light_param = libbol.LightParam.new()
+        self._template_minigame_param = libbol.MGEntry.new()
+        self._insertion_mode_type_name = None
+
         self.setup_ui()
 
         self.level_view.level_file = self.level_file
@@ -162,10 +179,6 @@ class GenEditor(QtWidgets.QMainWindow):
         self.collision_area_dialog = None
 
         self.current_coordinates = None
-        self.editing_windows = {}
-        self.add_object_window = AddPikObjectWindow(self)
-        self.add_object_window.setWindowIcon(self.windowIcon())
-        self.object_to_be_added = None
 
         self._window_title = ""
         self._user_made_change = False
@@ -248,19 +261,13 @@ class GenEditor(QtWidgets.QMainWindow):
         self.next_checkpoint_start_position = None
         self.loaded_archive = None
         self.loaded_archive_file = None
-        self.object_to_be_added = None
         self.level_view.reset()
 
         self.current_coordinates = None
-        for key, val in self.editing_windows.items():
-            val.destroy()
-
-        self.editing_windows = {}
 
         self.current_gen_path = None
         self.pik_control.reset_info()
-        self.pik_control.button_add_object.setChecked(False)
-        #self.pik_control.button_move_object.setChecked(False)
+
         self._window_title = ""
         self._user_made_change = False
 
@@ -623,8 +630,6 @@ class GenEditor(QtWidgets.QMainWindow):
                 self.level_view.selected.append(self.level_file)
             elif isinstance(item, (tree_view.LightParamEntry, tree_view.MGEntry)):
                 self.level_view.selected.append(item.bound_to)
-
-        self.pik_control.set_buttons(items[0] if len(items) == 1 else None)
 
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
                                               self.level_view.selected_rotations)
@@ -1575,9 +1580,6 @@ class GenEditor(QtWidgets.QMainWindow):
 
         self.level_view.customContextMenuRequested.connect(self.mapview_showcontextmenu)
 
-        self.pik_control.button_add_object.clicked.connect(
-            lambda _checked: self.button_open_add_item_window())
-        #self.pik_control.button_move_object.pressed.connect(self.button_move_objects)
         self.level_view.move_points.connect(self.action_move_objects)
         self.level_view.move_points_to.connect(self.action_move_objects_to)
         self.level_view.create_waypoint.connect(self.action_add_object)
@@ -1628,6 +1630,56 @@ class GenEditor(QtWidgets.QMainWindow):
             viewer_toolbar.view_topdown_button.setChecked)
         viewer_toolbar.view_3d_button.clicked.connect(self.change_to_3dview_action.trigger)
         self.change_to_3dview_action.toggled[bool].connect(viewer_toolbar.view_3d_button.setChecked)
+
+        viewer_toolbar.add_enemy_path_button.clicked.connect(self._add_enemy_path)
+        viewer_toolbar.add_enemy_path_points_button.clicked.connect(
+            lambda checked: self._enter_insertion_mode(checked, 'enemy_path_point'))
+        viewer_toolbar.add_checkpoint_group_button.clicked.connect(self._add_checkpoint_group)
+        viewer_toolbar.add_checkpoints_button.clicked.connect(
+            lambda checked: self._enter_insertion_mode(checked, 'checkpoint'))
+        viewer_toolbar.add_route_button.clicked.connect(self._add_route)
+        viewer_toolbar.add_route_points_button.clicked.connect(
+            lambda checked: self._enter_insertion_mode(checked, 'route_point'))
+        viewer_toolbar.add_objects_button.clicked.connect(
+            lambda checked: self._enter_insertion_mode(checked, 'object'))
+        viewer_toolbar.add_kart_start_points_button.clicked.connect(
+            lambda checked: self._enter_insertion_mode(checked, 'kart_start_point'))
+        viewer_toolbar.add_areas_button.clicked.connect(
+            lambda checked: self._enter_insertion_mode(checked, 'area'))
+        viewer_toolbar.add_cameras_button.clicked.connect(
+            lambda checked: self._enter_insertion_mode(checked, 'camera'))
+        viewer_toolbar.add_respawn_points_button.clicked.connect(
+            lambda checked: self._enter_insertion_mode(checked, 'respawn_point'))
+        viewer_toolbar.add_light_param_button.clicked.connect(self._add_light_param)
+        viewer_toolbar.add_minigame_param_button.clicked.connect(self._add_minigame_param)
+
+        for label, button in (
+            ('Enemy Path', viewer_toolbar.add_enemy_path_button),
+            ('Enemy Path Point', viewer_toolbar.add_enemy_path_points_button),
+            ('Checkpoint Group', viewer_toolbar.add_checkpoint_group_button),
+            ('Checkpoint', viewer_toolbar.add_checkpoints_button),
+            ('Route', viewer_toolbar.add_route_button),
+            ('Route Point', viewer_toolbar.add_route_points_button),
+            ('Object', viewer_toolbar.add_objects_button),
+            ('Kart Start Point', viewer_toolbar.add_kart_start_points_button),
+            ('Area', viewer_toolbar.add_areas_button),
+            ('Camera', viewer_toolbar.add_cameras_button),
+            ('Respawn Point', viewer_toolbar.add_respawn_points_button),
+            ('Light Param', viewer_toolbar.add_light_param_button),
+            ('Minigame Param', viewer_toolbar.add_minigame_param_button),
+        ):
+            name = label.replace(' ', '_').lower()
+            template = getattr(self, f'_template_{name}')
+
+            alternative_menu = button.get_or_create_alternative_menu()
+
+            configure_action = alternative_menu.addAction(f'Configure {label} Template')
+            configure_action.triggered[bool].connect(
+                lambda _checked, label=label: self._configure_template(label))
+
+            reset_action = alternative_menu.addAction(f'Reset {label} Template')
+            reset_action.triggered[bool].connect(lambda _checked, name=name, template_copy=deepcopy(
+                template): setattr(self, f'_template_{name}', deepcopy(template_copy)))
 
     def split_group_checkpoint(self, group_item, item):
         group = group_item.bound_to
@@ -1760,9 +1812,6 @@ class GenEditor(QtWidgets.QMainWindow):
         self.level_view.selected_positions = [obj.position for obj in map_objects]
         self.level_view.selected_rotations = [obj.rotation for obj in map_objects]
 
-
-        self.pik_control.set_buttons(map_objects[0] if len(map_objects) == 1 else None)
-
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
                                               self.level_view.selected_rotations)
         self.level_view.do_redraw()
@@ -1779,8 +1828,6 @@ class GenEditor(QtWidgets.QMainWindow):
         self.level_view.selected = areas
         self.level_view.selected_positions = [obj.position for obj in areas]
         self.level_view.selected_rotations = [obj.rotation for obj in areas]
-
-        self.pik_control.set_buttons(areas[0] if len(areas) == 1 else None)
 
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
                                               self.level_view.selected_rotations)
@@ -1810,9 +1857,6 @@ class GenEditor(QtWidgets.QMainWindow):
                 route_point_positions = [point.position for point in route.points]
                 self.level_view.selected_positions.extend(route_point_positions)
 
-        selected = self.level_view.selected
-        self.pik_control.set_buttons(selected[0] if len(selected) == 1 else None)
-
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
                                               self.level_view.selected_rotations)
         self.level_view.do_redraw()
@@ -1832,9 +1876,6 @@ class GenEditor(QtWidgets.QMainWindow):
         self.level_view.selected.extend(route.points)
         route_point_positions = [point.position for point in route.points]
         self.level_view.selected_positions.extend(route_point_positions)
-
-        selected = self.level_view.selected
-        self.pik_control.set_buttons(selected[0] if len(selected) == 1 else None)
 
         self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
                                               self.level_view.selected_rotations)
@@ -1856,9 +1897,6 @@ class GenEditor(QtWidgets.QMainWindow):
         if route is not None:
             self.level_view.selected.extend(route.points)
             self.level_view.selected_positions = [point.position for point in route.points]
-
-            selected = self.level_view.selected
-            self.pik_control.set_buttons(selected[0] if len(selected) == 1 else None)
 
             self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
                                                 self.level_view.selected_rotations)
@@ -2435,22 +2473,6 @@ class GenEditor(QtWidgets.QMainWindow):
         self.pathsconfig["collision"] = filepath
         save_cfg(self.configuration)
 
-    def button_open_add_item_window(self):
-        self.add_object_window.update_label()
-        self.next_checkpoint_start_position = None
-
-        accepted = self.add_object_window.exec()
-        if accepted:
-            self.add_item_window_save()
-        else:
-            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
-            self.pik_control.button_add_object.setChecked(False)
-
-        self.update_3d()
-
-    def shortcut_open_add_item_window(self):
-        self.button_open_add_item_window()
-
     def select_tree_item_bound_to(self, objects):
         # Iteratively traverse all the tree widget items to retrieve all the bound objects.
         bound_objects_and_items = []
@@ -2486,250 +2508,274 @@ class GenEditor(QtWidgets.QMainWindow):
                     parent_item = parent_item.parent()
                 self.leveldatatreeview.scrollToItem(bound_item)
 
-    def add_item_window_save(self):
-        self.object_to_be_added = self.add_object_window.get_content()
-        if self.object_to_be_added is None:
-            return
-
-        obj = self.object_to_be_added[0]
-
-        if isinstance(obj, (libbol.EnemyPointGroup, libbol.CheckpointGroup, libbol.Route,
-                            libbol.LightParam, libbol.MGEntry)):
-            obj = deepcopy(obj)
-
-            if isinstance(obj, libbol.EnemyPointGroup):
-                self.level_file.enemypointgroups.groups.append(obj)
-            elif isinstance(obj, libbol.CheckpointGroup):
-                self.level_file.checkpoints.groups.append(obj)
-            elif isinstance(obj, libbol.Route):
-                self.level_file.routes.append(obj)
-            elif isinstance(obj, libbol.LightParam):
-                self.level_file.lightparams.append(obj)
-            elif isinstance(obj, libbol.MGEntry):
-                self.level_file.mgentries.append(obj)
-
-            self.object_to_be_added = None
-            self.pik_control.button_add_object.setChecked(False)
-            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
-            self.leveldatatreeview.set_objects(self.level_file)
-
-            self.select_tree_item_bound_to([obj])
-
-        elif self.object_to_be_added is not None:
-            self.pik_control.button_add_object.setChecked(True)
-            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
-
     @catch_exception
     def action_add_object(self, x, z):
         y = 0
-        object, group, position = self.object_to_be_added
-        #if self.editorconfig.getboolean("GroundObjectsWhenAdding") is True:
-        if isinstance(object, libbol.Checkpoint):
-            y = object.start.y
-        else:
-            if self.level_view.collision is not None:
-                y_limit = self.editorconfig.getint("topdown_cull_height")
-                y_collided = self.level_view.collision.collide_ray_downwards(x, z, y=y_limit)
-                if y_collided is not None:
-                    y = y_collided
+        if self.level_view.collision is not None:
+            y_limit = self.editorconfig.getint("topdown_cull_height")
+            y_collided = self.level_view.collision.collide_ray_downwards(x, z, y=y_limit)
+            if y_collided is not None:
+                y = y_collided
 
         self.action_add_object_3d(x, y, z)
 
     @catch_exception
     def action_add_object_3d(self, x, y, z):
-        object, group, position = self.object_to_be_added
-        if position is not None and position < 0:
-            position = 99999999 # this forces insertion at the end of the list
+        placeobject = deepcopy(getattr(self, f'_template_{self._insertion_mode_type_name}'))
 
-        if isinstance(object, libbol.Checkpoint):
-            if self.next_checkpoint_start_position is not None:
-                placeobject = deepcopy(object)
-
-                x1, y1, z1 = self.next_checkpoint_start_position
-                self.next_checkpoint_start_position = None
-
-                placeobject.start.x = x1
-                placeobject.start.y = y1
-                placeobject.start.z = z1
-
-                placeobject.end.x = x
-                placeobject.end.y = y
-                placeobject.end.z = z
-
-                # For convenience, create a group if none exists yet.
-                if group == 0 and not self.level_file.checkpoints.groups:
-                    self.level_file.checkpoints.groups.append(libbol.CheckpointGroup.new())
-                insertion_index = position
-                # If a selection exists, use it as reference for the insertion point.
-                for selected_item in reversed(self.leveldatatreeview.selectedItems()):
-                    if not hasattr(selected_item, 'bound_to'):
-                        continue
-                    if isinstance(selected_item.bound_to, libbol.Checkpoint):
-                        group = selected_item.parent().get_index_in_parent()
-                        insertion_index = selected_item.get_index_in_parent() + 1
-                        break
-                    if isinstance(selected_item.bound_to, libbol.CheckpointGroup):
-                        group = selected_item.get_index_in_parent()
-                        insertion_index = 0
-                        break
-
-                self.level_file.checkpoints.groups[group].points.insert(
-                    insertion_index, placeobject)
-                self.level_view.do_redraw()
-                self.set_has_unsaved_changes(True)
-                self.leveldatatreeview.set_objects(self.level_file)
-
-                self.select_tree_item_bound_to([placeobject])
-            else:
-                self.next_checkpoint_start_position = (x, y, z)
-
-        else:
-            placeobject = deepcopy(object)
+        if hasattr(placeobject, 'position'):
             placeobject.position.x = x
             placeobject.position.y = y
             placeobject.position.z = z
 
-            if isinstance(object, libbol.EnemyPoint):
-                # For convenience, create a group if none exists yet.
-                if group == 0 and not self.level_file.enemypointgroups.groups:
-                    self.level_file.enemypointgroups.groups.append(libbol.EnemyPointGroup.new())
-                placeobject.group = group
-                insertion_index = position
-                # If a selection exists, use it as reference for the insertion point.
-                for selected_item in reversed(self.leveldatatreeview.selectedItems()):
-                    if not hasattr(selected_item, 'bound_to'):
-                        continue
-                    if isinstance(selected_item.bound_to, libbol.EnemyPoint):
-                        placeobject.group = selected_item.parent().get_index_in_parent()
-                        insertion_index = selected_item.get_index_in_parent() + 1
-                        break
-                    if isinstance(selected_item.bound_to, libbol.EnemyPointGroup):
-                        placeobject.group = selected_item.get_index_in_parent()
-                        insertion_index = 0
-                        break
-                self.level_file.enemypointgroups.groups[placeobject.group].points.insert(
-                    insertion_index, placeobject)
-            elif isinstance(object, libbol.RoutePoint):
-                # For convenience, create a group if none exists yet.
-                if group == 0 and not self.level_file.routes:
-                    self.level_file.routes.append(libbol.Route.new())
-                insertion_index = position
-                # If a selection exists, use it as reference for the insertion point.
-                for selected_item in reversed(self.leveldatatreeview.selectedItems()):
-                    if not hasattr(selected_item, 'bound_to'):
-                        continue
-                    if isinstance(selected_item.bound_to, libbol.RoutePoint):
-                        group = selected_item.parent().get_index_in_parent()
-                        insertion_index = selected_item.get_index_in_parent() + 1
-                        break
-                    if isinstance(selected_item.bound_to, libbol.Route):
-                        group = selected_item.get_index_in_parent()
-                        insertion_index = 0
-                        break
-                self.level_file.routes[group].points.insert(insertion_index, placeobject)
-            elif isinstance(object, libbol.MapObject):
-                self.level_file.objects.objects.append(placeobject)
-            elif isinstance(object, libbol.KartStartPoint):
-                self.level_file.kartpoints.positions.append(placeobject)
-            elif isinstance(object, libbol.JugemPoint):
-                if group == -1:
-                    self.level_file.add_respawn(placeobject)
-                else:
-                    self.level_file.respawnpoints.append(placeobject)
-            elif isinstance(object, libbol.Area):
-                self.level_file.areas.areas.append(placeobject)
-            elif isinstance(object, libbol.Camera):
-                self.level_file.cameras.append(placeobject)
-            else:
-                raise RuntimeError("Unknown object type {0}".format(type(object)))
+        if isinstance(placeobject, libbol.Checkpoint):
+            if self.next_checkpoint_start_position is None:
+                self.next_checkpoint_start_position = (x, y, z)
+                self.update_3d()
+                return
 
-            self.level_view.do_redraw()
-            self.leveldatatreeview.set_objects(self.level_file)
-            self.set_has_unsaved_changes(True)
+            x1, _y1, z1 = self.next_checkpoint_start_position
+            self.next_checkpoint_start_position = None
 
-            self.select_tree_item_bound_to([placeobject])
+            placeobject.start.x = x1
+            placeobject.start.z = z1
+            placeobject.end.x = x
+            placeobject.end.z = z
 
-    def button_side_button_action(self, option, obj=None):
-        #stop adding new stuff
-        self.pik_control.button_add_object.setChecked(False)
-        self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
-        self.object_to_be_added = None
+            # For convenience, create a group if none exists yet.
+            if not self.level_file.checkpoints.groups:
+                self.level_file.checkpoints.groups.append(libbol.CheckpointGroup.new())
 
-        object_to_select = None
+            group_index = len(self.level_file.checkpoints.groups) - 1
+            index = sys.maxsize
+            for selected_item in reversed(self.leveldatatreeview.selectedItems()):
+                if selected_item is self.leveldatatreeview.checkpointgroups:
+                    group_index = 0
+                    index = 0
+                    break
+                if not hasattr(selected_item, 'bound_to'):
+                    continue
+                if isinstance(selected_item.bound_to, libbol.Checkpoint):
+                    group_index = selected_item.parent().get_index_in_parent()
+                    index = selected_item.get_index_in_parent() + 1
+                    break
+                if isinstance(selected_item.bound_to, libbol.CheckpointGroup):
+                    group_index = selected_item.get_index_in_parent()
+                    index = 0
+                    break
 
-        if option == "add_enemypath":
-            self.level_file.enemypointgroups.add_group()
-            object_to_select = self.level_file.enemypointgroups.groups[-1]
-        elif option == "add_enemypoints":
-            if isinstance(obj, libbol.EnemyPointGroup):
-                group_id = obj.id
-                pos = 0
-            else:
-                group_id = obj.group
-                group: libbol.EnemyPointGroup = self.level_file.enemypointgroups.groups[obj.group]
-                pos = group.get_index_of_point(obj)
-            self.object_to_be_added = [libbol.EnemyPoint.new(), group_id, pos + 1]
-            self.pik_control.button_add_object.setChecked(True)
-            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
+            self.level_file.checkpoints.groups[group_index].points.insert(index, placeobject)
 
-        elif option == "add_checkpointgroup":
-            self.level_file.checkpoints.add_group()
-            object_to_select = self.level_file.checkpoints.groups[-1]
-        elif option == "add_checkpoints":
-            if isinstance(obj, libbol.CheckpointGroup):
-                group_id = obj.grouplink
-                pos = 0
-            else:
-                group_id, pos = self.level_file.checkpoints.find_group_of_point(obj)
-            self.object_to_be_added = [libbol.Checkpoint.new(), group_id, pos + 1]
-            self.pik_control.button_add_object.setChecked(True)
-            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
-        elif option == "add_route":
-            self.level_file.routes.append(libbol.Route.new())
-            object_to_select = self.level_file.routes[-1]
-        elif option == "add_routepoints":
-            if isinstance(obj, libbol.Route):
-                group_id = self.level_file.routes.index(obj)
-                pos = 0
-            else:
-                group_id = -1
-                for i, route in enumerate(self.level_file.routes):
-                    if obj in route.points:
-                        group_id = i
-                        break
-                pos = self.level_file.routes[group_id].get_index_of_point(obj)
-            self.object_to_be_added = [libbol.RoutePoint.new(), group_id, pos + 1]
-            self.pik_control.button_add_object.setChecked(True)
-            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
-        elif option == "add_startpoint":
-            self.object_to_be_added = [libbol.KartStartPoint.new(), -1, -1]
-            self.pik_control.button_add_object.setChecked(True)
-            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
-        elif option == "route_object":
-            new_route = libbol.Route.new()
-            forward, up, left = obj.rotation.get_vectors()
+        elif isinstance(placeobject, libbol.EnemyPoint):
+            # For convenience, create a group if none exists yet.
+            if not self.level_file.enemypointgroups.groups:
+                self.level_file.enemypointgroups.groups.append(libbol.EnemyPointGroup.new())
 
-            new_point_1 = libbol.RoutePoint.new()
-            new_point_1.position = obj.position + left * 250
-            new_route.points.append(new_point_1)
+            group_index = len(self.level_file.enemypointgroups.groups) - 1
+            index = sys.maxsize
+            for selected_item in reversed(self.leveldatatreeview.selectedItems()):
+                if selected_item is self.leveldatatreeview.enemyroutes:
+                    group_index = 0
+                    index = 0
+                    break
+                if not hasattr(selected_item, 'bound_to'):
+                    continue
+                if isinstance(selected_item.bound_to, libbol.EnemyPoint):
+                    group_index = selected_item.parent().get_index_in_parent()
+                    index = selected_item.get_index_in_parent() + 1
+                    break
+                if isinstance(selected_item.bound_to, libbol.EnemyPointGroup):
+                    group_index = selected_item.get_index_in_parent()
+                    index = 0
+                    break
 
-            new_point_2 = libbol.RoutePoint.new()
-            new_point_2.position = obj.position + left * -750
-            new_route.points.append(new_point_2)
-            self.action_ground_objects((new_point_1.position, new_point_2.position))
+            placeobject.group = group_index
+            self.level_file.enemypointgroups.groups[group_index].points.insert(index, placeobject)
 
-            self.level_file.routes.append(new_route)
-            obj.route = self.level_file.routes[-1]
-        elif option == "add_respawn":
-            self.object_to_be_added = [libbol.JugemPoint.new(), -1, 0]
-            self.pik_control.button_add_object.setChecked(True)
-            self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_ADDWP)
+        elif isinstance(placeobject, libbol.RoutePoint):
+            # For convenience, create a group if none exists yet.
+            if not self.level_file.routes:
+                self.level_file.routes.append(libbol.Route.new())
 
+            group_index = len(self.level_file.routes) - 1
+            index = sys.maxsize
+            for selected_item in reversed(self.leveldatatreeview.selectedItems()):
+                if selected_item is self.leveldatatreeview.routes:
+                    group_index = 0
+                    index = 0
+                    break
+                if not hasattr(selected_item, 'bound_to'):
+                    continue
+                if isinstance(selected_item.bound_to, libbol.RoutePoint):
+                    group_index = selected_item.parent().get_index_in_parent()
+                    index = selected_item.get_index_in_parent() + 1
+                    break
+                if isinstance(selected_item.bound_to, libbol.Route):
+                    group_index = selected_item.get_index_in_parent()
+                    index = 0
+                    break
+
+            self.level_file.routes[group_index].points.insert(index, placeobject)
+
+        elif isinstance(placeobject, libbol.MapObject):
+            index = sys.maxsize
+            for selected_item in reversed(self.leveldatatreeview.selectedItems()):
+                if selected_item is self.leveldatatreeview.objects:
+                    index = 0
+                    break
+                if not hasattr(selected_item, 'bound_to'):
+                    continue
+                if isinstance(selected_item.bound_to, libbol.MapObject):
+                    index = selected_item.get_index_in_parent() + 1
+                    break
+
+            self.level_file.objects.objects.insert(index, placeobject)
+
+        elif isinstance(placeobject, libbol.KartStartPoint):
+            index = sys.maxsize
+            for selected_item in reversed(self.leveldatatreeview.selectedItems()):
+                if selected_item is self.leveldatatreeview.kartpoints:
+                    index = 0
+                    break
+                if not hasattr(selected_item, 'bound_to'):
+                    continue
+                if isinstance(selected_item.bound_to, libbol.KartStartPoint):
+                    index = selected_item.get_index_in_parent() + 1
+                    break
+
+            self.level_file.kartpoints.positions.insert(index, placeobject)
+
+        elif isinstance(placeobject, libbol.JugemPoint):
+            index = sys.maxsize
+            for selected_item in reversed(self.leveldatatreeview.selectedItems()):
+                if selected_item is self.leveldatatreeview.respawnpoints:
+                    index = 0
+                    break
+                if not hasattr(selected_item, 'bound_to'):
+                    continue
+                if isinstance(selected_item.bound_to, libbol.JugemPoint):
+                    index = selected_item.get_index_in_parent() + 1
+                    break
+
+            self.level_file.adjust_respawn_point(placeobject)
+            self.level_file.respawnpoints.insert(index, placeobject)
+
+        elif isinstance(placeobject, libbol.Area):
+            index = sys.maxsize
+            for selected_item in reversed(self.leveldatatreeview.selectedItems()):
+                if selected_item is self.leveldatatreeview.areas:
+                    index = 0
+                    break
+                if not hasattr(selected_item, 'bound_to'):
+                    continue
+                if isinstance(selected_item.bound_to, libbol.Area):
+                    index = selected_item.get_index_in_parent() + 1
+                    break
+
+            self.level_file.areas.areas.insert(index, placeobject)
+
+        elif isinstance(placeobject, libbol.Camera):
+            index = sys.maxsize
+            for selected_item in reversed(self.leveldatatreeview.selectedItems()):
+                if selected_item is self.leveldatatreeview.cameras:
+                    index = 0
+                    break
+                if not hasattr(selected_item, 'bound_to'):
+                    continue
+                if isinstance(selected_item.bound_to, libbol.Camera):
+                    index = selected_item.get_index_in_parent() + 1
+                    break
+
+            self.level_file.cameras.insert(index, placeobject)
+
+        self.level_view.do_redraw()
+        self.leveldatatreeview.set_objects(self.level_file)
+        self.set_has_unsaved_changes(True)
+        self.select_tree_item_bound_to([placeobject])
+
+    @catch_exception
+    def _insert_object(self, obj, target_list, root_item):
+        index = sys.maxsize
+        for selected_item in reversed(self.leveldatatreeview.selectedItems()):
+            if not hasattr(selected_item, 'bound_to'):
+                continue
+            selected_obj = selected_item.bound_to
+            if selected_item is root_item:
+                index = 0
+                break
+            if isinstance(selected_obj, type(obj)):
+                index = 1 + target_list.index(selected_obj)
+                break
+
+        target_list.insert(index, obj)
 
         self.leveldatatreeview.set_objects(self.level_file)
+        self.select_tree_item_bound_to([obj])
 
-        if object_to_select is not None:
-            self.select_tree_item_bound_to([object_to_select])
+    def _add_enemy_path(self):
+        obj = deepcopy(self._template_enemy_path)
+        obj.id = self.level_file.enemypointgroups.new_group_id()
+        self._insert_object(
+            obj,
+            self.level_file.enemypointgroups.groups,
+            self.leveldatatreeview.enemyroutes,
+        )
+
+    def _add_checkpoint_group(self):
+        obj = deepcopy(self._template_checkpoint_group)
+        obj.id = self.level_file.checkpoints.new_group_id()
+        self._insert_object(
+            obj,
+            self.level_file.checkpoints.groups,
+            self.leveldatatreeview.checkpointgroups,
+        )
+
+    def _add_route(self):
+        self._insert_object(
+            deepcopy(self._template_route),
+            self.level_file.routes,
+            self.leveldatatreeview.routes,
+        )
+
+    def _add_light_param(self):
+        self._insert_object(
+            deepcopy(self._template_light_param),
+            self.level_file.lightparams,
+            self.leveldatatreeview.lightparams,
+        )
+
+    def _add_minigame_param(self):
+        self._insert_object(
+            deepcopy(self._template_minigame_param),
+            self.level_file.mgentries,
+            self.leveldatatreeview.mgentries,
+        )
+
+    def _enter_insertion_mode(self, checked: bool, type_name: str):
+        self._insertion_mode_type_name = type_name
+        move = mkdd_widgets.MOUSE_MODE_INSERTION if checked else mkdd_widgets.MOUSE_MODE_NONE
+        self.level_view.set_mouse_mode(move)
+        self.next_checkpoint_start_position = None
+
+        self.update_3d()
+
+    def _configure_template(self, label):
+        name = label.replace(' ', '_').lower()
+        template = getattr(self, f'_template_{name}')
+        editor_class = choose_data_editor(template)
+        assert editor_class is not None
+
+        editor = editor_class(self, self.level_file, template)
+        editor.update_data()
+
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle(f'{label} Template')
+        dialog.setMinimumWidth(dialog.fontMetrics().averageCharWidth() * 60)
+        layout = QtWidgets.QVBoxLayout(dialog)
+        layout.addWidget(editor)
+        layout.addStretch()
+        dialog.exec()
+        dialog.deleteLater()
 
     @catch_exception
     def action_move_objects(self, deltax, deltay, deltaz):
@@ -2787,10 +2833,11 @@ class GenEditor(QtWidgets.QMainWindow):
             return
 
         if event.key() == QtCore.Qt.Key_Escape:
+            if button := self.level_view.viewer_toolbar.add_button_group.checkedButton():
+                button.setChecked(False)
             self.level_view.set_mouse_mode(mkdd_widgets.MOUSE_MODE_NONE)
             self.next_checkpoint_start_position = None
-            self.pik_control.button_add_object.setChecked(False)
-            #self.pik_control.button_move_object.setChecked(False)
+
             self.update_3d()
 
         if event.key() == QtCore.Qt.Key_Shift:
@@ -3474,13 +3521,6 @@ class GenEditor(QtWidgets.QMainWindow):
                         for selected_item in self.leveldatatreeview.selectedItems():
                             selected_item.setSelected(False)
 
-            #if nothing is selected and the currentitem is something that can be selected
-            #clear out the buttons
-            curr_item = self.leveldatatreeview.currentItem()
-            if (not selected) and (curr_item is not None) and hasattr(curr_item, "bound_to"):
-                bound_to_obj = curr_item.bound_to
-                if bound_to_obj and hasattr(bound_to_obj, "position"):
-                    self.pik_control.set_buttons(None)
     @catch_exception
     def action_update_info(self):
         if self.level_file is not None:

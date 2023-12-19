@@ -1527,7 +1527,7 @@ class BOL(object):
         self.write(f)
         return f.getvalue()
 
-    def add_respawn(self, respawn_point: JugemPoint):
+    def adjust_respawn_point(self, respawn_point: JugemPoint):
         new_id = 0
         used_ids = set(rsp.respawn_id for rsp in self.respawnpoints)
         while new_id in used_ids:
@@ -1542,8 +1542,6 @@ class BOL(object):
                                                              enemy_point.position)
         except ValueError:
             pass
-
-        self.respawnpoints.append(respawn_point)
 
     def get_route_of_points(self, point: RoutePoint):
         for route in self.routes:
