@@ -314,6 +314,7 @@ class ToolbarButton(QtWidgets.QPushButton):
         super().__init__()
 
         self._menu = None
+        self._alternative_menu = None
 
         self.setFlat(True)
         self.setAutoFillBackground(True)
@@ -396,13 +397,29 @@ class ToolbarButton(QtWidgets.QPushButton):
             QtWidgets.QToolTip.showText(position, self.toolTip(), self)
             return True
 
+        if event_type == QtCore.QEvent.MouseButtonPress:
+            menu = self._alternative_menu or self._menu
+            if (menu is not None and not event.modifiers()
+                    and event.button() in (QtCore.Qt.RightButton, QtCore.Qt.MiddleButton)):
+                menu.exec()
+                return True
+
         return super().event(event)
+
+    def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
+        _ = event
+        return True
 
     def get_or_create_menu(self) -> ToolbarButtonMenu:
         if self._menu is None:
             self._menu = ToolbarButtonMenu(self)
             self.setMenu(self._menu)
         return self._menu
+
+    def get_or_create_alternative_menu(self) -> ToolbarButtonMenu:
+        if self._alternative_menu is None:
+            self._alternative_menu = ToolbarButtonMenu(self)
+        return self._alternative_menu
 
     def setEnabled(self, enabled):
         super().setEnabled(enabled)

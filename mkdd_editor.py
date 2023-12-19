@@ -18,6 +18,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import py_obj
 
 from lib import bti
+from widgets.data_editor import choose_data_editor
 from widgets.editor_widgets import catch_exception
 from widgets.tree_view import LevelDataTreeView
 from widgets.tooltip_list import markdown_to_html
@@ -1652,6 +1653,34 @@ class GenEditor(QtWidgets.QMainWindow):
         viewer_toolbar.add_light_param_button.clicked.connect(self._add_light_param)
         viewer_toolbar.add_minigame_param_button.clicked.connect(self._add_minigame_param)
 
+        for label, button in (
+            ('Enemy Path', viewer_toolbar.add_enemy_path_button),
+            ('Enemy Path Point', viewer_toolbar.add_enemy_path_points_button),
+            ('Checkpoint Group', viewer_toolbar.add_checkpoint_group_button),
+            ('Checkpoint', viewer_toolbar.add_checkpoints_button),
+            ('Route', viewer_toolbar.add_route_button),
+            ('Route Point', viewer_toolbar.add_route_points_button),
+            ('Object', viewer_toolbar.add_objects_button),
+            ('Kart Start Point', viewer_toolbar.add_kart_start_points_button),
+            ('Area', viewer_toolbar.add_areas_button),
+            ('Camera', viewer_toolbar.add_cameras_button),
+            ('Respawn Point', viewer_toolbar.add_respawn_points_button),
+            ('Light Param', viewer_toolbar.add_light_param_button),
+            ('Minigame Param', viewer_toolbar.add_minigame_param_button),
+        ):
+            name = label.replace(' ', '_').lower()
+            template = getattr(self, f'_template_{name}')
+
+            alternative_menu = button.get_or_create_alternative_menu()
+
+            configure_action = alternative_menu.addAction(f'Configure {label} Template')
+            configure_action.triggered[bool].connect(
+                lambda _checked, label=label: self._configure_template(label))
+
+            reset_action = alternative_menu.addAction(f'Reset {label} Template')
+            reset_action.triggered[bool].connect(lambda _checked, name=name, template_copy=deepcopy(
+                template): setattr(self, f'_template_{name}', deepcopy(template_copy)))
+
     def split_group_checkpoint(self, group_item, item):
         group = group_item.bound_to
         point = item.bound_to
@@ -2729,6 +2758,24 @@ class GenEditor(QtWidgets.QMainWindow):
         self.next_checkpoint_start_position = None
 
         self.update_3d()
+
+    def _configure_template(self, label):
+        name = label.replace(' ', '_').lower()
+        template = getattr(self, f'_template_{name}')
+        editor_class = choose_data_editor(template)
+        assert editor_class is not None
+
+        editor = editor_class(self, self.level_file, template)
+        editor.update_data()
+
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle(f'{label} Template')
+        dialog.setMinimumWidth(dialog.fontMetrics().averageCharWidth() * 60)
+        layout = QtWidgets.QVBoxLayout(dialog)
+        layout.addWidget(editor)
+        layout.addStretch()
+        dialog.exec()
+        dialog.deleteLater()
 
     @catch_exception
     def action_move_objects(self, deltax, deltay, deltaz):
