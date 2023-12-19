@@ -899,6 +899,8 @@ class GenEditor(QtWidgets.QMainWindow):
             lambda: self.frame_action.setText(
                 "Frame Selection" if self.level_view.selected_positions else "Frame All"))
 
+        self.view_menu.addSeparator()
+
         self.view_action_group = QtGui.QActionGroup(self)
 
         self.change_to_topdownview_action = QtGui.QAction("Topdown View", self)
@@ -918,6 +920,11 @@ class GenEditor(QtWidgets.QMainWindow):
 
         self.view_menu.addSeparator()
 
+        self.viewer_toolbar_action = self.view_menu.addAction('Viewer Toolbar')
+        self.viewer_toolbar_action.setShortcut('Ctrl+T')
+        self.viewer_toolbar_action.setCheckable(True)
+        self.viewer_toolbar_action.setChecked(True)
+
         self.transform_gizmo = self.view_menu.addAction('&Transform Gizmo')
         self.transform_gizmo.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_T))
         self.transform_gizmo.setCheckable(True)
@@ -929,6 +936,8 @@ class GenEditor(QtWidgets.QMainWindow):
         self.grid.setCheckable(True)
         self.grid.setChecked(True)
         self.grid.triggered.connect(self.visibility_menu.filter_update)
+
+        self.view_menu.addSeparator()
 
         self.fullscreen = self.view_menu.addAction('Fullscreen')
         self.fullscreen.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F11))
@@ -1599,6 +1608,8 @@ class GenEditor(QtWidgets.QMainWindow):
         self.leveldatatreeview.select_route_points.connect(self.select_route_points)
 
         viewer_toolbar = self.level_view.viewer_toolbar
+
+        self.viewer_toolbar_action.triggered[bool].connect(viewer_toolbar.setVisible)
 
         viewer_toolbar.transform_gizmo_button.clicked.connect(self.transform_gizmo.trigger)
         self.transform_gizmo.triggered[bool].connect(
