@@ -43,6 +43,9 @@ from lib.game_visualizer import Game
 from lib.vectors import Vector3
 
 
+__version__ = '1.3'
+
+
 class SelectionHistorySpecials(enum.IntEnum):
     MINIMAP_CORNER_1 = -1001
     MINIMAP_CORNER_2 = -1002

@@ -1,10 +1,22 @@
 import glob
 import os
+import re
 import shutil
 
 from cx_Freeze import setup, Executable
 
-version = "1.3"
+
+# To avoid importing the module, simply parse the file to find the version variable in it.
+with open('mkdd_editor.py', 'r', encoding='utf-8') as f:
+    data = f.read()
+for line in data.splitlines():
+    if '__version__' in line:
+        version = re.search(r"'(.+)'", line).group(1)
+        break
+else:
+    raise RuntimeError('Unable to parse product version.')
+
+
 # Dependencies are automatically detected, but it might need fine tuning.
 
 include_files = [
