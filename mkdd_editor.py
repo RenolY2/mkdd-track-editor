@@ -2835,10 +2835,11 @@ class GenEditor(QtWidgets.QMainWindow):
         self.set_has_unsaved_changes(True)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent):
-        if event.key() == QtCore.Qt.Key_Plus:
-            self.level_view.zoom_in()
-        elif event.key() == QtCore.Qt.Key_Minus:
-            self.level_view.zoom_out()
+        if self.level_view.focused:
+            if event.key() == QtCore.Qt.Key_Plus:
+                self.level_view.zoom_in()
+            elif event.key() == QtCore.Qt.Key_Minus:
+                self.level_view.zoom_out()
 
         if event.isAutoRepeat():
             return
@@ -2851,21 +2852,22 @@ class GenEditor(QtWidgets.QMainWindow):
 
             self.update_3d()
 
-        if event.key() == QtCore.Qt.Key_Shift:
-            self.level_view.shift_is_pressed = True
+        if self.level_view.focused:
+            if event.key() == QtCore.Qt.Key_Shift:
+                self.level_view.shift_is_pressed = True
 
-        if event.key() == QtCore.Qt.Key_W:
-            self.level_view.MOVE_FORWARD = 1
-        elif event.key() == QtCore.Qt.Key_S:
-            self.level_view.MOVE_BACKWARD = 1
-        elif event.key() == QtCore.Qt.Key_A:
-            self.level_view.MOVE_LEFT = 1
-        elif event.key() == QtCore.Qt.Key_D:
-            self.level_view.MOVE_RIGHT = 1
-        elif event.key() == QtCore.Qt.Key_Q:
-            self.level_view.MOVE_UP = 1
-        elif event.key() == QtCore.Qt.Key_E:
-            self.level_view.MOVE_DOWN = 1
+            if event.key() == QtCore.Qt.Key_W:
+                self.level_view.MOVE_FORWARD = 1
+            elif event.key() == QtCore.Qt.Key_S:
+                self.level_view.MOVE_BACKWARD = 1
+            elif event.key() == QtCore.Qt.Key_A:
+                self.level_view.MOVE_LEFT = 1
+            elif event.key() == QtCore.Qt.Key_D:
+                self.level_view.MOVE_RIGHT = 1
+            elif event.key() == QtCore.Qt.Key_Q:
+                self.level_view.MOVE_UP = 1
+            elif event.key() == QtCore.Qt.Key_E:
+                self.level_view.MOVE_DOWN = 1
 
     def keyReleaseEvent(self, event: QtGui.QKeyEvent):
         if event.isAutoRepeat():
