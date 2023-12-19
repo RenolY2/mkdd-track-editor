@@ -45,6 +45,8 @@ from lib.vectors import Vector3
 
 __version__ = '1.3'
 
+APP_NAME = f'MKDD Track Editor {__version__}'
+
 
 class SelectionHistorySpecials(enum.IntEnum):
     MINIMAP_CORNER_1 = -1001
@@ -277,24 +279,24 @@ class GenEditor(QtWidgets.QMainWindow):
     def set_base_window_title(self, name):
         self._window_title = name
         if name != "":
-            self.setWindowTitle("MKDD Track Editor - "+name)
+            self.setWindowTitle(f"{APP_NAME} - {name}")
         else:
-            self.setWindowTitle("MKDD Track Editor")
+            self.setWindowTitle(f"{APP_NAME}")
 
     def set_has_unsaved_changes(self, hasunsavedchanges):
         if hasunsavedchanges and not self._user_made_change:
             self._user_made_change = True
 
             if self._window_title != "":
-                self.setWindowTitle("MKDD Track Editor [Unsaved Changes] - " + self._window_title)
+                self.setWindowTitle(f"{APP_NAME} [Unsaved Changes] - {self._window_title}")
             else:
-                self.setWindowTitle("MKDD Track Editor [Unsaved Changes] ")
+                self.setWindowTitle(f"{APP_NAME} [Unsaved Changes]")
         elif not hasunsavedchanges and self._user_made_change:
             self._user_made_change = False
             if self._window_title != "":
-                self.setWindowTitle("MKDD Track Editor - " + self._window_title)
+                self.setWindowTitle(f"{APP_NAME} - {self._window_title}")
             else:
-                self.setWindowTitle("MKDD Track Editor")
+                self.setWindowTitle(f"{APP_NAME}")
 
     def generate_undo_entry(self) -> UndoEntry:
         bol_document = self.level_file.to_bytes()
