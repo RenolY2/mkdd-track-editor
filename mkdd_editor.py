@@ -50,6 +50,9 @@ class SelectionHistorySpecials(enum.IntEnum):
     CHECKPOINT_END = -1004
 
 
+RECENT_FILE_LIST_LENGTH = 20
+
+
 def detect_dol_region(dol):
     try:
         dol.seek(0x803CDD38)
@@ -1792,7 +1795,7 @@ class GenEditor(QtWidgets.QMainWindow):
             recent_files.remove(filepath)
 
         recent_files.insert(0, filepath)
-        recent_files = recent_files[:20]
+        recent_files = recent_files[:RECENT_FILE_LIST_LENGTH]
 
         self.configuration["recent files"] = {}
         recent_files_config = self.configuration["recent files"]
@@ -1807,7 +1810,7 @@ class GenEditor(QtWidgets.QMainWindow):
         recent_files_config = self.configuration["recent files"]
 
         recent_files = []
-        for i in range(10):
+        for i in range(RECENT_FILE_LIST_LENGTH):
             config_entry = f"file{i}"
             if config_entry in recent_files_config:
                 recent_files.append(recent_files_config[config_entry])
