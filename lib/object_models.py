@@ -142,6 +142,16 @@ class ObjectModels(object):
         self.wireframe_cube.render()
         glPopMatrix()
 
+    def draw_wireframe_cylinder(self, position, rotation, scale):
+        glPushMatrix()
+        glTranslatef(position.x, -position.z, position.y)
+        mtx = rotation.mtx
+        glMultMatrixf(mtx)
+        glTranslatef(0.0, 0.0, scale.y / 2.0)
+        glScalef(-scale.z, scale.x, scale.y)
+        self.unitcylinder.render()
+        glPopMatrix()
+
     def draw_cylinder_last_position(self, radius, height):
         glPushMatrix()
 
