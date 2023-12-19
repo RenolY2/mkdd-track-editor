@@ -1,8 +1,15 @@
+#!/usr/bin/env python3
+"""
+A tool for Mario Kart: Double Dash!! that can edit the BOL files that contain the course data (item
+boxes, checkpoints, respawn points, etc.).
+"""
 import contextlib
 import cProfile
 import enum
 import pickle
+import platform
 import pstats
+import textwrap
 import traceback
 import weakref
 import os
@@ -1036,6 +1043,10 @@ class GenEditor(QtWidgets.QMainWindow):
             self.profile_action.triggered.connect(self.action_profile_start_stop)
             self.profile = None
 
+        help_menu = self.menubar.addMenu('Help')
+        about_action = help_menu.addAction('About')
+        about_action.triggered.connect(self._open_about_dialog)
+
     def action_hook_into_dolphion(self, checked: bool):
         self.dolphin.autoconnect = False
 
@@ -1078,6 +1089,43 @@ class GenEditor(QtWidgets.QMainWindow):
 
         self.profile = None
         self.profile_action.setText('Start Profiling')
+
+    def _open_about_dialog(self):
+        license_url = 'https://github.com/RenolY2/mkdd-track-editor/blob/master/LICENSE'
+        updates_url = 'https://github.com/RenolY2/mkdd-track-editor/releases'
+
+        title = 'About MKDD Track Editor'
+        text = textwrap.dedent(f"""\
+            <h1 style="white-space: nowrap">MKDD Track Editor {__version__}</h1>
+            <br/>
+            <small><a href="https://github.com/RenolY2/mkdd-track-editor">
+                github.com/RenolY2/mkdd-track-editor
+            </a></small>
+            <p>{__doc__}</p>
+            <br/>
+            <br/>
+            <small>
+            Python {platform.python_version()}
+            <br/>
+            Qt {QtCore.__version__}
+            </small>
+            <br/>
+            <br/>
+            <small>
+            <a href="{license_url}">License</a> | <a href="{updates_url}">Updates</a>
+            </small>
+        """)
+        message_box = QtWidgets.QMessageBox(QtWidgets.QMessageBox.NoIcon, title, text,
+                                            QtWidgets.QMessageBox.NoButton, self)
+
+        icon = self.windowIcon()
+        icon_size = message_box.fontMetrics().averageCharWidth() * 8
+        message_box.setIconPixmap(icon.pixmap(icon.actualSize(QtCore.QSize(icon_size, icon_size))))
+
+        message_box.addButton(QtWidgets.QPushButton('Close', message_box),
+                              QtWidgets.QMessageBox.AcceptRole)
+
+        message_box.exec()
 
     def action_load_minimap_image(self):
         supported_extensions = [f'*{ext}' for ext in Image.registered_extensions()]
