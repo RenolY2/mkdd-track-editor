@@ -1,9 +1,20 @@
 import configparser
+import os
+import platform
+import subprocess
+
+
+def get_config_directory():
+    return os.path.abspath(os.curdir)
+
+
+def get_config_filepath():
+    return os.path.join(get_config_directory(), 'editor_config.ini')
 
 
 def read_config():
     cfg = configparser.ConfigParser()
-    with open("editor_config.ini", "r") as f:
+    with open(get_config_filepath(), "r", encoding='utf-8') as f:
         cfg.read_file(f)
     return cfg
 
@@ -32,12 +43,20 @@ def make_default_config():
         "topdown_cull_height": 80000
     }
 
-    with open("editor_config.ini", "w") as f:
+    with open(get_config_filepath(), "w", encoding='utf-8') as f:
         cfg.write(f)
 
     return cfg
 
 
 def save_cfg(cfg):
-    with open("editor_config.ini", "w") as f:
+    with open(get_config_filepath(), "w", encoding='utf-8') as f:
         cfg.write(f)
+
+
+def open_config_directory():
+    config_dir = get_config_directory()
+    if platform.system() == 'Windows':
+        os.startfile(config_dir)  # pylint: disable=no-member
+    else:
+        subprocess.check_call(('open' if platform.system() == 'Darwin' else 'xdg-open', config_dir))

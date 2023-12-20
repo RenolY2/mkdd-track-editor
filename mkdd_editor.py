@@ -23,7 +23,12 @@ from widgets.editor_widgets import catch_exception
 from widgets.tree_view import LevelDataTreeView
 from widgets.tooltip_list import markdown_to_html
 import widgets.tree_view as tree_view
-from configuration import read_config, make_default_config, save_cfg
+from configuration import (
+    make_default_config,
+    open_config_directory,
+    read_config,
+    save_cfg,
+)
 
 import mkdd_widgets # as mkddwidgets
 from widgets import utils
@@ -707,12 +712,15 @@ class GenEditor(QtWidgets.QMainWindow):
         self.save_file_as_action.setShortcut("Ctrl+Alt+S")
 
         self.save_file_copy_as_action = QtGui.QAction("Save Copy As", self)
+        open_config_dir_action = QtGui.QAction('Open Configuration Directory...', self)
+        quit_action = QtGui.QAction('Quit', self)
 
         self.file_load_action.triggered.connect(self.button_load_level)
         self.save_file_action.triggered.connect(self.button_save_level)
         self.save_file_as_action.triggered.connect(self.button_save_level_as)
         self.save_file_copy_as_action.triggered.connect(self.button_save_level_copy_as)
-
+        open_config_dir_action.triggered.connect(open_config_directory)
+        quit_action.triggered.connect(self.close)
 
         self.file_menu.addAction(self.file_load_action)
         self.file_menu.addMenu(self.file_load_recent_menu)
@@ -720,6 +728,10 @@ class GenEditor(QtWidgets.QMainWindow):
         self.file_menu.addAction(self.save_file_action)
         self.file_menu.addAction(self.save_file_as_action)
         self.file_menu.addAction(self.save_file_copy_as_action)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(open_config_dir_action)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(quit_action)
 
         self.file_menu.aboutToShow.connect(self.on_file_menu_aboutToShow)
 
