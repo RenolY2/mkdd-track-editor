@@ -1,3 +1,4 @@
+import os
 from struct import pack, unpack
 from io import BytesIO
 from itertools import chain
@@ -585,7 +586,6 @@ class Archive(object):
 
 if __name__ == "__main__":
     import argparse
-    import os
 
     parser = argparse.ArgumentParser()
     parser.add_argument("input",
