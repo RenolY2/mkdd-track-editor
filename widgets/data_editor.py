@@ -1231,6 +1231,7 @@ class AreaEdit(DataEditor):
                                                        MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
         set_tool_tip(self.lightparam_index, ttl.areadata['LightParam Index'])
 
+        self.shape.currentIndexChanged.connect(lambda _index: self.catch_text_update())
         self.area_type.currentTextChanged.connect(self.update_name)
 
     def update_data(self):
