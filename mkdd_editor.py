@@ -1930,8 +1930,8 @@ class GenEditor(QtWidgets.QMainWindow):
 
             self.reset()
             if ext == '.arc':
-                with open(filepath, "rb") as f:
-                    try:
+                try:
+                    with open(filepath, "rb") as f:
                         self.loaded_archive = Archive.from_file(f)
                         root_name = self.loaded_archive.root.name
                         coursename = find_file(self.loaded_archive.root, "_course.bol")
@@ -1941,13 +1941,13 @@ class GenEditor(QtWidgets.QMainWindow):
                         self.leveldatatreeview.set_objects(bol_data)
                         self.current_gen_path = filepath
                         self.loaded_archive_file = coursename
-                    except Exception as error:
-                        print("Error appeared while loading:", error)
-                        traceback.print_exc()
-                        open_error_dialog(str(error), self)
-                        self.loaded_archive = None
-                        self.loaded_archive_file = None
-                        return
+                except Exception as error:
+                    print("Error appeared while loading:", error)
+                    traceback.print_exc()
+                    open_error_dialog(str(error), self)
+                    self.loaded_archive = None
+                    self.loaded_archive_file = None
+                    return
 
                 bmdfile = get_file_safe(self.loaded_archive.root, "_course.bmd")
                 collisionfile = get_file_safe(self.loaded_archive.root, "_course.bco")
@@ -1978,44 +1978,47 @@ class GenEditor(QtWidgets.QMainWindow):
                     self.clear_collision()
 
             else:
-                with open(filepath, "rb") as f:
-                    try:
+                try:
+                    with open(filepath, "rb") as f:
                         bol_file = BOL.from_file(f)
                         self.setup_bol_file(bol_file, filepath, update_config)
                         self.leveldatatreeview.set_objects(bol_file)
                         self.current_gen_path = filepath
-                    except Exception as error:
-                        print("Error appeared while loading:", error)
-                        traceback.print_exc()
-                        open_error_dialog(str(error), self)
+                except Exception as error:
+                    print("Error appeared while loading:", error)
+                    traceback.print_exc()
+                    open_error_dialog(str(error), self)
+                    return
 
-                    if filepath.endswith("_course.bol"):
-                        filepath_base = filepath[:-11]
-                        bmdfile = filepath_base+"_course.bmd"
-                        collisionfile = filepath_base+"_course.bco"
+                if filepath.endswith("_course.bol"):
+                    filepath_base = filepath[:-11]
+                    bmdfile = filepath_base + "_course.bmd"
+                    collisionfile = filepath_base + "_course.bco"
 
-                        if self.editorconfig["addi_file_on_load"] == "Choose":
+                    if self.editorconfig["addi_file_on_load"] == "Choose":
 
-                            additional_files = []
+                        additional_files = []
 
-                            if os.path.exists(bmdfile):
-                                additional_files.append(os.path.basename(bmdfile) + " (3D Model)")
-                            if os.path.exists(collisionfile):
-                                additional_files.append(os.path.basename(collisionfile) + " (3D Collision)")
+                        if os.path.exists(bmdfile):
+                            additional_files.append(os.path.basename(bmdfile) + " (3D Model)")
+                        if os.path.exists(collisionfile):
+                            additional_files.append(
+                                os.path.basename(collisionfile) + " (3D Collision)")
 
-                            if len(additional_files) > 0:
-                                additional_files.append("None")
-                                self.load_optional_3d_file(additional_files, bmdfile, collisionfile)
-                            else:
-                                self.clear_collision()
-                        elif bmdfile is not None and self.editorconfig["addi_file_on_load"] == "BMD":
-                            if os.path.isfile(bmdfile):
-                                self.load_optional_bmd(bmdfile)
-                        elif collisionfile is not None and self.editorconfig["addi_file_on_load"] == "BCO":
-                            if os.path.isfile(collisionfile):
-                                self.load_optional_bco(collisionfile)
-                        elif self.editorconfig["addi_file_on_load"] == "None":
+                        if len(additional_files) > 0:
+                            additional_files.append("None")
+                            self.load_optional_3d_file(additional_files, bmdfile, collisionfile)
+                        else:
                             self.clear_collision()
+                    elif bmdfile is not None and self.editorconfig["addi_file_on_load"] == "BMD":
+                        if os.path.isfile(bmdfile):
+                            self.load_optional_bmd(bmdfile)
+                    elif collisionfile is not None and self.editorconfig[
+                            "addi_file_on_load"] == "BCO":
+                        if os.path.isfile(collisionfile):
+                            self.load_optional_bco(collisionfile)
+                    elif self.editorconfig["addi_file_on_load"] == "None":
+                        self.clear_collision()
 
             self.update_3d()
 
