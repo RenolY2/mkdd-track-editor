@@ -114,6 +114,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         self.highlight_colltype = None
         self.cull_faces = False
 
+        self.focused = False
         self.shift_is_pressed = False
         self.last_mouse_move = None
 
@@ -250,8 +251,13 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                          GL_FLOAT, None)
             glBindTexture(GL_TEXTURE_2D, 0)
 
+    def focusInEvent(self, event: QtGui.QFocusEvent):
+        super().focusInEvent(event)
+        self.focused = True
+
     def focusOutEvent(self, event: QtGui.QFocusEvent):
         super().focusOutEvent(event)
+        self.focused = False
         self.editor.reset_move_flags()
 
     @catch_exception
