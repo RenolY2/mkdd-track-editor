@@ -50,6 +50,9 @@ class SelectionHistorySpecials(enum.IntEnum):
     CHECKPOINT_END = -1004
 
 
+RECENT_FILE_LIST_LENGTH = 20
+
+
 def detect_dol_region(dol):
     try:
         dol.seek(0x803CDD38)
@@ -1511,6 +1514,13 @@ class GenEditor(QtWidgets.QMainWindow):
             recent_file_action.triggered[bool].connect(
                 lambda _checked, filepath=filepath: self.button_load_level(filepath))
 
+        self.file_load_recent_menu.addSeparator()
+
+        self.file_load_recent_menu.addAction('Clear Invalid').triggered[bool].connect(
+            lambda _checked: self.clear_invalid_recent_files())
+        self.file_load_recent_menu.addAction('Clear').triggered[bool].connect(
+            lambda _checked: self.clear_recent_files())
+
     def on_filter_update(self):
         filters = []
         for object_toggle in self.visibility_menu.get_entries():
@@ -1792,7 +1802,7 @@ class GenEditor(QtWidgets.QMainWindow):
             recent_files.remove(filepath)
 
         recent_files.insert(0, filepath)
-        recent_files = recent_files[:20]
+        recent_files = recent_files[:RECENT_FILE_LIST_LENGTH]
 
         self.configuration["recent files"] = {}
         recent_files_config = self.configuration["recent files"]
@@ -1807,12 +1817,39 @@ class GenEditor(QtWidgets.QMainWindow):
         recent_files_config = self.configuration["recent files"]
 
         recent_files = []
-        for i in range(10):
+        for i in range(RECENT_FILE_LIST_LENGTH):
             config_entry = f"file{i}"
             if config_entry in recent_files_config:
                 recent_files.append(recent_files_config[config_entry])
 
         return recent_files
+
+    def clear_invalid_recent_files(self):
+        recent_files = [f for f in self.get_recent_files_list() if os.path.isfile(f)]
+
+        self.configuration['recent files'] = {}
+        recent_files_config = self.configuration['recent files']
+
+        for i, filepath in enumerate(recent_files):
+            config_entry = f'file{i}'
+            recent_files_config[config_entry] = filepath
+
+    def clear_recent_files(self):
+        if 'recent files' not in self.configuration:
+            return
+
+        msgbox = QtWidgets.QMessageBox(self)
+        size = self.fontMetrics().height() * 3
+        msgbox.setIconPixmap(QtGui.QIcon('resources/warning.svg').pixmap(size, size))
+        msgbox.setWindowTitle(f'{len(self.configuration["recent files"])} Recently Loaded Files')
+        msgbox.setText('Are you sure you want to clear the recently loaded file list?')
+        msgbox.addButton('No', QtWidgets.QMessageBox.RejectRole)
+        clear_button = msgbox.addButton('Clear', QtWidgets.QMessageBox.DestructiveRole)
+        msgbox.exec()
+        if msgbox.clickedButton() != clear_button:
+            return
+
+        self.configuration['recent files'].clear()
 
     def select_object_type(self, item):
         mapobject = item.bound_to
