@@ -54,16 +54,12 @@ def catch_exception_with_dialog_nokw(func):
     return handle
 
 
-def open_error_dialog(errormsg, self):
-    errorbox = QtWidgets.QMessageBox()
-    errorbox.critical(self, "Error", errormsg)
-    errorbox.setFixedSize(500, 200)
+def open_error_dialog(errormsg, parent):
+    QtCore.QTimer.singleShot(1, lambda: QtWidgets.QMessageBox.critical(parent, "Error", errormsg))
 
 
-def open_info_dialog(msg, self):
-    box = QtWidgets.QMessageBox()
-    box.information(self, "Info", msg)
-    box.setFixedSize(500, 200)
+def open_info_dialog(msg, parent):
+    QtCore.QTimer.singleShot(1, lambda: QtWidgets.QMessageBox.information(parent, "Info", msg))
 
 
 class ErrorAnalyzer(QtWidgets.QDialog):
