@@ -789,6 +789,24 @@ class Minimap(object):
         glBlendFunc(GL_ZERO, GL_ONE)
         glEnable(GL_ALPHA_TEST)
 
+    def copy(self):
+        minimap = Minimap(self.corner1.copy(), self.corner2.copy(), self.orientation)
+        minimap.ID = self.ID
+        minimap.image = self.image
+        return minimap
+
+    def __iadd__(self, other):
+        self.corner1 += other.corner1
+        self.corner2 += other.corner2
+        if self.orientation != other.orientation:
+            self.orientation = 0
+        return self
+
+    def __itruediv__(self, count):
+        self.corner1 /= count
+        self.corner2 /= count
+        return self
+
 
 class Grid(Mesh):
     def __init__(self, width, length, step, color):

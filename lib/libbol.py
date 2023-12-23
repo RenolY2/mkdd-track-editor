@@ -80,6 +80,11 @@ def read_object_parameters(name: str) -> dict:
         return json.load(f)
 
 
+def combine_attr(obj1, obj2, attr, default):
+    if getattr(obj1, attr) != getattr(obj2, attr):
+        setattr(obj1, attr, default)
+
+
 class Rotation(object):
     def __init__(self, forward, up, left):
         self.mtx = ndarray(shape=(4,4), dtype=float, order="F")
@@ -262,10 +267,39 @@ class ColorRGBA(ColorRGB):
         super().write(f)
         f.write(pack(">B", self.a))
 
+    def __iadd__(self, other):
+        self.r += other.r
+        self.g += other.r
+        self.b += other.b
+        self.a += other.a
+
+        return self
+
+    def __ifloordiv__(self, count):
+        self.r //= count
+        self.g //= count
+        self.b //= count
+        self.a //= count
+
+        return self
+
+
+class PositionedObject:
+    def __init__(self, position):
+        self.position = position
+
+    def __iadd__(self, other):
+        self.position += other.position
+        return self
+
+    def __itruediv__(self, count):
+        self.position /= count
+        return self
+
 
 # Section 1
 # Enemy/Item Route Code Start
-class EnemyPoint(object):
+class EnemyPoint(PositionedObject):
 
     def __init__(self,
                  position,
@@ -279,7 +313,7 @@ class EnemyPoint(object):
                  driftduration,
                  driftsupplement,
                  nomushroomzone):
-        self.position = position
+        super().__init__(position)
         self.driftdirection = driftdirection
         self.link = link
         self.scale = scale
@@ -290,6 +324,8 @@ class EnemyPoint(object):
         self.driftduration = driftduration
         self.driftsupplement = driftsupplement
         self.nomushroomzone = nomushroomzone
+
+        self.widget = None
 
         assert self.swerve in (-3, -2, -1, 0, 1, 2, 3)
         assert self.itemsonly in (0, 1)
@@ -329,6 +365,43 @@ class EnemyPoint(object):
         f.write(pack(">bBBBBBB", self.swerve, self.itemsonly, self.group, self.driftacuteness, self.driftduration, self.driftsupplement, self.nomushroomzone))
         f.write(b"\x00"*5)
         #assert f.tell() - start == self._size
+
+    def copy(self):
+        widget = self.widget
+        self.widget = None
+
+        try:
+            new_point = deepcopy(self)
+        finally:
+            self.widget = widget
+
+        return new_point
+
+    def __iadd__(self, other):
+        self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
+        combine_attr(self, other, "link", -1)
+        combine_attr(self, other, "swerve", 0)
+        combine_attr(self, other, "itemsonly", 0)
+        self.scale += other.scale
+        self.driftacuteness += other.driftacuteness
+        self.driftduration += other.driftduration
+        combine_attr(self, other, "driftdirection", 0)
+        self.driftsupplement += other.driftsupplement
+        combine_attr(self, other, "nomushroomzone", 0)
+
+        return self
+
+    def __itruediv__(self, count):
+        self.position /= count
+        self.scale /= count
+        self.driftacuteness //= count
+        self.driftduration //= count
+        self.driftsupplement //= count
+
+        return self
 
 
 class EnemyPointGroup(object):
@@ -386,6 +459,17 @@ class EnemyPointGroup(object):
 
     def get_index_of_point(self, point: EnemyPoint):
         return self.points.index(point)
+
+    def copy(self):
+        group = EnemyPointGroup()
+        group.id = self.id
+        return group
+
+    def __iadd__(self, other):
+        self.id = self.id if self.id == other.id else -1
+
+    def __itruediv__(self, count):
+        return self
 
 
 class EnemyPointGroups(object):
@@ -582,6 +666,21 @@ class CheckpointGroup(object):
         f.write(pack(">hhhh", *self.prevgroup))
         f.write(pack(">hhhh", *self.nextgroup))
 
+    def copy(self):
+        return CheckpointGroup(self.grouplink)
+
+    def __iadd__(self, other):
+        self.id = self.grouplink if self.grouplink == other.grouplink else -1
+
+        self.prevgroup = list(set(self.prevgroup) & set(other.prevgroup)).sort()
+        self.prevgroup.extend([-1] * (4 - len(self.prevgroup)))
+
+        self.nextgroup = list(set(self.nextgroup) & set(other.nextgroup)).sort()
+        self.nextgroup.extend([-1] * (4 - len(self.nextgroup)))
+
+    def __itruediv__(self, count):
+        return self
+
 
 class Checkpoint(object):
     def __init__(self, start, end, unk1=0, unk2=0, unk3=0, unk4=0):
@@ -614,6 +713,24 @@ class Checkpoint(object):
         f.write(pack(">fff", self.start.x, self.start.y, self.start.z))
         f.write(pack(">fff", self.end.x, self.end.y, self.end.z))
         f.write(pack(">BBBB", self.unk1, self.unk2, self.unk3, self.unk4))
+
+    def copy(self):
+        return deepcopy(self)
+
+    def __iadd__(self, other):
+        self.start += other.start
+        self.end += other.end
+        combine_attr(self, other, "unk1", 0)
+        combine_attr(self, other, "unk2", 0)
+        combine_attr(self, other, "unk3", 0)
+        combine_attr(self, other, "unk4", 0)
+
+        return self
+
+    def __itruediv__(self, count):
+        self.start /= count
+        self.end /= count
+        return self
 
 
 class CheckpointGroups(object):
@@ -700,12 +817,30 @@ class Route(object):
         f.write(pack(">IB", self.unk1, self.unk2))
         f.write(b"\x00"*7)
 
+    def copy(self):
+        new_route = Route()
+        new_route.unk1 = self.unk1
+        new_route.unk2 = self.unk2
+
+        return new_route
+
+    def __iadd__(self, other):
+        combine_attr(self, other, "unk1", 0)
+        self.unk2 += other.unk2
+
+        return self
+
+    def __itruediv__(self, count):
+        self.unk2 //= count
+
+        return self
+
 
 # Section 4
 # Route point for use with routes from section 3
-class RoutePoint(object):
+class RoutePoint(PositionedObject):
     def __init__(self, position):
-        self.position = position
+        super().__init__(position)
         self.unk = 0
 
     @classmethod
@@ -729,12 +864,28 @@ class RoutePoint(object):
                      self.unk))
         f.write(b"\x00"*16)
 
+    def copy(self):
+        return deepcopy(self)
+
+    def __iadd__(self, other):
+        self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
+        combine_attr(self, other, "unk", 0)
+        return self
+
+    def __itruediv__(self, count):
+        self.position /= count
+        self.unk //= count
+        return self
+
 
 # Section 5
 # Objects
-class MapObject(object):
+class MapObject(PositionedObject):
     def __init__(self, position, objectid):
-        self.position = position
+        super().__init__(position)
         self.scale = Vector3(1.0, 1.0, 1.0)
         self.rotation = Rotation.default()
         self.objectid = objectid
@@ -827,6 +978,64 @@ class MapObject(object):
         json_data = self.read_json_file()
         return json_data.get("DefaultValues") if json_data is not None else None
 
+    def copy(self):
+        widget = self.widget
+        self.widget = None
+        route = self.route
+        self.route = None
+
+        try:
+            new_object = deepcopy(self)
+            new_object.route = route
+        finally:
+            self.widget = widget
+            self.route = route
+
+        return new_object
+
+    def __iadd__(self, other):
+        self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
+        self.scale += other.scale
+        combine_attr(self, other, "objectid", 0)
+        self.unk_28 += other.unk_28
+        combine_attr(self, other, "unk_2a", -1)
+        combine_attr(self, other, "unk_flag", 0)
+        combine_attr(self, other, "unk_2f", 0)
+
+        combine_attr(self, other, "route", None)
+
+        prescence = 0
+        prescence = 1 if self.presence & 0x1 == other.presence & 0x1 else 0
+        prescence += 2 if self.presence & 0x2 == other.presence & 0x2 else 0
+        self.presence = prescence
+
+        presence_filter = 0
+        for i in range(8):
+            bit_pos = 2 ** i
+            if self.presence & bit_pos == other.presence & bit_pos:
+                presence_filter += bit_pos
+        self.presence_filter = presence_filter
+
+        if self.objectid != other.objectid:
+            self.userdata = [0] * 8
+            self.objectid = 0
+        else:
+            for i in range(8):
+                self.userdata[i] += other.userdata[i]
+
+        return self
+
+    def __itruediv__(self, count):
+        self.position /= count
+        self.scale /= count
+        self.unk_28 //= count
+        if self.objectid != 0:
+            for i in range(8):
+                self.userdata[i] //= count
+        return self
 
 class MapObjects(object):
     def __init__(self):
@@ -853,9 +1062,9 @@ POLE_LEFT = 0
 POLE_RIGHT = 1
 
 
-class KartStartPoint(object):
+class KartStartPoint(PositionedObject):
     def __init__(self, position):
-        self.position = position
+        super().__init__(position)
         self.scale = Vector3(1.0, 1.0, 1.0)
         self.rotation = Rotation.default()
         self.poleposition = POLE_LEFT
@@ -891,6 +1100,34 @@ class KartStartPoint(object):
         self.rotation.write(f)
         f.write(pack(">BBH", self.poleposition, self.playerid, self.unknown))
 
+    def copy(self):
+        widget = self.widget
+        self.widget = None
+
+        try:
+            new_object = deepcopy(self)
+        finally:
+            self.widget = widget
+
+        return new_object
+
+    def __iadd__(self, other):
+        self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
+        self.scale += other.scale
+        combine_attr(self, other, "poleposition", POLE_LEFT)
+        self.unknown += other.unknown
+        combine_attr(self, other, "playerid", 0xFF)
+
+        return self
+
+    def __itruediv__(self, count):
+        self.position /= count
+        self.scale /= count
+        self.unknown //= count
+        return self
 
 class KartStartPoints(object):
     def __init__(self):
@@ -929,10 +1166,22 @@ class Feather:
         self.i0 = 0
         self.i1 = 0
 
+    def __iadd__(self, other):
+        self.i0 += other.i0
+        self.i1 += other.i1
 
-class Area(object):
+        return self
+
+    def __ifloordiv__(self, count):
+        self.i0 //= count
+        self.i1 //= count
+
+        return self
+
+
+class Area(PositionedObject):
     def __init__(self, position):
-        self.position = position
+        super().__init__(position)
         self.scale = Vector3(1.0, 1.0, 1.0)
         self.rotation = Rotation.default()
         self.shape = 0
@@ -1000,6 +1249,46 @@ class Area(object):
         f.write(pack(">II", self.feather.i0, self.feather.i1))
         f.write(pack(">hhhh", self.unkfixedpoint, self.unkshort, self.shadow_id, self.lightparam_index))
 
+    def copy(self):
+        widget = self.widget
+        self.widget = None
+
+        camera = self.camera
+        self.camera = None
+
+        try:
+            new_object = deepcopy(self)
+            new_object.camera = camera
+        finally:
+            self.widget = widget
+            self.camera = camera
+
+        return new_object
+
+    def __iadd__(self, other):
+        self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
+        self.scale += other.scale
+        combine_attr(self, other, "shape", 0)
+        combine_attr(self, other, "area_type", 0)
+        combine_attr(self, other, "camera", None)
+        self.feather += other.feather
+        self.unkfixedpoint += other.unkfixedpoint
+        self.unkshort += other.unkshort
+        combine_attr(self, other, "shadow_id", 0)
+        combine_attr(self, other, "lightparam_index", 0)
+
+        return self
+
+    def __itruediv__(self, count):
+        self.position /= count
+        self.scale /= count
+        self.feather //= count
+        self.unkfixedpoint //= count
+        self.unkshort //= count
+        return self
 
 class Areas(object):
     def __init__(self):
@@ -1022,16 +1311,40 @@ class FOV:
         self.start = 0
         self.end = 0
 
+    def __iadd__(self, other):
+        self.start += other.start
+        self.end += other.end
+
+        return self
+
+    def __ifloordiv__(self, count):
+        self.start //= count
+        self.end //= count
+
+        return self
+
 
 class Shimmer:
     def __init__(self):
         self.z0 = 0
         self.z1 = 0
 
+    def __iadd__(self, other):
+        self.z0 += other.z0
+        self.z1 += other.z1
 
-class Camera(object):
+        return self
+
+    def __ifloordiv__(self, count):
+        self.z0 //= count
+        self.z1 //= count
+
+        return self
+
+
+class Camera(PositionedObject):
     def __init__(self, position):
-        self.position = position
+        super().__init__(position)
         self.position2 = Vector3(0.0, 0.0, 0.0)
         self.position3 = Vector3(0.0, 0.0, 0.0)
         self.rotation = Rotation.default()
@@ -1123,12 +1436,59 @@ class Camera(object):
         assert len(self.name) == 4
         f.write(bytes(self.name, encoding="ascii"))
 
+    def copy(self):
+        widget = self.widget
+        self.widget = None
+
+        nextcam = self.nextcam
+        self.nextcam = None
+
+        try:
+            new_object = deepcopy(self)
+            new_object.nextcam = nextcam
+        finally:
+            self.widget = widget
+            self.nextcam = nextcam
+
+        return new_object
+
+    def __iadd__(self, other):
+        self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
+        self.position2 += other.position2
+        self.position3 += other.position3
+        combine_attr(self, other, "camtype", 0)
+        self.fov += other.fov
+        self.camduration += other.camduration
+        combine_attr(self, other, "startcamera", 0)
+        self.shimmer += other.shimmer
+
+        combine_attr(self, other, "route", None)
+        self.routespeed += other.routespeed
+        combine_attr(self, other, "nextcam", None)
+        combine_attr(self, other, "name", "null")
+
+        return self
+
+    def __itruediv__(self, count):
+        self.position /= count
+        self.position2 /= count
+        self.position3 /= count
+        self.fov //= count
+        self.camduration //= count
+        self.shimmer //= count
+        self.routespeed //= count
+
+        return self
+
 
 # Section 9
 # Jugem Points
-class JugemPoint(object):
+class JugemPoint(PositionedObject):
     def __init__(self, position):
-        self.position = position
+        super().__init__(position)
         self.rotation = Rotation.default()
         self.respawn_id = 0
         self.unk1 = 0
@@ -1158,34 +1518,79 @@ class JugemPoint(object):
         self.rotation.write(f)
         f.write(pack(">HHhh", self.respawn_id, self.unk1, self.unk2, self.unk3))
 
+    def copy(self):
+        widget = self.widget
+        self.widget = None
+
+        try:
+            new_object = deepcopy(self)
+        finally:
+            self.widget = widget
+
+        return new_object
+
+    def __iadd__(self, other):
+        self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
+        combine_attr(self, other, "respawn_id", 0)
+        combine_attr(self, other, "unk1", -1)
+        combine_attr(self, other, "unk2", -1)
+        combine_attr(self, other, "unk3", -1)
+
+        return self
+
+    def __itruediv__(self, count):
+        self.position /= count
+
+        return self
 
 # Section 10
 # LightParam
-class LightParam(object):
-    def __init__(self):
+class LightParam(PositionedObject):
+    def __init__(self, position):
+        super().__init__(position)
         self.color1 = ColorRGBA(0x64, 0x64, 0x64, 0xFF)
         self.color2 = ColorRGBA(0x64, 0x64, 0x64, 0x00)
-        self.unkvec = Vector3(0.0, 0.0, 0.0)
-
-
 
     @classmethod
     def new(cls):
-        return cls()
+        return cls(Vector3(0.0, 0.0, 0.0))
 
     @classmethod
     def from_file(cls, f):
-        lp = cls()
+        lp = cls.new()
         lp.color1 = ColorRGBA.from_file(f)
-        lp.unkvec = Vector3(*unpack(">fff", f.read(12)))
+        lp.position = Vector3(*unpack(">fff", f.read(12)))
         lp.color2 = ColorRGBA.from_file(f)
 
         return lp
 
     def write(self, f):
         self.color1.write(f)
-        f.write(pack(">fff", self.unkvec.x, self.unkvec.y, self.unkvec.z))
+        f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         self.color2.write(f)
+
+    def copy(self):
+        return deepcopy(self)
+
+    def __iadd__(self, other):
+        self.position += other.position
+        if not isinstance(other, self.__class__):
+            return PositionedObject(self.position)
+
+        self.color1 += other.color1
+        self.color2 += other.color2
+
+        return self
+
+    def __itruediv__(self, count):
+        self.position /= count
+        self.color1 //= count
+        self.color2 //= count
+
+        return self
 
 
 # Section 11
@@ -1213,6 +1618,25 @@ class MGEntry(object):
 
     def write(self, f):
         f.write(pack(">hhhh", self.unk1, self.unk2, self.unk3, self.unk4))
+
+    def copy(self):
+        return deepcopy(self)
+
+    def __iadd__(self, other):
+        self.unk1 += other.unk1
+        self.unk2 += other.unk2
+        self.unk3 += other.unk3
+        self.unk4 += other.unk4
+
+        return self
+
+    def __itruediv__(self, count):
+        self.unk1 //= count
+        self.unk2 //= count
+        self.unk3 //= count
+        self.unk4 //= count
+
+        return self
 
 
 class BOL(object):
@@ -1618,6 +2042,24 @@ def temp_add_invalid_id(id):
         name = get_full_name(id)
         OBJECTNAMES[id] = name
         REVERSEOBJECTNAMES[name] = id
+
+
+def all_same_type(objs):
+    return all(isinstance(obj, type(objs[0])) for obj in objs)
+
+
+def get_average_obj(objs):
+    if isinstance(objs[0], BOL):
+        return objs[0]
+
+    cmn_obj = objs[0].copy()
+
+    for obj in objs[1:]:
+        cmn_obj += obj
+
+    cmn_obj /= len(objs)
+
+    return cmn_obj
 
 
 if __name__ == "__main__":

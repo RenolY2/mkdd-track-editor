@@ -2878,10 +2878,10 @@ class GenEditor(QtWidgets.QMainWindow):
     def _configure_template(self, label):
         name = label.replace(' ', '_').lower()
         template = getattr(self, f'_template_{name}')
-        editor_class = choose_data_editor(template)
+        editor_class = choose_data_editor([template])
         assert editor_class is not None
 
-        editor = editor_class(self, self.level_file, template)
+        editor = editor_class(self, self.level_file, [template])
         editor.update_data()
 
         dialog = QtWidgets.QDialog(self)
@@ -3643,10 +3643,10 @@ class GenEditor(QtWidgets.QMainWindow):
     def action_update_info(self):
         if self.level_file is not None:
             selected = self.level_view.selected
+            objects = []
             if len(selected) == 1:
                 currentobj = selected[0]
                 if isinstance(currentobj, Route):
-                    objects = []
                     index = self.level_file.routes.index(currentobj)
                     for object in self.level_file.objects.objects:
                         if object.route == currentobj:
@@ -3654,12 +3654,6 @@ class GenEditor(QtWidgets.QMainWindow):
                     for i, camera in enumerate(self.level_file.cameras):
                         if camera.route == currentobj:
                             objects.append("Camera {0}".format(i))
-
-                    self.pik_control.set_info(currentobj, self.update_3d, objects)
-                else:
-                    self.pik_control.set_info(currentobj, self.update_3d)
-
-                self.pik_control.update_info()
             else:
                 self.pik_control.reset_info("{0} objects selected".format(len(self.level_view.selected)))
                 self.pik_control.set_objectlist(selected)
@@ -3668,6 +3662,9 @@ class GenEditor(QtWidgets.QMainWindow):
             viewer_toolbar.delete_button.setEnabled(self.can_delete_objects())
             viewer_toolbar.ground_button.setEnabled(self.can_ground_objects())
             viewer_toolbar.distribute_button.setEnabled(self.can_distribute_objects())
+
+            self.pik_control.set_info(selected, self.update_3d, objects)
+            self.pik_control.update_info()
 
     @catch_exception
     def mapview_showcontextmenu(self, position):

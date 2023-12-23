@@ -8,10 +8,10 @@ from collections import OrderedDict
 from math import inf
 from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint, Route, RoutePoint,
                         MapObject, KartStartPoint, Area, Camera, BOL, JugemPoint, MapObject,
-                        LightParam, MGEntry, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS,
+                        LightParam, MGEntry, PositionedObject, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS,
                         SWERVE_IDS, REVERSE_SWERVE_IDS, REVERSE_AREA_TYPES,
                         KART_START_POINTS_PLAYER_IDS, REVERSE_KART_START_POINTS_PLAYER_IDS,
-                        read_object_parameters)
+                        read_object_parameters, all_same_type, get_average_obj)
 from lib.vectors import Vector3
 from lib.model_rendering import Minimap
 
@@ -312,10 +312,8 @@ class DataEditor(QtWidgets.QWidget):
         layout = self.create_labeled_widget(self, text, checkbox)
 
         def checked(state):
-            if state == 0:
-                setattr(self.bound_to, attribute, off_value)
-            else:
-                setattr(self.bound_to, attribute, on_value)
+            for obj in self.bound_to:
+                setattr(obj, attribute, off_value if state == 0 else on_value)
 
         checkbox.stateChanged.connect(checked)
         self.vbox.addLayout(layout)
@@ -327,7 +325,8 @@ class DataEditor(QtWidgets.QWidget):
         layout = self.create_labeled_widget(self, text, maskbox)
 
         def on_value_changed(value: int):
-            setattr(self.bound_to, attribute, value)
+            for obj in self.bound_to:
+                setattr(obj, attribute, value)
 
         maskbox.value_changed.connect(on_value_changed)
         self.vbox.addLayout(layout)
@@ -339,7 +338,8 @@ class DataEditor(QtWidgets.QWidget):
         spinbox.setRange(min_val, max_val)
 
         def on_spinbox_valueChanged(value):
-            setattr(self.bound_to, attribute, value)
+            for obj in self.bound_to:
+                setattr(obj, attribute, value)
 
         spinbox.valueChanged.connect(on_spinbox_valueChanged)
 
@@ -354,7 +354,8 @@ class DataEditor(QtWidgets.QWidget):
 
         def on_spinbox_valueChanged(value):
             self.catch_text_update()
-            setattr(self.bound_to, attribute, value)
+            for obj in self.bound_to:
+                setattr(obj, attribute, value)
 
         spinbox.valueChanged.connect(on_spinbox_valueChanged)
 
@@ -372,7 +373,8 @@ class DataEditor(QtWidgets.QWidget):
         def input_edited():
             text = line_edit.text()
             text = text.rjust(maxlength)
-            setattr(self.bound_to, attribute, text)
+            for obj in self.bound_to:
+                setattr(obj, attribute, text)
 
         line_edit.editingFinished.connect(input_edited)
         self.vbox.addLayout(layout)
@@ -393,7 +395,8 @@ class DataEditor(QtWidgets.QWidget):
 
         def item_selected(item):
             val = keyval_dict[item]
-            setattr(self.bound_to, attribute, val)
+            for obj in self.bound_to:
+                setattr(obj, attribute, val)
 
             tt_dict = getattr(ttl, attribute, {})
             if tt_dict:
@@ -512,7 +515,8 @@ class DataEditor(QtWidgets.QWidget):
 
     def add_multiple_integer_input_list(self, text, attribute, min_val, max_val):
         spinboxes = []
-        fieldlist = getattr(self.bound_to, attribute)
+        obj = get_average_obj(self.bound_to)
+        fieldlist = getattr(obj, attribute)
         for i in range(len(fieldlist)):
             spinbox = SpinBox(self)
             spinbox.setMaximumWidth(self.fontMetrics().averageCharWidth() * 4)
@@ -532,7 +536,8 @@ class DataEditor(QtWidgets.QWidget):
             widget_type, *widget_type_args = widget_type
 
         def set_value(value, index=index):
-            getattr(self.bound_to, attribute)[index] = value
+            for obj in self.bound_to:
+                getattr(obj, attribute)[index] = value
 
         if widget_type == "checkbox":
             widget = QtWidgets.QCheckBox()
@@ -560,7 +565,7 @@ class DataEditor(QtWidgets.QWidget):
         return widget
 
     def update_rotation(self, forwardedits, upedits, leftedits):
-        rotation = self.bound_to.rotation
+        rotation = get_average_obj(self.bound_to).rotation
         forward, up, left = rotation.get_vectors()
 
         for attr in ("x", "y", "z"):
@@ -590,7 +595,7 @@ class DataEditor(QtWidgets.QWidget):
         self.catch_text_update()
 
     def add_rotation_input(self):
-        rotation = self.bound_to.rotation
+        rotation = get_average_obj(self.bound_to).rotation
         forward_spinboxes = []
         up_spinboxes = []
         left_spinboxes = []
@@ -665,8 +670,9 @@ class DataEditor(QtWidgets.QWidget):
 def create_setter_list(bound_to, attribute, index):
 
     def on_spinbox_valueChanged(value):
-        mainattr = getattr(bound_to, attribute)
-        mainattr[index] = value
+        for bound_to_object in bound_to:
+            mainattr = getattr(bound_to_object, attribute)
+            mainattr[index] = value
 
     return on_spinbox_valueChanged
 
@@ -674,8 +680,9 @@ def create_setter_list(bound_to, attribute, index):
 def create_setter(bound_to, attribute, subattr, update3dview):
 
     def on_spinbox_valueChanged(value):
-        mainattr = getattr(bound_to, attribute)
-        setattr(mainattr, subattr, value)
+        for bound_to_object in bound_to:
+            mainattr = getattr(bound_to_object, attribute)
+            setattr(mainattr, subattr, value)
         update3dview()
 
     return on_spinbox_valueChanged
@@ -694,7 +701,15 @@ MAX_UNSIGNED_SHORT = 2**16 - 1
 MAX_UNSIGNED_INT = 2**32 - 1
 
 
-def choose_data_editor(obj):
+def choose_data_editor(objs):
+    if not objs:
+        return None
+    if not all_same_type(objs):
+        if all(isinstance(obj, PositionedObject) for obj in objs):
+            return PositionedEdit
+        return None
+
+    obj = objs[0]
     if isinstance(obj, EnemyPoint):
         return EnemyPointEdit
     elif isinstance(obj, EnemyPointGroup):
@@ -731,10 +746,12 @@ def choose_data_editor(obj):
 
 class EnemyPointGroupEdit(DataEditor):
     def setup_widgets(self):
-        self.groupid = self.add_integer_input("Group ID", "id", MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        if len(self.bound_to) == 1:
+            self.groupid = self.add_integer_input("Group ID", "id", MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
 
     def update_data(self):
-        self.groupid.setValueQuiet(self.bound_to.id)
+        if len(self.bound_to) == 1:
+            self.groupid.setValueQuiet(self.bound_to[0].id)
 
 
 DRIFT_DIRECTION_OPTIONS = OrderedDict()
@@ -787,7 +804,7 @@ class EnemyPointEdit(DataEditor):
         self.link.valueChanged.connect(lambda _value: self.update_name())
 
     def update_data(self):
-        obj: EnemyPoint = self.bound_to
+        obj: EnemyPoint = get_average_obj(self.bound_to)
         self.position[0].setValueQuiet(obj.position.x)
         self.position[1].setValueQuiet(obj.position.y)
         self.position[2].setValueQuiet(obj.position.z)
@@ -811,13 +828,16 @@ class EnemyPointEdit(DataEditor):
         set_tool_tip(self.swerve, ttl.enemypoints['Swerve'])
 
     def update_name(self):
-        if self.bound_to.widget is None:
-            return
-        self.bound_to.widget.update_name()
+        for obj in self.bound_to:
+            if obj.widget is None:
+                continue
+            obj.widget.update_name()
 
 
 class CheckpointGroupEdit(DataEditor):
     def setup_widgets(self):
+        if len(self.bound_to) != 1:
+            return
         self.grouplink = self.add_integer_input("Group Setting", "grouplink",
                                                 MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.prevgroup = self.add_multiple_integer_input_list("Previous Groups", "prevgroup",
@@ -826,7 +846,9 @@ class CheckpointGroupEdit(DataEditor):
                                                               MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
 
     def update_data(self):
-        obj = self.bound_to
+        if len(self.bound_to) != 1:
+            return
+        obj = self.bound_to[0]
         self.grouplink.setValueQuiet(obj.grouplink)
         for i, widget in enumerate(self.prevgroup):
             widget.setValueQuiet(obj.prevgroup[i])
@@ -853,7 +875,7 @@ class CheckpointEdit(DataEditor):
             set_tool_tip(self.unk4, ttl.checkpoints["Lap Checkpoint"])
 
     def update_data(self):
-        obj: Checkpoint = self.bound_to
+        obj: Checkpoint = get_average_obj(self.bound_to)
         self.start[0].setValueQuiet(obj.start.x)
         self.start[1].setValueQuiet(obj.start.y)
         self.start[2].setValueQuiet(obj.start.z)
@@ -874,7 +896,7 @@ class ObjectRouteEdit(DataEditor):
         self.unk1 = self.add_checkbox("Unknown 1", "unk1", 0, 1)
 
     def update_data(self):
-        obj: Route = self.bound_to
+        obj: Route = get_average_obj(self.bound_to)
         self.unk1.setChecked(bool(obj.unk1))
 
 
@@ -886,7 +908,7 @@ class ObjectRoutePointEdit(DataEditor):
                                               MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
 
     def update_data(self):
-        obj: RoutePoint = self.bound_to
+        obj: RoutePoint = get_average_obj(self.bound_to)
         self.position[0].setValueQuiet(obj.position.x)
         self.position[1].setValueQuiet(obj.position.y)
         self.position[2].setValueQuiet(obj.position.z)
@@ -929,7 +951,7 @@ class BOLEdit(DataEditor):
         self.sky_follow = self.add_checkbox("Sky Follow", "sky_follow", off_value=0, on_value=1)
 
     def update_data(self):
-        obj: BOL = self.bound_to
+        obj: BOL = get_average_obj(self.bound_to)
         self.roll.setCurrentIndex(obj.roll)
         self.rgb_ambient[0].setValue(obj.rgb_ambient.r)
         self.rgb_ambient[1].setValue(obj.rgb_ambient.g)
@@ -1046,13 +1068,15 @@ class ObjectEdit(DataEditor):
 
         parameter_names, assets, tooltips, widget_types = load_parameter_names(objectname)
         tuples = zip(parameter_names, tooltips, widget_types)
+        cmn_obj = get_average_obj(self.bound_to)
+
         for i, (parameter_name, tooltip, widget_type) in enumerate(tuples):
             if '🧩' in parameter_name and not show_code_patch_fields:
                 continue
             if parameter_name == "Unused":
-                if self.bound_to.userdata[i] != 0:
+                if cmn_obj.userdata[i] != 0:
                     print(f"Warning: Parameter with index {i} in object {objectname} is marked as "
-                          f"unused but has value {self.bound_to.userdata[i]}.")
+                          f"unused but has value {cmn_obj.userdata[i]}.")
                 continue
 
             widget = self.add_types_widget_index(self.userdata_layout, parameter_name, 'userdata',
@@ -1069,7 +1093,7 @@ class ObjectEdit(DataEditor):
             if item_widget := item.widget():
                 item_widget.setVisible(has_fields)
 
-        self.update_userdata_widgets(self.bound_to)
+        self.update_userdata_widgets(cmn_obj)
 
         self.assets.setText(', '.join(assets) if assets else 'None')
         self.assets.setToolTip(
@@ -1078,14 +1102,15 @@ class ObjectEdit(DataEditor):
         self.assets.setCursorPosition(0)
 
     def update_name(self):
-        if self.bound_to.widget is None:
-            return
-        self.bound_to.widget.update_name()
-        self.bound_to.widget.parent().sort()
-        self.bound_to.widget.setSelected(True)
+        for obj in self.bound_to:
+            if obj.widget is None:
+                continue
+            obj.widget.update_name()
+            obj.widget.parent().sort()
+            obj.widget.setSelected(True)
 
     def update_data(self):
-        obj: MapObject = self.bound_to
+        obj: MapObject = get_average_obj(self.bound_to)
         self.position[0].setValueQuiet(obj.position.x)
         self.position[1].setValueQuiet(obj.position.y)
         self.position[2].setValueQuiet(obj.position.z)
@@ -1101,7 +1126,8 @@ class ObjectEdit(DataEditor):
         else:
             name = OBJECTNAMES[obj.objectid]
         index = self.objectid.findText(name)
-        self.objectid.setCurrentIndex(index)
+        with QtCore.QSignalBlocker(self.objectid):
+            self.objectid.setCurrentIndex(index)
 
         #self.pathid.setValueQuiet(obj.pathid)
 
@@ -1123,12 +1149,13 @@ class ObjectEdit(DataEditor):
         self.rebuild_object_parameters_widgets(name)
 
     def fill_default_values(self):
-        obj = self.bound_to
+        obj = get_average_obj(self.bound_to)
         defaults = obj.default_values()
         if defaults is None:
             return
-        obj.userdata = defaults.copy()
-        self.update_userdata_widgets(obj)
+        for mapobject in self.bound_to:
+            mapobject.userdata = defaults.copy()
+        self.update_userdata_widgets(get_average_obj(self.bound_to))
 
     def update_userdata_widgets(self, obj):
         for i, widget in enumerate(self.userdata):
@@ -1166,7 +1193,7 @@ class KartStartPointEdit(DataEditor):
         self.playerid.currentTextChanged.connect(lambda _index: self.update_name())
 
     def update_data(self):
-        obj: KartStartPoint = self.bound_to
+        obj: KartStartPoint = get_average_obj(self.bound_to)
         self.position[0].setValueQuiet(obj.position.x)
         self.position[1].setValueQuiet(obj.position.y)
         self.position[2].setValueQuiet(obj.position.z)
@@ -1190,9 +1217,10 @@ class KartStartPointEdit(DataEditor):
         self.unknown.setValueQuiet(obj.unknown)
 
     def update_name(self):
-        if self.bound_to.widget is None:
-            return
-        self.bound_to.widget.update_name()
+        for obj in self.bound_to:
+            if obj.widget is None:
+                continue
+            obj.widget.update_name()
 
 AREA_SHAPE = {
     "Box": 0,
@@ -1235,7 +1263,7 @@ class AreaEdit(DataEditor):
         self.area_type.currentTextChanged.connect(self.update_name)
 
     def update_data(self):
-        obj: Area = self.bound_to
+        obj: Area = get_average_obj(self.bound_to)
         self.position[0].setValueQuiet(obj.position.x)
         self.position[1].setValueQuiet(obj.position.y)
         self.position[2].setValueQuiet(obj.position.z)
@@ -1246,17 +1274,21 @@ class AreaEdit(DataEditor):
 
         self.update_rotation(*self.rotation)
 
-        self.shape.setCurrentIndex(obj.shape)
-        self.area_type.setCurrentIndex(obj.area_type)
+        with QtCore.QSignalBlocker(self.shape):
+            self.shape.setCurrentIndex(obj.shape)
+        with QtCore.QSignalBlocker(self.area_type):
+            self.area_type.setCurrentIndex(obj.area_type)
 
         try:
             camindex = self.bol.cameras.index(obj.camera)
         except ValueError:
             camindex = -1
-        if camindex == -1:
-            self.camera.setCurrentIndex(0)
-        else:
-            self.camera.setCurrentText("Camera {0}".format(camindex))
+
+        with QtCore.QSignalBlocker(self.camera):
+            if camindex == -1:
+                self.camera.setCurrentIndex(0)
+            else:
+                self.camera.setCurrentText("Camera {0}".format(camindex))
 
         self.feather[0].setValueQuiet(obj.feather.i0)
         self.feather[1].setValueQuiet(obj.feather.i1)
@@ -1266,9 +1298,10 @@ class AreaEdit(DataEditor):
         self.lightparam_index.setValueQuiet(obj.lightparam_index)
 
     def update_name(self):
-        if self.bound_to.widget is None:
-            return
-        self.bound_to.widget.update_name()
+        for obj in self.bound_to:
+            if obj.widget is None:
+                continue
+            obj.widget.update_name()
 
 
 CAMERA_TYPES = OrderedDict()
@@ -1333,7 +1366,7 @@ class CameraEdit(DataEditor):
         self.camtype.currentTextChanged.connect(self.update_name)
 
     def update_data(self):
-        obj: Camera = self.bound_to
+        obj: Camera = get_average_obj(self.bound_to)
         self.position[0].setValueQuiet(obj.position.x)
         self.position[1].setValueQuiet(obj.position.y)
         self.position[2].setValueQuiet(obj.position.z)
@@ -1379,9 +1412,10 @@ class CameraEdit(DataEditor):
         self.name.setText(obj.name)
 
     def update_name(self):
-        if self.bound_to.widget is None:
-            return
-        self.bound_to.widget.update_name()
+        for camera in self.bound_to:
+            if camera.widget is None:
+                continue
+            camera.widget.update_name()
 
 
 class RespawnPointEdit(DataEditor):
@@ -1409,7 +1443,7 @@ class RespawnPointEdit(DataEditor):
         self.respawn_id.valueChanged.connect(lambda _value: self.update_name())
 
     def update_data(self):
-        obj: JugemPoint = self.bound_to
+        obj: JugemPoint = get_average_obj(self.bound_to)
         self.position[0].setValueQuiet(obj.position.x)
         self.position[1].setValueQuiet(obj.position.y)
         self.position[2].setValueQuiet(obj.position.z)
@@ -1420,9 +1454,10 @@ class RespawnPointEdit(DataEditor):
         self.unk3.setValueQuiet(obj.unk3)
 
     def update_name(self):
-        if self.bound_to.widget is None:
-            return
-        self.bound_to.widget.update_name()
+        for obj in self.bound_to:
+            if obj.widget is None:
+                continue
+            obj.widget.update_name()
 
 
 class LightParamEdit(DataEditor):
@@ -1430,16 +1465,16 @@ class LightParamEdit(DataEditor):
         self.color1 = self.add_color_input("RGBA 1", "color1", with_alpha=True)
         for i in self.color1:
             set_tool_tip(i, ttl.lightparam["Light"])
-        self.unkvec = self.add_multiple_decimal_input("Position", "unkvec", ["x", "y", "z"],
-                                                      -inf, +inf)
-        for i in self.unkvec:
+        self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
+                                                        -inf, +inf)
+        for i in self.position:
             set_tool_tip(i, ttl.lightparam["Position"])
         self.color2 = self.add_color_input("RGBA 2", "color2", with_alpha=True)
         for i in self.color2:
             set_tool_tip(i, ttl.lightparam["Ambient"])
 
     def update_data(self):
-        obj: LightParam = self.bound_to
+        obj: LightParam = get_average_obj(self.bound_to)
         self.color1[0].setValue(obj.color1.r)
         self.color1[1].setValue(obj.color1.g)
         self.color1[2].setValue(obj.color1.b)
@@ -1450,9 +1485,9 @@ class LightParamEdit(DataEditor):
         self.color2[2].setValue(obj.color2.b)
         self.color2[3].setValue(obj.color2.a)
 
-        self.unkvec[0].setValueQuiet(obj.unkvec.x)
-        self.unkvec[1].setValueQuiet(obj.unkvec.y)
-        self.unkvec[2].setValueQuiet(obj.unkvec.z)
+        self.position[0].setValueQuiet(obj.position.x)
+        self.position[1].setValueQuiet(obj.position.y)
+        self.position[2].setValueQuiet(obj.position.z)
 
 
 class MGEntryEdit(DataEditor):
@@ -1467,7 +1502,7 @@ class MGEntryEdit(DataEditor):
                                            MIN_SIGNED_SHORT, MAX_SIGNED_SHORT)
 
     def update_data(self):
-        obj: MGEntry = self.bound_to
+        obj: MGEntry = get_average_obj(self.bound_to)
         self.unk1.setValueQuiet(obj.unk1)
         self.unk2.setValueQuiet(obj.unk2)
         self.unk3.setValueQuiet(obj.unk3)
@@ -1491,7 +1526,7 @@ class MinimapEdit(DataEditor):
         self.orientation.currentIndexChanged.connect(lambda _index: self.catch_text_update())
 
     def update_data(self):
-        obj: Minimap = self.bound_to
+        obj: Minimap = get_average_obj(self.bound_to)
         self.topleft[0].setValueQuiet(obj.corner1.x)
         self.topleft[1].setValueQuiet(obj.corner1.y)
         self.topleft[2].setValueQuiet(obj.corner1.z)
@@ -1500,3 +1535,15 @@ class MinimapEdit(DataEditor):
         self.bottomright[2].setValueQuiet(obj.corner2.z)
 
         self.orientation.setCurrentIndex(obj.orientation)
+
+
+class PositionedEdit(DataEditor):
+    def setup_widgets(self):
+        self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
+                                                        -inf, +inf)
+
+    def update_data(self):
+        obj: PositionedObject = get_average_obj(self.bound_to)
+        self.position[0].setValueQuiet(obj.position.x)
+        self.position[1].setValueQuiet(obj.position.y)
+        self.position[2].setValueQuiet(obj.position.z)

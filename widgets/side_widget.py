@@ -69,21 +69,24 @@ class PikminSideWidget(QtWidgets.QWidget):
         if self.object_data_edit is not None:
             self.object_data_edit.update_data()
 
-    def set_info(self, obj, update3d, usedby=tuple()):
+    def set_info(self, objs, update3d, usedby=tuple()):
+        label = ""
         if usedby:
-            self.name_label.setText("Selected: {}\nUsed by: {}".format(
-                type(obj).__name__, ", ".join(usedby)))
+            for obj in objs:
+                label += "Selected: {}\nUsed by: {}\n".format(type(obj).__name__, ", ".join(usedby))
         else:
-            self.name_label.setText("Selected: {}".format(type(obj).__name__))
+            for obj in objs:
+                label += "Selected: {}\n".format(type(obj).__name__)
+        self.name_label.setText(label)
 
         if self.object_data_edit is not None:
             self.object_data_edit.deleteLater()
             self.object_data_edit = None
 
-        editor = choose_data_editor(obj)
+        editor = choose_data_editor(objs)
         if editor is not None:
             bol = self.boleditor.level_file
-            self.object_data_edit = editor(self, bol, obj)
+            self.object_data_edit = editor(self, bol, objs)
             self.scroll_area_frame_layout.insertWidget(self.scroll_area_frame_layout.count() - 1,
                                                        self.object_data_edit)
             self.object_data_edit.emit_3d_update.connect(update3d)
