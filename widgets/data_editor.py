@@ -400,7 +400,8 @@ class DataEditor(QtWidgets.QWidget):
 
             tt_dict = getattr(ttl, attribute, {})
             if tt_dict:
-                combobox.setToolTip(tt_dict.get(item, ''))
+                combobox.setToolTip(
+                    tt_dict.get(item) or ttl.markdown_to_html(item, 'Description not available.'))
 
         combobox.currentTextChanged.connect(item_selected)
         self.vbox.addLayout(layout)
@@ -1128,6 +1129,9 @@ class ObjectEdit(DataEditor):
         index = self.objectid.findText(name)
         with QtCore.QSignalBlocker(self.objectid):
             self.objectid.setCurrentIndex(index)
+
+        self.objectid.setToolTip(ttl.objectid.get(name)
+                                 or ttl.markdown_to_html(name, 'Description not available.'))
 
         #self.pathid.setValueQuiet(obj.pathid)
 
