@@ -44,8 +44,6 @@ class PikminSideWidget(QtWidgets.QWidget):
         self.scroll_area_frame_layout.addWidget(self.comment_label)
         self.comment_label.hide()
 
-        self.scroll_area_frame_layout.addStretch()
-
         # Data editor.
         self.object_data_edit = None
 
@@ -87,8 +85,8 @@ class PikminSideWidget(QtWidgets.QWidget):
         if editor is not None:
             bol = self.boleditor.level_file
             self.object_data_edit = editor(self, bol, objs)
-            self.scroll_area_frame_layout.insertWidget(self.scroll_area_frame_layout.count() - 1,
-                                                       self.object_data_edit)
+            self.object_data_edit.layout().addStretch()
+            self.scroll_area_frame_layout.addWidget(self.object_data_edit)
             self.object_data_edit.emit_3d_update.connect(update3d)
 
         self.comment_label.setText("")
