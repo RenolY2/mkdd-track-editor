@@ -1,5 +1,8 @@
+import collections
+
 from PySide6 import QtCore, QtWidgets, QtGui
 
+from lib import libbol
 from widgets.data_editor import choose_data_editor
 
 
@@ -70,15 +73,6 @@ class PikminSideWidget(QtWidgets.QWidget):
             self.object_data_edit.update_data()
 
     def set_info(self, objs, update3d, usedby=tuple()):
-        label = ""
-        if usedby:
-            for obj in objs:
-                label += "Selected: {}\nUsed by: {}\n".format(type(obj).__name__, ", ".join(usedby))
-        else:
-            for obj in objs:
-                label += "Selected: {}\n".format(type(obj).__name__)
-        self.name_label.setText(label)
-
         if self.object_data_edit is not None:
             self.object_data_edit.deleteLater()
             self.object_data_edit = None
@@ -94,23 +88,24 @@ class PikminSideWidget(QtWidgets.QWidget):
         self.comment_label.setText("")
         self.comment_label.hide()
 
-    def set_objectlist(self, objs):
-        objectnames = []
-
+    def set_label(self, objs, usedby):
+        names = collections.defaultdict(int)
         for obj in objs:
-            if len(objectnames) < 25:
-                if hasattr(obj, "name") and obj.name != 'null':
-                    objectnames.append(obj.name)
+            name = type(obj).__name__
+            if isinstance(obj, libbol.Camera):
+                if obj.name and obj.name != 'null':
+                    name += f' "{obj.name}"'
+            elif isinstance(obj, libbol.Area):
+                name = f'{libbol.AREA_TYPES[obj.area_type]} Area'
+            elif isinstance(obj, libbol.MapObject):
+                name = f'{libbol.OBJECTNAMES[obj.objectid]}'
+            names[name] += 1
 
-        text = ''
-        if objectnames:
-            objectnames.sort()
-            text = f"Selected objects: {', '.join(objectnames)}"
-            diff = len(objs) - len(objectnames)
-            if diff:
-                text += f"\n...and {diff} more object{'s' if diff > 1 else ''}"
-        elif objs:
-            text = f"Selected objects: {len(objs)}"
+        text = 'Selected: ' if objs else ''
+        text += ', '.join(
+            [name if count == 1 else f'{name} (x{count})' for name, count in names.items()])
 
-        self.comment_label.setText(text)
-        self.comment_label.setVisible(bool(text))
+        if usedby:
+            text += f'\nUsed by: {", ".join(usedby)}'
+
+        self.name_label.setText(text)
