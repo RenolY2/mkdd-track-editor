@@ -3798,8 +3798,10 @@ class Application(QtWidgets.QApplication):
             if isinstance(receiver, QtGui.QWindow):
                 # Certain widget types are known to submit many value changes while they have focus.
                 # Potentially-editing events will be disregarded until focus is out (unless there
-                # have been a recent focus change)
-                disregardable = isinstance(self.focusWidget(), QtWidgets.QAbstractSpinBox)
+                # have been a recent focus change). Equally, auto-repeating keys are disregarded.
+                disregardable = (isinstance(self.focusWidget(), QtWidgets.QAbstractSpinBox)
+                                 or (event.type() == QtCore.QEvent.KeyRelease
+                                     and event.isAutoRepeat()))
                 if not disregardable or self._pending_focus_change:
                     self._pending_focus_change = False
                     QtCore.QTimer.singleShot(0, self.document_potentially_changed)
