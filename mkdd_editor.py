@@ -3809,6 +3809,7 @@ class Application(QtWidgets.QApplication):
     def _on_focus_changed(self, old: QtWidgets.QWidget, now: QtWidgets.QWidget):
         _ = old, now
         self._pending_focus_change = True
+        QtCore.QTimer.singleShot(0, self.document_potentially_changed)
 
 
 if __name__ == "__main__":
