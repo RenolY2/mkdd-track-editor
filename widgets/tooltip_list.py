@@ -98,7 +98,7 @@ objectid = tool_tips_markdown_to_html({
     "TMapObjWanwan": "Chain Chomps",
     "TMapObjYoshiHeli": "Helicopter from Yoshi Circuit",
     "GeoKuribo": "Goombas",
-    "GeoPull": "Creates a force that pulls you towards it. It's the sand pit in Dry Dry Desert.",
+    "GeoPuller": "Creates a force that pulls you towards it. It's the sand pit in Dry Dry Desert.",
     "GeoItemBox": "Regular Item Box",
     "GeoF_ItemBox": "Item Box on a path",
     "GeoCannon": "Shoots you towards the desired Respawn ID",
