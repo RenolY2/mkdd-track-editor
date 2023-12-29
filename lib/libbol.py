@@ -409,6 +409,8 @@ class EnemyPointGroup(object):
         self.points = []
         self.id = 0
 
+        self.widget = None
+
     @classmethod
     def new(cls):
         return cls()
@@ -467,6 +469,7 @@ class EnemyPointGroup(object):
 
     def __iadd__(self, other):
         self.id = self.id if self.id == other.id else -1
+        return self
 
     def __itruediv__(self, count):
         return self

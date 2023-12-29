@@ -45,6 +45,7 @@ class ObjectGroupObjects(ObjectGroup):
 class EnemyPointGroup(ObjectGroup):
     def __init__(self, parent, bound_to):
         super().__init__("Enemy Path", parent=parent, bound_to=bound_to)
+        bound_to.widget = self
         self.update_name()
 
     def update_name(self):

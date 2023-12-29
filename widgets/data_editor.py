@@ -337,11 +337,12 @@ class DataEditor(QtWidgets.QWidget):
         spinbox = SpinBox(self)
         spinbox.setRange(min_val, max_val)
 
-        def on_spinbox_valueChanged(value):
-            for obj in self.bound_to:
-                setattr(obj, attribute, value)
+        if attribute is not None:
+            def on_spinbox_valueChanged(value):
+                for obj in self.bound_to:
+                    setattr(obj, attribute, value)
 
-        spinbox.valueChanged.connect(on_spinbox_valueChanged)
+            spinbox.valueChanged.connect(on_spinbox_valueChanged)
 
         layout = self.create_labeled_widget(self, text, spinbox)
         self.vbox.addLayout(layout)
@@ -746,12 +747,42 @@ def choose_data_editor(objs):
 
 class EnemyPointGroupEdit(DataEditor):
     def setup_widgets(self):
-        if len(self.bound_to) == 1:
-            self.groupid = self.add_integer_input("Group ID", "id", MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.groupid = self.add_integer_input("Group ID", None, MIN_UNSIGNED_BYTE,
+                                                MAX_UNSIGNED_BYTE)
+        self.groupid.setEnabled(len(self.bound_to) == 1)
+
+        def on_valueChanged(value):
+            obj = self.bound_to[0]
+            for i, group in enumerate(self.bol.enemypointgroups.groups):
+                if group is obj:
+                    continue
+                if group.id == value:
+                    print(f"Warning: Enemy path at index #{i} is already using ID {value}.")
+                    return
+
+            obj.id = value
+            for enemypathpoint in obj.points:
+                enemypathpoint.group = value
+
+            self.update_name()
+
+        def on_editingFinished():
+            obj = self.bound_to[0]
+            if obj.id != self.groupid.value():
+                self.groupid.setValue(obj.id)
+
+        self.groupid.valueChanged.connect(on_valueChanged)
+        self.groupid.editingFinished.connect(on_editingFinished)
 
     def update_data(self):
-        if len(self.bound_to) == 1:
-            self.groupid.setValueQuiet(self.bound_to[0].id)
+        obj: EnemyPointGroup = get_average_obj(self.bound_to)
+        self.groupid.setValueQuiet(obj.id)
+
+    def update_name(self):
+        for obj in self.bound_to:
+            if obj.widget is None:
+                continue
+            obj.widget.update_name()
 
 
 DRIFT_DIRECTION_OPTIONS = OrderedDict()
