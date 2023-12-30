@@ -863,6 +863,7 @@ class EnemyPointEdit(DataEditor):
             if obj.widget is None:
                 continue
             obj.widget.update_name()
+            obj.widget.parent().update_name()
 
 
 class CheckpointGroupEdit(DataEditor):
