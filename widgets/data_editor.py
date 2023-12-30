@@ -1455,8 +1455,9 @@ class RespawnPointEdit(DataEditor):
         self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
                                                         -inf, +inf)
         self.rotation = self.add_rotation_input()
-        self.respawn_id = self.add_integer_input("Respawn ID", "respawn_id",
+        self.respawn_id = self.add_integer_input("Respawn ID", None,
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.respawn_id.setEnabled(len(self.bound_to) == 1)
         set_tool_tip(self.respawn_id, ttl.respawn['Respawn ID'])
         self.unk1 = self.add_integer_input("Next Enemy Point", "unk1",
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
@@ -1471,8 +1472,26 @@ class RespawnPointEdit(DataEditor):
         set_tool_tip(self.unk3, ttl.respawn['Previous Checkpoint'])
         self.unk3.valueChanged.connect(lambda _value: self.catch_text_update())
 
+        def on_valueChanged(value):
+            obj = self.bound_to[0]
+            for i, respawn_point in enumerate(self.bol.respawnpoints):
+                if respawn_point is obj:
+                    continue
+                if respawn_point.respawn_id == value:
+                    print(f"Warning: Respawn point at index #{i} is already using ID {value}.")
+                    return
 
-        self.respawn_id.valueChanged.connect(lambda _value: self.update_name())
+            obj.respawn_id = value
+
+            self.update_name()
+
+        def on_editingFinished():
+            obj = self.bound_to[0]
+            if obj.respawn_id != self.respawn_id.value():
+                self.respawn_id.setValue(obj.respawn_id)
+
+        self.respawn_id.valueChanged.connect(on_valueChanged)
+        self.respawn_id.editingFinished.connect(on_editingFinished)
 
     def update_data(self):
         obj: JugemPoint = get_average_obj(self.bound_to)
