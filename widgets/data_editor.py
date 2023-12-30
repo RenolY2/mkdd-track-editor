@@ -346,6 +346,8 @@ class DataEditor(QtWidgets.QWidget):
         layout = self.create_labeled_widget(self, text, spinbox)
         self.vbox.addLayout(layout)
 
+        spinbox.setProperty('parent_layout', layout)
+
         return spinbox
 
     def add_decimal_input(self, text, attribute, min_val, max_val):
@@ -1428,6 +1430,25 @@ class RespawnPointEdit(DataEditor):
         set_tool_tip(self.respawn_id, ttl.respawn['Respawn ID'])
         self.unk1 = self.add_integer_input("Next Enemy Point", "unk1",
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+
+        def on_partial_clicked():
+            for obj in self.bound_to:
+                self.bol.adjust_respawn_point(obj, also_id=False, also_rotation=False)
+            self.update_data()
+
+        def on_full_clicked():
+            for obj in self.bound_to:
+                self.bol.adjust_respawn_point(obj, also_id=False, also_rotation=True)
+            self.update_data()
+
+        adjust_menu = QtWidgets.QMenu(self)
+        adjust_partial = adjust_menu.addAction('Adjust next enemy point')
+        adjust_full = adjust_menu.addAction('Adjust next enemy point and rotation')
+        adjust_partial.triggered.connect(on_partial_clicked)
+        adjust_full.triggered.connect(on_full_clicked)
+        adjust_button = QtWidgets.QPushButton('Adjust')
+        adjust_button.setMenu(adjust_menu)
+        self.unk1.property('parent_layout').addWidget(adjust_button)
         set_tool_tip(self.unk1, ttl.respawn['Next Enemy Point'])
         self.unk1.valueChanged.connect(lambda _value: self.catch_text_update())
 
