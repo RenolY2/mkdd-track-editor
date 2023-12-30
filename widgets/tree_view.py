@@ -210,7 +210,7 @@ class RespawnEntry(NamedItem):
     def update_name(self):
         for i in range(self.parent().childCount()):
             if self == self.parent().child(i):
-                self.setText(0, "Respawn Point {0} (ID: {1})".format(i, self.bound_to.respawn_id))
+                self.setText(0, "Respawn Point {0} (ID: {1} / 0x{1:02X})".format(i, self.bound_to.respawn_id))
                 break
 
 

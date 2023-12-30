@@ -1465,6 +1465,10 @@ class RespawnPointEdit(DataEditor):
         self.respawn_id = self.add_integer_input("Respawn ID", None,
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
         self.respawn_id.setEnabled(len(self.bound_to) == 1)
+        self.respawn_id_hex = QtWidgets.QLineEdit()
+        self.respawn_id_hex.setReadOnly(True)
+        self.respawn_id_hex.setDisabled(True)
+        self.respawn_id.property('parent_layout').addWidget(self.respawn_id_hex)
         set_tool_tip(self.respawn_id, ttl.respawn['Respawn ID'])
         self.unk1 = self.add_integer_input("Next Enemy Point", "unk1",
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
@@ -1480,6 +1484,8 @@ class RespawnPointEdit(DataEditor):
         self.unk3.valueChanged.connect(lambda _value: self.catch_text_update())
 
         def on_valueChanged(value):
+            self.respawn_id_hex.setText(f'Hex: 0x{value:02X}')
+
             palette = self.respawn_id.palette()
 
             obj = self.bound_to[0]
@@ -1503,6 +1509,7 @@ class RespawnPointEdit(DataEditor):
             obj = self.bound_to[0]
             if obj.respawn_id != self.respawn_id.value():
                 self.respawn_id.setValue(obj.respawn_id)
+            self.respawn_id_hex.setText(f'Hex: 0x{obj.respawn_id:02X}')
 
         self.respawn_id.valueChanged.connect(on_valueChanged)
         self.respawn_id.editingFinished.connect(on_editingFinished)
@@ -1514,6 +1521,7 @@ class RespawnPointEdit(DataEditor):
         self.position[2].setValueQuiet(obj.position.z)
         self.update_rotation(*self.rotation)
         self.respawn_id.setValueQuiet(obj.respawn_id)
+        self.respawn_id_hex.setText(f'Hex: 0x{obj.respawn_id:02X}')
         self.unk1.setValueQuiet(obj.unk1)
         self.unk2.setValueQuiet(obj.unk2)
         self.unk3.setValueQuiet(obj.unk3)
