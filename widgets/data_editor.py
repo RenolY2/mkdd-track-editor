@@ -752,17 +752,24 @@ class EnemyPointGroupEdit(DataEditor):
         self.groupid.setEnabled(len(self.bound_to) == 1)
 
         def on_valueChanged(value):
+            palette = self.groupid.palette()
+
             obj = self.bound_to[0]
             for i, group in enumerate(self.bol.enemypointgroups.groups):
                 if group is obj:
                     continue
                 if group.id == value:
                     print(f"Warning: Enemy path at index #{i} is already using ID {value}.")
+                    palette.setColor(QtGui.QPalette.ColorRole.Highlight, QtCore.Qt.red)
+                    self.groupid.setPalette(palette)
                     return
 
             obj.id = value
             for enemypathpoint in obj.points:
                 enemypathpoint.group = value
+
+            palette.setColor(QtGui.QPalette.ColorRole.Highlight, self.palette().highlight().color())
+            self.groupid.setPalette(palette)
 
             self.update_name()
 
@@ -1473,15 +1480,22 @@ class RespawnPointEdit(DataEditor):
         self.unk3.valueChanged.connect(lambda _value: self.catch_text_update())
 
         def on_valueChanged(value):
+            palette = self.respawn_id.palette()
+
             obj = self.bound_to[0]
             for i, respawn_point in enumerate(self.bol.respawnpoints):
                 if respawn_point is obj:
                     continue
                 if respawn_point.respawn_id == value:
                     print(f"Warning: Respawn point at index #{i} is already using ID {value}.")
+                    palette.setColor(QtGui.QPalette.ColorRole.Highlight, QtCore.Qt.red)
+                    self.respawn_id.setPalette(palette)
                     return
 
             obj.respawn_id = value
+
+            palette.setColor(QtGui.QPalette.ColorRole.Highlight, self.palette().highlight().color())
+            self.respawn_id.setPalette(palette)
 
             self.update_name()
 
