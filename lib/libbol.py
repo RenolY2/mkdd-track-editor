@@ -1442,13 +1442,17 @@ class Camera(PositionedObject):
 
         nextcam = self.nextcam
         self.nextcam = None
+        route = self.route
+        self.route = None
 
         try:
             new_object = deepcopy(self)
             new_object.nextcam = nextcam
+            new_object.route = route
         finally:
             self.widget = widget
             self.nextcam = nextcam
+            self.route = route
 
         return new_object
 
