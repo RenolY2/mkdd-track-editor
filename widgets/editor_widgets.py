@@ -382,6 +382,29 @@ def show_minimap_generator(editor: 'GenEditor'):
         min(minimap_generator.MINIMAP_WIDTH, minimap_generator.MINIMAP_HEIGHT) * 3 // 8,
         minimap_generator.DEFAULT_MARGIN)
     form_layout.addRow('Margin', margin_slider)
+    offset_tool_tip = (
+        'With small courses, the minimap can be built with a relatively large margin. It is in '
+        'those cases where it can be convenient to apply an offset, so that the <em>small</em> '
+        'minimap can be placed closer to the left-hand side edge of the screen.')
+    horizontal_offset_slider = SpinnableSlider()
+    horizontal_offset_slider.setToolTip(offset_tool_tip)
+    horizontal_offset_slider.set_step(1, 1)
+    horizontal_offset_slider.set_range(-minimap_generator.MINIMAP_WIDTH,
+                                       minimap_generator.MINIMAP_WIDTH, 0)
+    vertical_offset_slider = SpinnableSlider()
+    vertical_offset_slider.setToolTip(offset_tool_tip)
+    vertical_offset_slider.set_step(1, 1)
+    vertical_offset_slider.set_range(-minimap_generator.MINIMAP_HEIGHT,
+                                     minimap_generator.MINIMAP_HEIGHT, 0)
+    offset_widget = QtWidgets.QWidget()
+    offset_widget.setToolTip(offset_tool_tip)
+    offset_layout = QtWidgets.QHBoxLayout(offset_widget)
+    offset_layout.setContentsMargins(0, 0, 0, 0)
+    offset_layout.setSpacing(0)
+    offset_layout.addWidget(horizontal_offset_slider)
+    offset_layout.addWidget(vertical_offset_slider)
+    form_layout.addRow('Offset', offset_widget)
+    form_layout.labelForField(offset_widget).setToolTip(offset_tool_tip)
     outline_slider = SpinnableSlider()
     outline_slider.set_step(1, 1)
     outline_slider.set_range(0, 50, minimap_generator.DEFAULT_OUTLINE)
@@ -605,6 +628,8 @@ def show_minimap_generator(editor: 'GenEditor'):
         # Retrieve arguments.
         orientation = orientation_combobox.currentIndex()
         margin = margin_slider.get_value()
+        horizontal_offset = horizontal_offset_slider.get_value()
+        vertical_offset = vertical_offset_slider.get_value()
         outline = outline_slider.get_value()
         if outline_rasterization_mode_combined_pass_radiobutton.isChecked():
             outline_vertical_offset = outline_vertical_offset_slider.get_value()
@@ -623,10 +648,17 @@ def show_minimap_generator(editor: 'GenEditor'):
 
         # Generate the minimap image.
         image_placeholder.clear()
-        image, coordinates = minimap_generator.collision_to_minimap(editor.bco_coll, orientation,
-                                                                    margin, outline,
-                                                                    outline_vertical_offset,
-                                                                    multisampling, terrain_colors)
+        image, coordinates = minimap_generator.collision_to_minimap(
+            editor.bco_coll,
+            orientation,
+            margin,
+            horizontal_offset,
+            vertical_offset,
+            outline,
+            outline_vertical_offset,
+            multisampling,
+            terrain_colors,
+        )
         image_placeholder.append(image)
 
         # Update image widget with the final image.
@@ -660,6 +692,10 @@ def show_minimap_generator(editor: 'GenEditor'):
             orientation_combobox.setCurrentIndex(minimap_generator.DEFAULT_ORIENTATION)
         with blocked_signals(margin_slider):
             margin_slider.set_value(minimap_generator.DEFAULT_MARGIN)
+        with blocked_signals(horizontal_offset_slider):
+            horizontal_offset_slider.set_value(0)
+        with blocked_signals(vertical_offset_slider):
+            vertical_offset_slider.set_value(0)
         with blocked_signals(outline_slider):
             outline_slider.set_value(minimap_generator.DEFAULT_OUTLINE)
         with blocked_signals(outline_rasterization_mode_separate_passes_radiobutton):
@@ -695,6 +731,10 @@ def show_minimap_generator(editor: 'GenEditor'):
         orientation_combobox.setCurrentIndex(int(config['orientation']))
     if 'margin' in config:
         margin_slider.set_value(int(config['margin']))
+    if 'horizontal_offset' in config:
+        horizontal_offset_slider.set_value(int(config['horizontal_offset']))
+    if 'vertical_offset' in config:
+        vertical_offset_slider.set_value(int(config['vertical_offset']))
     if 'outline' in config:
         outline_slider.set_value(int(config['outline']))
     if 'outline_rasterization_mode' in config:
@@ -727,6 +767,8 @@ def show_minimap_generator(editor: 'GenEditor'):
     # Connect slots.
     orientation_combobox.currentIndexChanged.connect(lambda _index: update())
     margin_slider.value_changed.connect(lambda _value: update())
+    horizontal_offset_slider.value_changed.connect(lambda _value: update())
+    vertical_offset_slider.value_changed.connect(lambda _value: update())
     outline_slider.value_changed.connect(lambda _value: update())
     outline_rasterization_mode_combined_pass_radiobutton.toggled.connect(lambda checked: update()
                                                                          if checked else None)
@@ -750,6 +792,8 @@ def show_minimap_generator(editor: 'GenEditor'):
     # Save values in settings before returning.
     config['orientation'] = str(orientation_combobox.currentIndex())
     config['margin'] = str(margin_slider.get_value())
+    config['horizontal_offset'] = str(horizontal_offset_slider.get_value())
+    config['vertical_offset'] = str(vertical_offset_slider.get_value())
     config['outline'] = str(outline_slider.get_value())
     config['outline_rasterization_mode'] = (
         'combined_pass'
