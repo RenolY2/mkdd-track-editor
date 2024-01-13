@@ -1260,7 +1260,10 @@ class AreaEdit(DataEditor):
         set_tool_tip(self.lightparam_index, ttl.areadata['LightParam Index'])
 
         self.shape.currentIndexChanged.connect(lambda _index: self.catch_text_update())
+        self.shape.currentIndexChanged.connect(lambda index: self.scale[2].setVisible(index == 0))
         self.area_type.currentTextChanged.connect(self.update_name)
+        self.scale[0].valueChanged.connect(
+            lambda value: self.scale[2].isHidden() and self.scale[2].setValue(value))
 
     def update_data(self):
         obj: Area = get_average_obj(self.bound_to)
@@ -1271,6 +1274,7 @@ class AreaEdit(DataEditor):
         self.scale[0].setValueQuiet(obj.scale.x)
         self.scale[1].setValueQuiet(obj.scale.y)
         self.scale[2].setValueQuiet(obj.scale.z)
+        self.scale[2].setVisible(obj.shape == 0)
 
         self.update_rotation(*self.rotation)
 

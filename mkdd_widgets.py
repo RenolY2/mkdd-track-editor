@@ -1372,9 +1372,14 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     else:
                         glColor4f(*colors_area)
 
-                    draw_func = (self.models.draw_wireframe_cube
-                                 if object.shape == 0 else self.models.draw_wireframe_cylinder)
-                    draw_func(object.position, object.rotation, object.scale * 100)
+                    if object.shape == 0:
+                        draw_func = self.models.draw_wireframe_cube
+                        scale = object.scale
+                    else:
+                        draw_func = self.models.draw_wireframe_cylinder
+                        scale = object.scale.copy()
+                        scale.z = scale.x
+                    draw_func(object.position, object.rotation, scale * 100)
 
             if vismenu.cameras.is_visible():
                 for object in self.level_file.cameras:
