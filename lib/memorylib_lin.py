@@ -4,8 +4,8 @@ Module that provides functionality for hooking the MKDD Track Editor into Dolphi
 
 This module is used as a client-server application. In order to read/write from/to Dolphin's
 memory, elevated permissions are required. To avoid coupling the permissions with the MKDD Track
-Editor, a separate process (a server) is used to manage the memory read and writes. The MKDD Track
-Editor will communicate with the server via a TCP socket.
+Editor, a separate process (the Dolphin Hook server) is used to manage memory reads and writes. The
+MKDD Track Editor will communicate with the server via a TCP socket.
 
 To enable hooking into Dolphin in MKDD Track Editor in Linux, the server side needs to be started
 with elevated permissions in advance:
@@ -651,8 +651,8 @@ class DolphinClient:
 
         if self.__socket is None:
             script_path = os.path.realpath(__file__)
-            print('Ensure that the server is running in a separate process with elevated '
-                  f'permissions:\n\n   sudo python3 "{script_path}"')
+            print('Ensure that the Dolphin Hook server is running in a separate process with '
+                  f'elevated permissions:\n\n   sudo python3 "{script_path}"')
 
         return self.__socket is not None
 
