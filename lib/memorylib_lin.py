@@ -132,24 +132,25 @@ class DolphinProxy:
         return self.pid != -1
 
     def __get_emu_info(self):
+        maps_file_path = f'/proc/{self.pid}/maps'
         try:
-            maps_file = open(f"/proc/{self.pid}/maps".format(), 'r', encoding='ascii')
-        except IOError:
-            print(f"Cant open maps for process {self.pid}")
+            maps_file = open(maps_file_path, 'r', encoding='ascii')
+        except IOError as e:
+            print(f'Unable to open "{maps_file_path}": {str(e)}')
+            return False
 
-        heap_info = None
         for line in maps_file:
             if '/dev/shm/dolphinmem' in line:
                 heap_info = line.split()
-            if '/dev/shm/dolphin-emu' in line:
+            elif '/dev/shm/dolphin-emu' in line:
                 heap_info = line.split()
-            if heap_info is None:
+            else:
                 continue
 
             offset = 0
             offset_str = "0x" + str(heap_info[2])
             offset = int(offset_str, 16)
-            if offset != 0 and offset != 0x2000000:
+            if offset not in (0, 0x2000000):
                 continue
             first_address = 0
             second_address = 0
@@ -166,6 +167,8 @@ class DolphinProxy:
                 self.mem2_exists = True
             if (second_address - first_address) == 0x2000000 and offset == 0x0:
                 self.address_start = first_address
+
+            break
 
         return self.address_start != 0
 
