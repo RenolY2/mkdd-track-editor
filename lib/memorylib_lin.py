@@ -68,7 +68,7 @@ vm.argtypes = [
     ctypes.c_ulong,
     ctypes.POINTER(iovec),
     ctypes.c_ulong,
-    ctypes.c_ulong
+    ctypes.c_ulong,
 ]
 vmwrite = libc.process_vm_writev
 vmwrite.argtypes = [
@@ -77,7 +77,7 @@ vmwrite.argtypes = [
     ctypes.c_ulong,
     ctypes.POINTER(iovec),
     ctypes.c_ulong,
-    ctypes.c_ulong
+    ctypes.c_ulong,
 ]
 
 
