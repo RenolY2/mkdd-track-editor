@@ -48,7 +48,6 @@ import socket
 import struct
 import subprocess
 import tempfile
-from typing import Type
 
 try:
     from vectors import Vector3
