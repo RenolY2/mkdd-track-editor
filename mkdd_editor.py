@@ -2417,7 +2417,8 @@ class GenEditor(QtWidgets.QMainWindow):
 
     def _check_errors_on_saving(self) -> bool:
         error_count = self.error_analyzer_button.get_error_count()
-        if error_count > 0:
+        ignore_error = self.configuration.getboolean("editor", "ignore_errors_on_save", fallback=False)
+        if not ignore_error and error_count > 0:
             msgbox = QtWidgets.QMessageBox(self)
             size = self.fontMetrics().height() * 3
             msgbox.setIconPixmap(QtGui.QIcon('resources/warning.svg').pixmap(size, size))
