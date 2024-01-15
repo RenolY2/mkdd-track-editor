@@ -2423,7 +2423,7 @@ class GenEditor(QtWidgets.QMainWindow):
             msgbox.setIconPixmap(QtGui.QIcon('resources/warning.svg').pixmap(size, size))
             msgbox.setWindowTitle("Course Errors")
             if error_count == 1:
-                text = f'There os {error_count} error in the course.'
+                text = f'There is {error_count} error in the course.'
             else:
                 text = f'There are {error_count} errors in the course.'
             text += '\n\nWould you like to save the document anyway?'
