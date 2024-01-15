@@ -1973,7 +1973,11 @@ class BOL(object):
                 return route, route.points.index(point)
         return None, None
 
-with open("lib/mkddobjects.json", "r") as f:
+
+script_path = os.path.realpath(__file__)
+script_dir = os.path.dirname(script_path)
+
+with open(os.path.join(script_dir, 'mkddobjects.json'), 'r', encoding='utf-8') as f:
     tmp = json.load(f)
     OBJECTNAMES = {}
     for key, val in tmp.items():
@@ -1987,7 +1991,7 @@ valpairs.sort(key=lambda x: x[1])
 for key, val in valpairs:
     REVERSEOBJECTNAMES[OBJECTNAMES[key]] = key
 
-with open("lib/music_ids.json", "r") as f:
+with open(os.path.join(script_dir, 'music_ids.json'), 'r', encoding='utf-8') as f:
     tmp = json.load(f)
     MUSIC_IDS = {}
     for key, val in tmp.items():
