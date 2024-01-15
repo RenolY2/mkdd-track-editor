@@ -501,7 +501,13 @@ class EnemyPointGroups(object):
             for point in group.points:
                 yield point
 
+    def used_ids(self) -> set[int]:
+        return set(group.id for group in self.groups)
+
     def new_group_id(self):
+        for i, used_id in enumerate(sorted(self.used_ids())):
+            if i != used_id:
+                return i
         return len(self.groups)
 
     def used_links(self):
@@ -752,7 +758,13 @@ class CheckpointGroups(object):
 
         return checkpointgroups
 
+    def used_ids(self) -> set[int]:
+        return set(group.grouplink for group in self.groups)
+
     def new_group_id(self):
+        for i, used_id in enumerate(sorted(self.used_ids())):
+            if i != used_id:
+                return i
         return len(self.groups)
 
     def points(self):
