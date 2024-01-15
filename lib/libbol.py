@@ -1966,19 +1966,27 @@ class BOL(object):
         self.write(f)
         return f.getvalue()
 
-    def adjust_respawn_point(self, respawn_point: JugemPoint):
-        new_id = 0
-        used_ids = set(rsp.respawn_id for rsp in self.respawnpoints)
-        while new_id in used_ids:
-            new_id += 1
-        respawn_point.respawn_id = new_id
+    def adjust_respawn_point(self,
+                             respawn_point: JugemPoint,
+                             also_id: bool = True,
+                             also_rotation: bool = True):
+        if also_id:
+            used_ids = set(rsp.respawn_id for rsp in self.respawnpoints)
+            for i, used_id in enumerate(sorted(used_ids)):
+                if i != used_id:
+                    new_id = i
+                    break
+            else:
+                new_id = len(self.respawnpoints)
+            respawn_point.respawn_id = new_id
 
         try:
             point_index, enemy_point = self.enemypointgroups.find_closest_forward_point(
                 respawn_point.position)
             respawn_point.unk1 = point_index
-            respawn_point.rotation = Rotation.from_points_2D(respawn_point.position,
-                                                             enemy_point.position)
+            if also_rotation:
+                respawn_point.rotation = Rotation.from_points_2D(respawn_point.position,
+                                                                 enemy_point.position)
         except ValueError:
             pass
 
