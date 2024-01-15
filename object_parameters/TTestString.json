@@ -1,8 +1,8 @@
 {
     "Object Parameters": [
-        "Unknown 1",
-        "Unknown 2",
-        "Unknown 3",
+        "Rope Segments",
+        "Rope Length",
+        "Simple Build",
         "Unused",
         "Unused",
         "Unused",
@@ -10,7 +10,20 @@
         "Unused"
     ],
     "Assets": [
+        "testhimo1.bmd",
+        "testhimo1shadow.bmd",
+        "testhimo1tex.bti",
         "testhimo1ukiwa.bmd"
+    ],
+    "Tooltips": [
+        "If not set to a value greater than `2`, the value is automatically overridden to `5`.",
+        "If not set to a value greater than `0`, the value is automatically overridden to `1000`.",
+        "If checked (default), the rope is built with a simpler segment chain.",
+        "",
+        "",
+        "",
+        "",
+        ""
     ],
     "RouteInfo": "None",
     "DefaultValues": [
@@ -22,5 +35,15 @@
         0,
         0,
         0
+    ],
+    "Widgets": [
+        null,
+        null,
+        "checkbox",
+        null,
+        null,
+        null,
+        null,
+        null
     ]
 }
