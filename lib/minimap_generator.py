@@ -51,6 +51,8 @@ def bco_to_minimap(
     filepath: str,
     orientation: int = DEFAULT_ORIENTATION,
     margin: int = DEFAULT_MARGIN,
+    horizontal_offset: int = 0,
+    vertical_offset: int = 0,
     outline: int = DEFAULT_OUTLINE,
     outline_vertical_offset: int = DEFAULT_OUTLINE_VERTICAL_OFFSET,
     multisampling: int = DEFAULT_MULTISAMPLING,
@@ -68,14 +70,25 @@ def bco_to_minimap(
             builtins.print = print_bk
             del print_bk
 
-    return collision_to_minimap(collision, orientation, margin, outline, outline_vertical_offset,
-                                multisampling, terrain_colors)
+    return collision_to_minimap(
+        collision,
+        orientation,
+        margin,
+        horizontal_offset,
+        vertical_offset,
+        outline,
+        outline_vertical_offset,
+        multisampling,
+        terrain_colors,
+    )
 
 
 def collision_to_minimap(
     collision: BCOllider.RacetrackCollision,
     orientation: int = DEFAULT_ORIENTATION,
     margin: int = DEFAULT_MARGIN,
+    horizontal_offset: int = 0,
+    vertical_offset: int = 0,
     outline: int = DEFAULT_OUTLINE,
     outline_vertical_offset: int = DEFAULT_OUTLINE_VERTICAL_OFFSET,
     multisampling: int = DEFAULT_MULTISAMPLING,
@@ -195,6 +208,12 @@ def collision_to_minimap(
             method = Image.ROTATE_90
         image = image.transpose(method)
 
+    # Apply offset.
+    if horizontal_offset or vertical_offset:
+        offset_image = Image.new(image.mode, image.size)
+        offset_image.alpha_composite(image, (horizontal_offset, vertical_offset))
+        image = offset_image
+
     # Calculate coordinates based on aspect ratio and margin.
     if scale_x < scale_z:
         coordinates_margin = box_width * (minimap_width / (minimap_width - margin * 2) - 1) / 2
@@ -214,5 +233,27 @@ def collision_to_minimap(
                        min_z - coordinates_margin,
                        max_x + coordinates_margin + coordinates_horizontal_increment / 2,
                        max_z + coordinates_margin)
+
+    # Apply offset to coordinates.
+    adjusted_box_width = coordinates[2] - coordinates[0]
+    adjusted_box_height = coordinates[3] - coordinates[1]
+    if orientation == 0:
+        adjusted_horizontal_offset = adjusted_box_width * horizontal_offset / MINIMAP_WIDTH
+        adjusted_vertical_offset = adjusted_box_height * vertical_offset / MINIMAP_HEIGHT
+    elif orientation == 1:
+        adjusted_horizontal_offset = adjusted_box_height * vertical_offset / MINIMAP_WIDTH
+        adjusted_vertical_offset = -adjusted_box_width * horizontal_offset / MINIMAP_HEIGHT
+    elif orientation == 2:
+        adjusted_horizontal_offset = -adjusted_box_width * horizontal_offset / MINIMAP_WIDTH
+        adjusted_vertical_offset = -adjusted_box_height * vertical_offset / MINIMAP_HEIGHT
+    else:
+        adjusted_horizontal_offset = -adjusted_box_height * vertical_offset / MINIMAP_WIDTH
+        adjusted_vertical_offset = adjusted_box_width * horizontal_offset / MINIMAP_HEIGHT
+    coordinates = (
+        coordinates[0] - adjusted_horizontal_offset,
+        coordinates[1] - adjusted_vertical_offset,
+        coordinates[2] - adjusted_horizontal_offset,
+        coordinates[3] - adjusted_vertical_offset,
+    )
 
     return image, coordinates
