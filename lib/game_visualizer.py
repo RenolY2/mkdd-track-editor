@@ -87,9 +87,17 @@ class Game:
     def initialize(self):
         self.dolphin.reset()
 
-        if not self.dolphin.find_dolphin():
+        sink = io.StringIO()
+        with contextlib.redirect_stdout(sink), contextlib.redirect_stderr(sink):
+            dolphin_found = self.dolphin.find_dolphin()
+
+        if not dolphin_found:
             self.dolphin.reset()
-            return "Dolphin not found."
+            call_error_messages = sink.getvalue()
+            error_message = "Dolphin not found."
+            if call_error_messages:
+                error_message += f'\n\n{call_error_messages}'
+            return error_message
 
         if not self.dolphin.init():
             self.dolphin.reset()

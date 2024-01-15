@@ -4,8 +4,8 @@ Module that provides functionality for hooking the MKDD Track Editor into Dolphi
 
 This module is used as a client-server application. In order to read/write from/to Dolphin's
 memory, elevated permissions are required. To avoid coupling the permissions with the MKDD Track
-Editor, a separate process (a server) is used to manage the memory read and writes. The MKDD Track
-Editor will communicate with the server via a TCP socket.
+Editor, a separate process (the Dolphin Hook server) is used to manage memory reads and writes. The
+MKDD Track Editor will communicate with the server via a TCP socket.
 
 To enable hooking into Dolphin in MKDD Track Editor in Linux, the server side needs to be started
 with elevated permissions in advance:
@@ -48,7 +48,6 @@ import socket
 import struct
 import subprocess
 import tempfile
-from typing import Type
 
 try:
     from vectors import Vector3
@@ -68,7 +67,7 @@ vm.argtypes = [
     ctypes.c_ulong,
     ctypes.POINTER(iovec),
     ctypes.c_ulong,
-    ctypes.c_ulong
+    ctypes.c_ulong,
 ]
 vmwrite = libc.process_vm_writev
 vmwrite.argtypes = [
@@ -77,7 +76,7 @@ vmwrite.argtypes = [
     ctypes.c_ulong,
     ctypes.POINTER(iovec),
     ctypes.c_ulong,
-    ctypes.c_ulong
+    ctypes.c_ulong,
 ]
 
 
@@ -133,24 +132,25 @@ class DolphinProxy:
         return self.pid != -1
 
     def __get_emu_info(self):
+        maps_file_path = f'/proc/{self.pid}/maps'
         try:
-            maps_file = open(f"/proc/{self.pid}/maps".format(), 'r', encoding='ascii')
-        except IOError:
-            print(f"Cant open maps for process {self.pid}")
+            maps_file = open(maps_file_path, 'r', encoding='ascii')
+        except IOError as e:
+            print(f'Unable to open "{maps_file_path}": {str(e)}')
+            return False
 
-        heap_info = None
         for line in maps_file:
             if '/dev/shm/dolphinmem' in line:
                 heap_info = line.split()
-            if '/dev/shm/dolphin-emu' in line:
+            elif '/dev/shm/dolphin-emu' in line:
                 heap_info = line.split()
-            if heap_info is None:
+            else:
                 continue
 
             offset = 0
             offset_str = "0x" + str(heap_info[2])
             offset = int(offset_str, 16)
-            if offset != 0 and offset != 0x2000000:
+            if offset not in (0, 0x2000000):
                 continue
             first_address = 0
             second_address = 0
@@ -167,6 +167,8 @@ class DolphinProxy:
                 self.mem2_exists = True
             if (second_address - first_address) == 0x2000000 and offset == 0x0:
                 self.address_start = first_address
+
+            break
 
         return self.address_start != 0
 
@@ -651,8 +653,8 @@ class DolphinClient:
 
         if self.__socket is None:
             script_path = os.path.realpath(__file__)
-            print('Ensure that the server is running in a separate process with elevated '
-                  f'permissions:\n\n   sudo python3 "{script_path}"')
+            print('Ensure that the Dolphin Hook server is running in a separate process with '
+                  f'elevated permissions:\n\n   sudo python3 "{script_path}"')
 
         return self.__socket is not None
 
