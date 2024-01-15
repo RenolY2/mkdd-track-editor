@@ -391,11 +391,12 @@ class DataEditor(QtWidgets.QWidget):
         spinbox = SpinBox(self)
         spinbox.setRange(min_val, max_val)
 
-        def on_spinbox_valueChanged(value):
-            for obj in self.bound_to:
-                setattr(obj, attribute, value)
+        if attribute is not None:
+            def on_spinbox_valueChanged(value):
+                for obj in self.bound_to:
+                    setattr(obj, attribute, value)
 
-        spinbox.valueChanged.connect(on_spinbox_valueChanged)
+            spinbox.valueChanged.connect(on_spinbox_valueChanged)
 
         layout = self.create_labeled_widget(self, text, spinbox)
         self.vbox.addLayout(layout)
@@ -828,12 +829,49 @@ def choose_data_editor(objs):
 
 class EnemyPointGroupEdit(DataEditor):
     def setup_widgets(self):
-        if len(self.bound_to) == 1:
-            self.groupid = self.add_integer_input("Group ID", "id", MIN_UNSIGNED_BYTE, MAX_UNSIGNED_BYTE)
+        self.groupid = self.add_integer_input("Group ID", None, MIN_UNSIGNED_BYTE,
+                                                MAX_UNSIGNED_BYTE)
+        self.groupid.setEnabled(len(self.bound_to) == 1)
+
+        def on_valueChanged(value):
+            palette = self.groupid.palette()
+
+            obj = self.bound_to[0]
+            for i, group in enumerate(self.bol.enemypointgroups.groups):
+                if group is obj:
+                    continue
+                if group.id == value:
+                    print(f"Warning: Enemy path at index #{i} is already using ID {value}.")
+                    palette.setColor(QtGui.QPalette.ColorRole.Highlight, QtCore.Qt.red)
+                    self.groupid.setPalette(palette)
+                    return
+
+            obj.id = value
+            for enemypathpoint in obj.points:
+                enemypathpoint.group = value
+
+            palette.setColor(QtGui.QPalette.ColorRole.Highlight, self.palette().highlight().color())
+            self.groupid.setPalette(palette)
+
+            self.update_name()
+
+        def on_editingFinished():
+            obj = self.bound_to[0]
+            if obj.id != self.groupid.value():
+                self.groupid.setValue(obj.id)
+
+        self.groupid.valueChanged.connect(on_valueChanged)
+        self.groupid.editingFinished.connect(on_editingFinished)
 
     def update_data(self):
-        if len(self.bound_to) == 1:
-            self.groupid.setValueQuiet(self.bound_to[0].id)
+        obj: EnemyPointGroup = get_average_obj(self.bound_to)
+        self.groupid.setValueQuiet(obj.id)
+
+    def update_name(self):
+        for obj in self.bound_to:
+            if obj.widget is None:
+                continue
+            obj.widget.update_name()
 
 
 DRIFT_DIRECTION_OPTIONS = OrderedDict()
@@ -914,6 +952,7 @@ class EnemyPointEdit(DataEditor):
             if obj.widget is None:
                 continue
             obj.widget.update_name()
+            obj.widget.parent().update_name()
 
 
 class CheckpointGroupEdit(DataEditor):
@@ -1509,8 +1548,13 @@ class RespawnPointEdit(DataEditor):
         self.position = self.add_multiple_decimal_input("Position", "position", ["x", "y", "z"],
                                                         -inf, +inf)
         self.rotation = self.add_rotation_input()
-        self.respawn_id = self.add_integer_input("Respawn ID", "respawn_id",
+        self.respawn_id = self.add_integer_input("Respawn ID", None,
                                                  MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
+        self.respawn_id.setEnabled(len(self.bound_to) == 1)
+        self.respawn_id_hex = QtWidgets.QLineEdit()
+        self.respawn_id_hex.setReadOnly(True)
+        self.respawn_id_hex.setDisabled(True)
+        self.respawn_id.property('parent_layout').addWidget(self.respawn_id_hex)
         set_tool_tip(self.respawn_id, ttl.respawn['Respawn ID'])
         self.unk1 = self.add_integer_input("Next Enemy Point", "unk1",
                                            MIN_UNSIGNED_SHORT, MAX_UNSIGNED_SHORT)
@@ -1525,8 +1569,36 @@ class RespawnPointEdit(DataEditor):
         set_tool_tip(self.unk3, ttl.respawn['Previous Checkpoint'])
         self.unk3.valueChanged.connect(lambda _value: self.catch_text_update())
 
+        def on_valueChanged(value):
+            self.respawn_id_hex.setText(f'Hex: 0x{value:02X}')
 
-        self.respawn_id.valueChanged.connect(lambda _value: self.update_name())
+            palette = self.respawn_id.palette()
+
+            obj = self.bound_to[0]
+            for i, respawn_point in enumerate(self.bol.respawnpoints):
+                if respawn_point is obj:
+                    continue
+                if respawn_point.respawn_id == value:
+                    print(f"Warning: Respawn point at index #{i} is already using ID {value}.")
+                    palette.setColor(QtGui.QPalette.ColorRole.Highlight, QtCore.Qt.red)
+                    self.respawn_id.setPalette(palette)
+                    return
+
+            obj.respawn_id = value
+
+            palette.setColor(QtGui.QPalette.ColorRole.Highlight, self.palette().highlight().color())
+            self.respawn_id.setPalette(palette)
+
+            self.update_name()
+
+        def on_editingFinished():
+            obj = self.bound_to[0]
+            if obj.respawn_id != self.respawn_id.value():
+                self.respawn_id.setValue(obj.respawn_id)
+            self.respawn_id_hex.setText(f'Hex: 0x{obj.respawn_id:02X}')
+
+        self.respawn_id.valueChanged.connect(on_valueChanged)
+        self.respawn_id.editingFinished.connect(on_editingFinished)
 
     def update_data(self):
         obj: JugemPoint = get_average_obj(self.bound_to)
@@ -1535,6 +1607,7 @@ class RespawnPointEdit(DataEditor):
         self.position[2].setValueQuiet(obj.position.z)
         self.update_rotation(*self.rotation)
         self.respawn_id.setValueQuiet(obj.respawn_id)
+        self.respawn_id_hex.setText(f'Hex: 0x{obj.respawn_id:02X}')
         self.unk1.setValueQuiet(obj.unk1)
         self.unk2.setValueQuiet(obj.unk2)
         self.unk3.setValueQuiet(obj.unk3)
