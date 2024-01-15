@@ -193,6 +193,60 @@ class ClickableLabel(QtWidgets.QLabel):
             self.clicked.emit()
 
 
+class CompleterComboBox(QtWidgets.QComboBox):
+
+    item_changed = QtCore.Signal(str)
+
+    def __init__(self, bound_to, attribute, keyval_dict, parent: QtWidgets.QWidget = None):
+        super().__init__(parent=parent)
+
+        policy = self.sizePolicy()
+        policy.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
+        self.setSizePolicy(policy)
+        self.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+
+        for val in keyval_dict:
+            self.addItem(val)
+
+        self.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
+        self.setEditable(True)
+        lineedit = self.lineEdit()
+
+        def on_editingFinished():
+            key = lineedit.text()
+            if key not in keyval_dict:
+                # It may be a partial match in the completer. If not a valid key, revert back to
+                # the key based on the current value of the object.
+                obj = get_average_obj(bound_to)
+                value = getattr(obj, attribute)
+                for k, v in keyval_dict.items():
+                    if v == value:
+                        key = k
+                        break
+                else:
+                    return
+
+            lineedit.setText(key)
+            self.setCurrentText(key)
+            self.item_changed.emit(key)
+
+        lineedit.editingFinished.connect(on_editingFinished)
+
+        completer = QtWidgets.QCompleter(sorted(keyval_dict), self)
+        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        completer.setFilterMode(QtCore.Qt.MatchContains)
+
+        max_visible_items = min(30, len(keyval_dict))
+        completer.setMaxVisibleItems(max_visible_items)
+        self.setMaxVisibleItems(max_visible_items)
+
+        completer.activated[str].connect(self.item_changed)
+        self.currentIndexChanged.connect(
+            lambda index: self.item_changed.emit(list(keyval_dict)[index]))
+
+        lineedit.setCompleter(completer)
+
+
 class ColorPicker(ClickableLabel):
 
     color_changed = QtCore.Signal(QtGui.QColor)
@@ -404,6 +458,26 @@ class DataEditor(QtWidgets.QWidget):
                     tt_dict.get(item) or ttl.markdown_to_html(item, 'Description not available.'))
 
         combobox.currentTextChanged.connect(item_selected)
+        self.vbox.addLayout(layout)
+
+        return combobox
+
+    def add_completer_dropdown_input(self, text, attribute, keyval_dict):
+        combobox = CompleterComboBox(self.bound_to, attribute, keyval_dict, self)
+
+        layout = self.create_labeled_widget(self, text, combobox)
+
+        def on_item_selected(item):
+            val = keyval_dict[item]
+            for obj in self.bound_to:
+                setattr(obj, attribute, val)
+
+            tt_dict = getattr(ttl, attribute, {})
+            if tt_dict:
+                combobox.setToolTip(
+                    tt_dict.get(item) or ttl.markdown_to_html(item, 'Description not available.'))
+
+        combobox.item_changed.connect(on_item_selected)
         self.vbox.addLayout(layout)
 
         return combobox
@@ -1004,7 +1078,8 @@ class ObjectEdit(DataEditor):
         for spinbox in self.scale:
             spinbox.setSingleStep(0.1)
         self.rotation = self.add_rotation_input()
-        self.objectid = self.add_dropdown_input("Object Type", "objectid", REVERSEOBJECTNAMES)
+        self.objectid = self.add_completer_dropdown_input("Object Type", "objectid",
+                                                          REVERSEOBJECTNAMES)
         self.prev_objectname = None
 
         #self.pathid = self.add_integer_input("Route ID", "pathid",
@@ -1052,12 +1127,12 @@ class ObjectEdit(DataEditor):
         self.userdata_layout = QtWidgets.QVBoxLayout()
         self.vbox.addLayout(self.userdata_layout)
 
-        self.objectid.currentTextChanged.connect(self.update_name)
+        self.objectid.item_changed.connect(lambda _item: self.update_name())
 
         for widget in self.position:
             widget.valueChanged.connect(lambda _value: self.catch_text_update())
 
-        self.objectid.currentTextChanged.connect(self.rebuild_object_parameters_widgets)
+        self.objectid.item_changed.connect(self.rebuild_object_parameters_widgets)
 
         self.assets = QtWidgets.QLineEdit()
         self.assets.setReadOnly(True)
