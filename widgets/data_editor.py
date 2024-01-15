@@ -400,7 +400,8 @@ class DataEditor(QtWidgets.QWidget):
 
             tt_dict = getattr(ttl, attribute, {})
             if tt_dict:
-                combobox.setToolTip(tt_dict.get(item, ''))
+                combobox.setToolTip(
+                    tt_dict.get(item) or ttl.markdown_to_html(item, 'Description not available.'))
 
         combobox.currentTextChanged.connect(item_selected)
         self.vbox.addLayout(layout)
@@ -565,7 +566,7 @@ class DataEditor(QtWidgets.QWidget):
         return widget
 
     def update_rotation(self, forwardedits, upedits, leftedits):
-        rotation = get_average_obj(self.bound_to).rotation
+        rotation = self.average_rotation
         forward, up, left = rotation.get_vectors()
 
         for attr in ("x", "y", "z"):
@@ -596,6 +597,7 @@ class DataEditor(QtWidgets.QWidget):
 
     def add_rotation_input(self):
         rotation = get_average_obj(self.bound_to).rotation
+        self.average_rotation = rotation
         forward_spinboxes = []
         up_spinboxes = []
         left_spinboxes = []
@@ -620,6 +622,8 @@ class DataEditor(QtWidgets.QWidget):
             left.normalize()
 
             rotation.set_vectors(newforward, up, left)
+            for obj in self.bound_to:
+                obj.rotation.set_vectors(newforward, up, left)
             self.update_rotation(forward_spinboxes, up_spinboxes, left_spinboxes)
 
         def change_up():
@@ -634,6 +638,8 @@ class DataEditor(QtWidgets.QWidget):
             left.normalize()
 
             rotation.set_vectors(forward, newup, left)
+            for obj in self.bound_to:
+                obj.rotation.set_vectors(forward, newup, left)
             self.update_rotation(forward_spinboxes, up_spinboxes, left_spinboxes)
 
         def change_left():
@@ -649,6 +655,8 @@ class DataEditor(QtWidgets.QWidget):
             up.normalize()
 
             rotation.set_vectors(forward, up, newleft)
+            for obj in self.bound_to:
+                obj.rotation.set_vectors(forward, up, newleft)
             self.update_rotation(forward_spinboxes, up_spinboxes, left_spinboxes)
 
         for edit in forward_spinboxes:
@@ -1128,6 +1136,9 @@ class ObjectEdit(DataEditor):
         index = self.objectid.findText(name)
         with QtCore.QSignalBlocker(self.objectid):
             self.objectid.setCurrentIndex(index)
+
+        self.objectid.setToolTip(ttl.objectid.get(name)
+                                 or ttl.markdown_to_html(name, 'Description not available.'))
 
         #self.pathid.setValueQuiet(obj.pathid)
 

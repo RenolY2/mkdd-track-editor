@@ -474,6 +474,8 @@ class GenEditor(QtWidgets.QMainWindow):
 
                 self.error_analyzer_button.analyze_bol(self.level_file)
 
+                self.action_update_data_editor_label()
+
     def update_undo_redo_actions(self):
         self.undo_action.setEnabled(len(self.undo_history) > 1)
         self.redo_action.setEnabled(bool(self.redo_history))
@@ -3641,30 +3643,28 @@ class GenEditor(QtWidgets.QMainWindow):
 
     @catch_exception
     def action_update_info(self):
-        if self.level_file is not None:
-            selected = self.level_view.selected
-            objects = []
-            if len(selected) == 1:
-                currentobj = selected[0]
-                if isinstance(currentobj, Route):
-                    index = self.level_file.routes.index(currentobj)
-                    for object in self.level_file.objects.objects:
-                        if object.route == currentobj:
-                            objects.append(get_full_name(object.objectid))
-                    for i, camera in enumerate(self.level_file.cameras):
-                        if camera.route == currentobj:
-                            objects.append("Camera {0}".format(i))
-            else:
-                self.pik_control.reset_info("{0} objects selected".format(len(self.level_view.selected)))
-                self.pik_control.set_objectlist(selected)
+        self.action_update_data_editor_label()
+        self.pik_control.set_info(self.level_view.selected, self.update_3d)
+        self.pik_control.update_info()
 
-            viewer_toolbar = self.level_view.viewer_toolbar
-            viewer_toolbar.delete_button.setEnabled(self.can_delete_objects())
-            viewer_toolbar.ground_button.setEnabled(self.can_ground_objects())
-            viewer_toolbar.distribute_button.setEnabled(self.can_distribute_objects())
+        viewer_toolbar = self.level_view.viewer_toolbar
+        viewer_toolbar.delete_button.setEnabled(self.can_delete_objects())
+        viewer_toolbar.ground_button.setEnabled(self.can_ground_objects())
+        viewer_toolbar.distribute_button.setEnabled(self.can_distribute_objects())
 
-            self.pik_control.set_info(selected, self.update_3d, objects)
-            self.pik_control.update_info()
+    def action_update_data_editor_label(self):
+        usedby = []
+        selected = self.level_view.selected
+        if len(selected) == 1:
+            currentobj = selected[0]
+            if isinstance(currentobj, Route):
+                for obj in self.level_file.objects.objects:
+                    if obj.route == currentobj:
+                        usedby.append(get_full_name(obj.objectid))
+                for i, camera in enumerate(self.level_file.cameras):
+                    if camera.route == currentobj:
+                        usedby.append(f'Camera {i}')
+        self.pik_control.set_label(selected, usedby)
 
     @catch_exception
     def mapview_showcontextmenu(self, position):
