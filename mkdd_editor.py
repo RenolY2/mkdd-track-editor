@@ -2964,6 +2964,8 @@ class GenEditor(QtWidgets.QMainWindow):
         if self.level_view.focused:
             if event.key() == QtCore.Qt.Key_Shift:
                 self.level_view.shift_is_pressed = True
+            if event.key() == QtCore.Qt.Key_Control:
+                self.level_view.ctrl_is_pressed = True
 
             if event.key() == QtCore.Qt.Key_W:
                 self.level_view.MOVE_FORWARD = 1
@@ -2984,6 +2986,8 @@ class GenEditor(QtWidgets.QMainWindow):
 
         if event.key() == QtCore.Qt.Key_Shift:
             self.level_view.shift_is_pressed = False
+        if event.key() == QtCore.Qt.Key_Control:
+            self.level_view.ctrl_is_pressed = False
 
         if event.key() == QtCore.Qt.Key_W:
             self.level_view.MOVE_FORWARD = 0
@@ -3006,6 +3010,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.level_view.MOVE_UP = 0
         self.level_view.MOVE_DOWN = 0
         self.level_view.shift_is_pressed = False
+        self.level_view.ctrl_is_pressed = False
 
     def action_rotate_object(self, deltarotation):
         #obj.set_rotation((None, round(angle, 6), None))

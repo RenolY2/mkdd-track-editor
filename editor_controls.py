@@ -133,8 +133,14 @@ class TopdownSelect(ClickDragAction):
         startz = min(selectstartz, selectendz)
         endz = max(selectstartz, selectendz)
 
-        editor.selectionqueue.queue_selection(int(startx), int(endz), int(endx - startx) + 1, int(endz - startz) + 1,
-                                       editor.shift_is_pressed)
+        editor.selectionqueue.queue_selection(
+            int(startx),
+            int(endz),
+            int(endx - startx) + 1,
+            int(endz - startz) + 1,
+            editor.shift_is_pressed,
+            editor.ctrl_is_pressed,
+        )
 
         editor.do_redraw(force=True)
 
@@ -150,8 +156,15 @@ class Gizmo2DMoveX(ClickDragAction):
         # the gizmo, we want the first press event to already make the gizmo handle interactive.
         # Therefore, the event is scheduled on the press event (instead of in the natural release
         # event).
-        editor.selectionqueue.queue_selection(event.x(), event.y(), 1, 1,
-                                              editor.shift_is_pressed, do_gizmo=True)
+        editor.selectionqueue.queue_selection(
+            event.x(),
+            event.y(),
+            1,
+            1,
+            editor.shift_is_pressed,
+            editor.ctrl_is_pressed,
+            do_gizmo=True,
+        )
         editor.do_redraw(force=True)
 
     def move(self, editor, buttons, event):
@@ -319,8 +332,14 @@ class Select3D(ClickDragAction):
         startz = min(selectstartz, selectendz)
         endz = max(selectstartz, selectendz)
 
-        editor.selectionqueue.queue_selection(int(startx), int(endz), int(endx - startx) + 1, int(endz - startz) + 1,
-                                       editor.shift_is_pressed)
+        editor.selectionqueue.queue_selection(
+            int(startx),
+            int(endz),
+            int(endx - startx) + 1,
+            int(endz - startz) + 1,
+            editor.shift_is_pressed,
+            editor.ctrl_is_pressed,
+        )
 
         editor.do_redraw(force=True)
 
