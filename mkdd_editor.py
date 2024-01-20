@@ -2616,7 +2616,8 @@ class GenEditor(QtWidgets.QMainWindow):
                 selected_item.setSelected(False)
 
             # Make last item in the new selection current (focus effect), and select new items.
-            self.leveldatatreeview.setCurrentItem(new_item_selection[-1])
+            self.leveldatatreeview.setCurrentItem(new_item_selection[-1], 0,
+                                                  QtCore.QItemSelectionModel.ClearAndSelect)
             for bound_item in new_item_selection:
                 bound_item.setSelected(True)
 
@@ -3618,7 +3619,8 @@ class GenEditor(QtWidgets.QMainWindow):
                     self.leveldatatreeview.blockSignals(True)
 
                 if item is not None:
-                    self.leveldatatreeview.setCurrentItem(item)
+                    self.leveldatatreeview.setCurrentItem(item, 0,
+                                                          QtCore.QItemSelectionModel.ClearAndSelect)
                     self.level_view.selected_positions = selected_positions
 
                 if suppress_signal:
