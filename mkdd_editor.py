@@ -3879,6 +3879,7 @@ if __name__ == "__main__":
             padding: {padding}px;
             border: 1px solid rgb(32, 32, 32);
             background: rgb(40, 40, 40);
+            color: rgb(200, 200, 200);
         }}
     """)
 
