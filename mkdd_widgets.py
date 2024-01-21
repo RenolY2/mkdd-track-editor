@@ -37,6 +37,7 @@ lap_checkpoint_color = (115 / 255, 210 / 255, 22 / 255)
 with open("lib/color_coding.json", "r") as f:
     colors_json = json.load(f)
     colors_selection = colors_json["SelectionColor"]
+    colors_active = colors_json["ActiveColor"]
     colors_area  = colors_json["Areas"]
 
 
@@ -1054,7 +1055,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             selected = self.selected
             positions = self.selected_positions
 
-            select_optimize = {x:True for x in selected}
+            select_optimize = set(selected)
+            active_element = self.selected[-1] if self.selected else None
 
             visible_objectroutes = vismenu.objectroutes.is_visible()
             visible_cameraroutes = vismenu.cameraroutes.is_visible()
@@ -1143,7 +1145,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                             glColor3f(1.0, 1.0, 0.0)
                             self.models.draw_sphere(point.position, 600)
 
-                        self.models.render_generic_position_colored(point.position, point in select_optimize, "enemypoint")
+                        selected_value = 2 if point is active_element else point in select_optimize
+                        self.models.render_generic_position_colored(point.position, selected_value,
+                                                                    "enemypoint")
 
                         if point.itemsonly:
                             glColor3f(1.0, 0.5, 0.1)
@@ -1354,20 +1358,22 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
             if vismenu.objects.is_visible():
                 for object in self.level_file.objects.objects:
-                    self.models.render_generic_position_rotation_colored("objects",
-                                                                 object.position, object.rotation,
-                                                                 object in select_optimize)
+                    selected_value = 2 if object is active_element else object in select_optimize
+                    self.models.render_generic_position_rotation_colored(
+                        "objects", object.position, object.rotation, selected_value)
             if vismenu.kartstartpoints.is_visible():
                 for object in self.level_file.kartpoints.positions:
-                    self.models.render_generic_position_rotation_colored("startpoints",
-                                                                object.position, object.rotation,
-                                                                object in select_optimize)
+                    selected_value = 2 if object is active_element else object in select_optimize
+                    self.models.render_generic_position_rotation_colored(
+                        "startpoints", object.position, object.rotation, selected_value)
             if vismenu.areas.is_visible():
                 for object in self.level_file.areas.areas:
-                    self.models.render_generic_position_rotation_colored("areas",
-                                                                object.position, object.rotation,
-                                                                object in select_optimize)
-                    if object in select_optimize:
+                    selected_value = 2 if object is active_element else object in select_optimize
+                    self.models.render_generic_position_rotation_colored(
+                        "areas", object.position, object.rotation, selected_value)
+                    if object is active_element:
+                        glColor4f(*colors_active)
+                    elif object in select_optimize:
                         glColor4f(*colors_selection)
                     else:
                         glColor4f(*colors_area)
@@ -1385,16 +1391,16 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                 for object in self.level_file.cameras:
                     if object.name == "para":
                         continue
-                    self.models.render_generic_position_rotation_colored("camera",
-                                                                object.position, object.rotation,
-                                                                 object in select_optimize)
+                    selected_value = 2 if object is active_element else object in select_optimize
+                    self.models.render_generic_position_rotation_colored(
+                        "camera", object.position, object.rotation, selected_value)
 
                     if object.camtype in (4, 5, 6):
                         glColor3f(0.0, 1.0, 0.0)
-                        self.models.draw_sphere(object.position3, 600, object in select_optimize)
+                        self.models.draw_sphere(object.position3, 600, selected_value)
                         if object.camtype != 4:
                             glColor3f(1.0, 0.0, 0.0)
-                            self.models.draw_sphere(object.position2, 600, object in select_optimize)
+                            self.models.draw_sphere(object.position2, 600, selected_value)
 
                             glBegin(GL_LINES)
                             glColor3f(0, 0, 0)
@@ -1413,9 +1419,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
             if vismenu.respawnpoints.is_visible():
                 for object in self.level_file.respawnpoints:
-                    self.models.render_generic_position_rotation_colored("respawn",
-                                                                object.position, object.rotation,
-                                                                 object in select_optimize)
+                    selected_value = 2 if object is active_element else object in select_optimize
+                    self.models.render_generic_position_rotation_colored(
+                        "respawn", object.position, object.rotation, selected_value)
             if self.minimap is not None and self.minimap.is_available() and vismenu.minimap.is_visible():
                 self.models.render_generic_position_colored(self.minimap.corner1,
                                                             self.minimap.corner1 in positions,

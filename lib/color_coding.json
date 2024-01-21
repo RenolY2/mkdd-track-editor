@@ -7,6 +7,7 @@
   "CheckpointLeft": [1.0, 0.0, 0.0, 1.0],
   "CheckpointRight": [0.1, 0.1, 0.8, 1.0],
   "SelectionColor": [1.0, 0.874, 0.153, 1.0],
+  "ActiveColor": [1.0, 0.95, 0.9, 1.0],
   "StartPoints": [0.1, 0.1, 0.1, 1.0],
   "Respawn": [1.0, 0.416, 0.0, 1.0],
   "Objects": [1.0, 0.0, 0.0, 1.0],
