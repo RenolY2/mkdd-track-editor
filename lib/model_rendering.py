@@ -542,7 +542,7 @@ class SelectableModel(Model):
             glColor4f(0.0, 0.0, 0.0, 1.0)
         glPushMatrix()
         if selected:
-            glScalef(1.3, 1.3, 1.3)
+            glScalef(1.4, 1.4, 1.4)
         else:
             glScalef(1.2, 1.2, 1.2)
         self._render_outline()
@@ -556,7 +556,7 @@ class SelectableModel(Model):
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE)
         glPushMatrix()
         if selected:
-            glScalef(1.3, 1.3, 1.3)
+            glScalef(1.4, 1.4, 1.4)
         else:
             glScalef(1.2, 1.2, 1.2)
         self._render_outline()
