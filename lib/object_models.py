@@ -115,6 +115,18 @@ class ObjectModels(object):
             self.sphere.render()
         glPopMatrix()
 
+    def draw_squashed_sphere(self, position, scale, solid=False):
+        glPushMatrix()
+
+        glTranslatef(position.x, -position.z, position.y)
+        glScalef(scale, scale, 0.0)
+
+        if solid:
+            self.sphere_solid.render()
+        else:
+            self.sphere.render()
+        glPopMatrix()
+
     def draw_sphere_last_position(self, scale):
         glPushMatrix()
 

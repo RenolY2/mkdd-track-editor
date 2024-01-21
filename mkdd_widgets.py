@@ -1137,7 +1137,10 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                         if point in select_optimize:
                             group_selected = True
                             glColor3f(0.3, 0.3, 0.3)
-                            self.models.draw_sphere(point.position, point.scale)
+                            if self.mode == MODE_TOPDOWN:
+                                self.models.draw_squashed_sphere(point.position, point.scale)
+                            else:
+                                self.models.draw_sphere(point.position, point.scale)
 
                         if point_index in enemypoints_to_highlight:
                             glColor3f(1.0, 1.0, 0.0)
