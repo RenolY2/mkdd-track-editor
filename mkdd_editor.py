@@ -3877,8 +3877,9 @@ if __name__ == "__main__":
     app.setStyleSheet(f"""
         QToolTip {{
             padding: {padding}px;
-            border: 1px solid #202020;
-            background: #282828;
+            border: 1px solid rgb(32, 32, 32);
+            background: rgb(40, 40, 40);
+            color: rgb(200, 200, 200);
         }}
     """)
 
