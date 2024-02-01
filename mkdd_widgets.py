@@ -42,11 +42,11 @@ with open("lib/color_coding.json", "r") as f:
 
 class SelectionQueue(list):
 
-    def queue_selection(self, x, y, width, height, shift_pressed, do_gizmo=False):
+    def queue_selection(self, x, y, width, height, shift_pressed, ctrl_pressed, do_gizmo=False):
         if do_gizmo:
             if any(entry[-1] for entry in self):
                 return
-        self.append((x, y, width, height, shift_pressed, do_gizmo))
+        self.append((x, y, width, height, shift_pressed, ctrl_pressed, do_gizmo))
 
 
 class SnappingMode(enum.Enum):
@@ -116,6 +116,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
         self.focused = False
         self.shift_is_pressed = False
+        self.ctrl_is_pressed = False
         self.last_mouse_move = None
 
         self.timer = QtCore.QTimer()
@@ -480,6 +481,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
     def reset(self):
         self.highlight_colltype = None
         self.shift_is_pressed = False
+        self.ctrl_is_pressed = False
 
         self.selectionbox_start = None
         self.selectionbox_end = None
@@ -667,7 +669,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             glDisable(GL_TEXTURE_2D)
 
         while len(self.selectionqueue) > 0:
-            click_x, click_y, clickwidth, clickheight, shiftpressed, do_gizmo = self.selectionqueue.pop()
+            click_x, click_y, clickwidth, clickheight, shift_pressed, ctrl_pressed, do_gizmo = self.selectionqueue.pop()
             click_y = height - click_y
 
             # Clamp to viewport dimensions.
@@ -707,6 +709,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     break
 
                 continue
+
+            marquee_selection = (clickwidth > 1 or clickheight > 1)
 
             selected = {}
             selected_positions = []
@@ -884,15 +888,36 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
                 # In a marquee selection, if there was a selection, do another iteration for
                 # selecting potentially-overlapping objects.
-                continue_picking = (clickwidth > 1 or clickheight > 1) and indexes
+                continue_picking = marquee_selection and indexes
 
             selected = list(selected)
-            if not shiftpressed:
+
+            # Replace selection.
+            if not shift_pressed and not ctrl_pressed:
                 self.selected = selected
                 self.selected_positions = selected_positions
                 self.selected_rotations = selected_rotations
 
-            else:
+            # Remove from selection.
+            elif ctrl_pressed and not shift_pressed:
+                for obj in selected:
+                    try:
+                        self.selected.remove(obj)
+                    except ValueError:
+                        pass
+                for pos in selected_positions:
+                    try:
+                        self.selected_positions.remove(pos)
+                    except ValueError:
+                        pass
+                for rot in selected_rotations:
+                    try:
+                        self.selected_rotations.remove(rot)
+                    except ValueError:
+                        pass
+
+            # Append to selection.
+            elif shift_pressed and marquee_selection and not ctrl_pressed:
                 for obj in selected:
                     if obj not in self.selected:
                         self.selected.append(obj)
@@ -904,6 +929,24 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     if rot not in self.selected_rotations:
                         self.selected_rotations.append(rot)
 
+            # Toggle selection.
+            elif shift_pressed and not ctrl_pressed:
+                for obj in selected:
+                    if obj in self.selected:
+                        self.selected.remove(obj)
+                    else:
+                        self.selected.append(obj)
+                for pos in selected_positions:
+                    if pos in self.selected_positions:
+                        self.selected_positions.remove(pos)
+                    else:
+                        self.selected_positions.append(pos)
+                for rot in selected_rotations:
+                    if rot in self.selected_rotations:
+                        self.selected_rotations.remove(rot)
+                    else:
+                        self.selected_rotations.append(rot)
+
             self.editor.select_from_3d_to_treeview()
 
             # The selection action, that depends on the viewport draw call, may have occurred later
@@ -912,7 +955,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             self.editor.on_document_potentially_changed(update_unsaved_changes=False)
 
             self.gizmo.move_to_average(self.selected_positions, self.selected_rotations)
-            if len(selected) == 0:
+            if not self.selected:
                 self.gizmo.hidden = True
             if self.mode == MODE_3D: # In case of 3D mode we need to update scale due to changed gizmo position
                 gizmo_scale = (self.gizmo.position - campos).norm() / 130.0
