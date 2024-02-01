@@ -171,7 +171,8 @@ class Gizmo2DMoveXZ(Gizmo2DMoveX):
     def move(self, editor, buttons, event):
         if editor.gizmo.was_hit["middle"]:
             if editor.snapping_enabled and editor.collision is not None:
-                coords = editor.get_closest_snapping_point(event.x(), event.y(), is3d=False)
+                radius = 2*editor.zoom_factor
+                coords = editor.get_closest_snapping_point(event.x(), event.y(), is3d=False, radius=radius)
                 if coords is not None:
                     editor.move_points_to.emit(coords.x, coords.y, coords.z)
                 return
@@ -425,7 +426,8 @@ class Gizmo3DMove(Gizmo3DMoveX):
     def move(self, editor, buttons, event):
         if editor.gizmo.was_hit["middle"]:
             if editor.snapping_enabled and editor.collision is not None:
-                coords = editor.get_closest_snapping_point(event.x(), event.y())
+                radius = 25
+                coords = editor.get_closest_snapping_point(event.x(), event.y(), radius=radius)
             else:
                 coords = editor.get_3d_coordinates(event.x(), event.y())
 

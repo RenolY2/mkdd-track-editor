@@ -1581,7 +1581,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
         return pos
 
-    def get_closest_snapping_point(self, mousex, mousey, is3d=True):
+    def get_closest_snapping_point(self, mousex, mousey, is3d=True, radius=0):
         if is3d:
             ray = self.create_ray_from_mouseclick(mousex, mousey)
             clip_y = None
@@ -1589,7 +1589,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
             mapx, mapz = self.mouse_coord_to_world_coord(mousex, mousey)
             clip_y = self.editorconfig.getint("topdown_cull_height")-10
             ray = Line(Vector3(mapx, mapz, clip_y), Vector3(0.0, 0.0, -1.0))
-        return self.collision.get_closest_point(ray, self._get_snapping_points(), clip_y)
+        return self.collision.get_closest_point(ray, self._get_snapping_points(), clip_y, radius)
 
 
 def create_object_type_pixmap(canvas_size: int, directed: bool,

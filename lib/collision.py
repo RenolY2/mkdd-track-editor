@@ -104,7 +104,7 @@ class Collision:
         return Vector3(*place_at)
 
     @staticmethod
-    def get_closest_point(ray, points, clip_y):
+    def get_closest_point(ray, points, clip_y, radius=0):
         distances_and_points = []
         for i, point in enumerate(points):
             if clip_y is not None and point.z > clip_y:
@@ -131,6 +131,15 @@ class Collision:
             return None
 
         _distance, closest_point_index = min(distances_and_points)
+        closest_distances = []
+
+        for distance, index in distances_and_points:
+            if _distance - radius <= distance <= _distance + radius:
+                point = points[index]
+                viewerdist = (point - ray.origin).length()
+                closest_distances.append((viewerdist, index))
+        _distance, closest_point_index = min(closest_distances)
+
         return points[closest_point_index]
 
 
