@@ -496,8 +496,8 @@ class GenEditor(QtWidgets.QMainWindow):
         self.tree_select_object([item])
         self.frame_selection(adjust_zoom=False)
 
-    def frame_selection(self, adjust_zoom):
-        selected_only = bool(self.level_view.selected_positions)
+    def frame_selection(self, adjust_zoom=True, selected_only=True):
+        selected_only = selected_only and bool(self.level_view.selected_positions)
         minx, miny, minz, maxx, maxy, maxz = self.compute_objects_extent(selected_only)
 
         # Center of the extent.
@@ -922,16 +922,16 @@ class GenEditor(QtWidgets.QMainWindow):
         #View
         self.view_menu = QtWidgets.QMenu(self.menubar)
         self.view_menu.setTitle("View")
-        self.frame_action = QtGui.QAction("Frame Selection/All", self)
-        self.frame_action.triggered.connect(
-            lambda _checked: self.frame_selection(adjust_zoom=True))
-        self.frame_action.setShortcut("F")
-        self.view_menu.addAction(self.frame_action)
-
-
-        self.view_menu.aboutToShow.connect(
-            lambda: self.frame_action.setText(
-                "Frame Selection" if self.level_view.selected_positions else "Frame All"))
+        frame_selected_action = QtGui.QAction("Frame Selected\tNumpad . or F", self)
+        frame_selected_action.triggered.connect(lambda _checked: self.frame_selection())
+        frame_selected_shortcut = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F), self)
+        frame_selected_shortcut.activated.connect(self.frame_selection)
+        self.view_menu.addAction(frame_selected_action)
+        frame_all_action = QtGui.QAction("Frame All", self)
+        frame_all_action.triggered.connect(
+            lambda _checked: self.frame_selection(selected_only=False))
+        frame_all_action.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Home))
+        self.view_menu.addAction(frame_all_action)
 
         self.view_menu.addSeparator()
 
@@ -2960,6 +2960,10 @@ class GenEditor(QtWidgets.QMainWindow):
             self.next_checkpoint_start_position = None
 
             self.update_3d()
+
+        elif event.key() == QtCore.Qt.Key_Period:
+            if event.modifiers() & QtCore.Qt.KeypadModifier:
+                self.frame_selection(adjust_zoom=True)
 
         if self.level_view.focused:
             if event.key() == QtCore.Qt.Key_Shift:
