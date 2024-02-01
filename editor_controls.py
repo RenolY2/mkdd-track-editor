@@ -174,6 +174,9 @@ class Gizmo2DMoveXZ(Gizmo2DMoveX):
                 radius = 2*editor.zoom_factor
                 coords = editor.get_closest_snapping_point(event.x(), event.y(), is3d=False, radius=radius)
                 if coords is not None:
+                    offset = editor.viewer_toolbar.heightoffset.value()
+                    newcoord = Vector3(coords.x, coords.y, coords.z + offset)
+                    coords = newcoord
                     editor.move_points_to.emit(coords.x, coords.y, coords.z)
                 return
 
@@ -428,8 +431,11 @@ class Gizmo3DMove(Gizmo3DMoveX):
             if editor.snapping_enabled and editor.collision is not None:
                 radius = 25
                 coords = editor.get_closest_snapping_point(event.x(), event.y(), radius=radius)
+                offset = editor.viewer_toolbar.heightoffset.value()
+                newcoord = Vector3(coords.x, coords.y, coords.z+offset)
+                coords = newcoord
             else:
-                coords = editor.get_3d_coordinates(event.x(), event.y())
+                coords = editor.get_3d_coordinates(event.x(), event.y()) #, planeheight=editor.gizmo.position.y)
 
             if coords is not None:
                 editor.move_points_to.emit(coords.x, coords.y, coords.z)

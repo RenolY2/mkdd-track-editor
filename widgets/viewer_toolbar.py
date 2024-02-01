@@ -474,6 +474,12 @@ class ViewerToolbar(QtWidgets.QWidget):
         self.snapping_button.setChecked(False)
         layout.addWidget(self.snapping_button)
 
+        self.heightoffset = QtWidgets.QSpinBox()
+        self.heightoffset.setValue(0)
+        self.heightoffset.setRange(-10000, 10000)
+        self.heightoffset.setSingleStep(100)
+        # layout.addWidget(self.heightoffset)
+
         layout.addSpacing(group_spacing)
 
         self.delete_button = ToolbarButton('Delete')
