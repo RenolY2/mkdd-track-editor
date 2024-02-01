@@ -136,7 +136,7 @@ class Collision:
         for distance, index in distances_and_points:
             if _distance - radius <= distance <= _distance + radius:
                 point = points[index]
-                viewerdist = (point - ray.origin).length()
+                viewerdist = (point - ray.origin).length2()
                 closest_distances.append((viewerdist, index))
         _distance, closest_point_index = min(closest_distances)
 
