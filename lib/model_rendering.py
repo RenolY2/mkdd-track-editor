@@ -14,6 +14,7 @@ with open("lib/color_coding.json") as f:
     colors = json.load(f)
 
 selectioncolor = colors["SelectionColor"]
+activecolor = colors["ActiveColor"]
 
 
 def read_vertex(v_data):
@@ -135,7 +136,7 @@ class TexturedMesh(object):
             else:
                 glColor3f(1.0, 1.0, 1.0)
         else:
-            glColor4f(*selectioncolor)
+            glColor4f(*(activecolor if selected == 2 else selectioncolor))
 
         if cull_faces and self.material.cull_mode is not None:
             glEnable(GL_CULL_FACE)
@@ -500,22 +501,29 @@ class SelectableModel(Model):
         self.mesh_list = []
         self.named_meshes = {}
         self.displistSelected = None
+        self.displistActive = None
         self.displistUnselected = None
 
     def generate_displists(self):
         for mesh in self.mesh_list:
             mesh.generate_displist()
         self.displistSelected = glGenLists(1)
+        self.displistActive = glGenLists(1)
         self.displistUnselected = glGenLists(1)
         glNewList(self.displistSelected, GL_COMPILE)
         self.__render(True)
+        glEndList()
+        glNewList(self.displistActive, GL_COMPILE)
+        self.__render(2)
         glEndList()
         glNewList(self.displistUnselected, GL_COMPILE)
         self.__render(False)
         glEndList()
 
     def render(self, selected=False):
-        if selected:
+        if selected == 2:
+            glCallList(self.displistActive)
+        elif selected:
             glCallList(self.displistSelected)
         else:
             glCallList(self.displistUnselected)
@@ -537,12 +545,12 @@ class SelectableModel(Model):
         # 1st pass: Draw outline, but without writing on the depth buffer.
         glDepthMask(GL_FALSE)
         if selected:
-            glColor4f(*selectioncolor)
+            glColor4f(*(activecolor if selected == 2 else selectioncolor))
         else:
             glColor4f(0.0, 0.0, 0.0, 1.0)
         glPushMatrix()
         if selected:
-            glScalef(1.3, 1.3, 1.3)
+            glScalef(1.4, 1.4, 1.4)
         else:
             glScalef(1.2, 1.2, 1.2)
         self._render_outline()
@@ -556,7 +564,7 @@ class SelectableModel(Model):
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE)
         glPushMatrix()
         if selected:
-            glScalef(1.3, 1.3, 1.3)
+            glScalef(1.4, 1.4, 1.4)
         else:
             glScalef(1.2, 1.2, 1.2)
         self._render_outline()
