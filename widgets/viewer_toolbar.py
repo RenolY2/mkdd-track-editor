@@ -320,10 +320,10 @@ class ToolbarButton(QtWidgets.QPushButton):
         self.setAutoFillBackground(True)
 
         font_height = self.fontMetrics().height()
-        size = int(font_height * 2.2)
+        size = int(font_height * 2.0) // 2 * 2
         self.setFixedSize(size, size)
 
-        size = int(font_height * 1.5)
+        size = int(font_height * 1.4) // 2 * 2
         self.setIconSize(QtCore.QSize(size, size))
 
         tool_tip = tooltip_list.markdown_to_html(name, textwrap.dedent(_TOOL_TIPS.get(name, '')))
@@ -345,8 +345,9 @@ class ToolbarButton(QtWidgets.QPushButton):
                 width: 0px;
             }}
             QPushButton {{
-                background: #282828;
+                background: #303030;
                 {border_style}
+                border: 1px solid #242424;
             }}
             QPushButton:hover {{
                 background: #363636;
@@ -361,6 +362,7 @@ class ToolbarButton(QtWidgets.QPushButton):
             style_sheet += """
                 QPushButton:checked {
                     background: #0F4673;
+                    border: 1px solid #0C3B60;
                 }
                 QPushButton:checked:hover {
                     background: #1D517B;
@@ -375,6 +377,7 @@ class ToolbarButton(QtWidgets.QPushButton):
             style_sheet += """
                 QPushButton:checked {
                     background: #119A06;
+                    border: none;
                 }
                 QPushButton:checked:hover {
                     background: #28AD1E;
