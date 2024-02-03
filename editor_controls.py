@@ -369,8 +369,8 @@ class AddObject3D(ClickAction):
             plane = Plane.xy_aligned(Vector3(0.0, 0.0, 0.0))
 
             collision = ray.collide_plane(plane)
-            if collision is not False:
-                place_at, _ = collision
+            if collision is not None:
+                place_at = collision
 
 
         if place_at is not None:
