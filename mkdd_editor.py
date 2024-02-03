@@ -198,6 +198,8 @@ class GenEditor(QtWidgets.QMainWindow):
 
         self.collision_area_dialog = None
 
+        self.snapping_height_offset = 0
+
         self.current_coordinates = None
 
         self._window_title = ""
@@ -858,6 +860,11 @@ class GenEditor(QtWidgets.QMainWindow):
             action.setCheckable(True)
             action.setToolTip(snapping_menu_tool_tip)
             self.snapping_menu_action_group.addAction(action)
+        self.snapping_menu.addSeparator()
+        self.snapping_height_offset_action = self.snapping_menu.addAction(
+            'Set Height Offset (0 units)')
+        self.snapping_height_offset_action.triggered.connect(
+            self.on_snapping_height_offset_action_triggered)
 
         self.analyze_action = QtGui.QAction("Analyze for common mistakes", self)
         self.analyze_action.triggered.connect(self.analyze_for_mistakes)
@@ -1629,6 +1636,24 @@ class GenEditor(QtWidgets.QMainWindow):
 
     def on_snapping_menu_action_triggered(self):
         self.level_view.set_snapping_mode(self.sender().objectName())
+
+    def on_snapping_height_offset_action_triggered(self):
+        input_dialog = QtWidgets.QInputDialog(self)
+        input_dialog.setWindowTitle('Snapping Height Offset')
+        input_dialog.setLabelText('Height offset that is applied to the snapping point:')
+        input_dialog.setInputMode(QtWidgets.QInputDialog.IntInput)
+        input_dialog.setIntStep(10)
+        input_dialog.setIntRange(-10000, 10000)
+        input_dialog.setIntValue(self.snapping_height_offset)
+        input_dialog.setOkButtonText('Apply')
+        input_dialog.setCancelButtonText('Cancel')
+        for button in input_dialog.findChildren(QtWidgets.QPushButton):
+            button.setIcon(QtGui.QIcon())
+        accepted = input_dialog.exec()
+        if accepted:
+            value = input_dialog.intValue()
+            self.snapping_height_offset = value
+            self.snapping_height_offset_action.setText(f'Set Height Offset ({value} units)')
 
     def change_to_topdownview(self, checked):
         if checked:
