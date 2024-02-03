@@ -454,7 +454,7 @@ class Gizmo3DMove(Gizmo3DMoveX):
                 newcoord = Vector3(coords.x, coords.y, coords.z+offset)
                 coords = newcoord
             else:
-                coords = editor.get_3d_coordinates(event.x(), event.y()) #, planeheight=editor.gizmo.position.y)
+                coords = editor.get_3d_coordinates(event.x(), event.y())
 
             if coords is not None:
                 editor.move_points_to.emit(coords.x, coords.y, coords.z)

@@ -1612,15 +1612,16 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
         return Line(pos, dir)
 
-    def get_3d_coordinates(self, mousex, mousey):
+    def get_3d_coordinates(self, mousex, mousey, plane=None):
         ray = self.create_ray_from_mouseclick(mousex, mousey)
         pos = None
 
-        if self.collision is not None:
+        if plane is None and self.collision is not None:
             pos = self.collision.collide_ray(ray)
 
         if pos is None:
-            plane = Plane.xy_aligned(Vector3(0.0, 0.0, 0.0))
+            if plane is None:
+                plane = Plane.xy_aligned(Vector3(0.0, 0.0, 0.0))
 
             collision = ray.collide_plane(plane)
             if collision is not None:
