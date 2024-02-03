@@ -197,13 +197,13 @@ class Gizmo(Model):
         glLineWidth(2)
         if self.render_axis & AXIS_X:
             glColor4f(*X_COLOR)
-            self._draw_line(Vector3(-99999, 0, 0), Vector3(99999, 0, 0))
+            self._draw_line(Vector3(-9999999, 0, 0), Vector3(9999999, 0, 0))
         if self.render_axis & AXIS_Y:
             glColor4f(*Y_COLOR)
-            self._draw_line(Vector3(0, 0, -99999), Vector3(0, 0, 99999))
+            self._draw_line(Vector3(0, 0, -9999999), Vector3(0, 0, 9999999))
         if self.render_axis & AXIS_Z:
             glColor4f(*Z_COLOR)
-            self._draw_line(Vector3(0, -99999, 0), Vector3(0, 99999, 0))
+            self._draw_line(Vector3(0, -9999999, 0), Vector3(0, 9999999, 0))
         glLineWidth(1)
 
         glClear(GL_DEPTH_BUFFER_BIT)
