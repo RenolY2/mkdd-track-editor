@@ -459,6 +459,73 @@ class Gizmo3DMove(Gizmo3DMoveX):
             if coords is not None:
                 editor.move_points_to.emit(coords.x, coords.y, coords.z)
 
+
+class Gizmo3DMoveXY(Gizmo2DMoveX):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.plane = None
+        self.previous_coords = None
+
+        self.handle_name = "plane_xy"
+        self.axes = AXIS_X | AXIS_Y
+        self.plane_constructor = Plane.xz_aligned
+        self.mask = (1, 1, 0)  # Ensures rounding errors don't cause change in the fixed component.
+
+    def just_clicked(self, editor, buttons, event):
+        super().just_clicked(editor, buttons, event)
+
+        gizmo_position = Vector3(
+            editor.gizmo.position.x,
+            -editor.gizmo.position.z,
+            editor.gizmo.position.y,
+        )
+        self.plane = self.plane_constructor(gizmo_position)
+        self.previous_coords = editor.get_3d_coordinates(event.x(), event.y(), self.plane)
+
+    def move(self, editor, buttons, event):
+        if not editor.gizmo.was_hit[self.handle_name]:
+            return
+
+        if self.previous_coords is None:
+            return
+
+        coords = editor.get_3d_coordinates(event.x(), event.y(), self.plane)
+        if coords is not None:
+            delta_coords = coords - self.previous_coords
+            editor.move_points.emit(
+                self.mask[0] * delta_coords.x,
+                self.mask[1] * delta_coords.z,
+                self.mask[2] * -delta_coords.y,
+            )
+            self.previous_coords = coords
+
+        editor.gizmo.set_render_axis(self.axes)
+
+
+class Gizmo3DMoveXZ(Gizmo3DMoveXY):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.handle_name = "plane_xz"
+        self.axes = AXIS_X | AXIS_Z
+        self.plane_constructor = Plane.xy_aligned
+        self.mask = (1, 0, 1)
+
+
+class Gizmo3DMoveYZ(Gizmo3DMoveXY):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.handle_name = "plane_yz"
+        self.axes = AXIS_Y | AXIS_Z
+        self.plane_constructor = Plane.yz_aligned
+        self.mask = (0, 1, 1)
+
+
 class Gizmo3DRotateY(Gizmo2DRotateY):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -582,6 +649,9 @@ class UserControl(object):
         self.add_action3d(Gizmo3DRotateX("Gizmo3DRotateX", "Left"))
         self.add_action3d(Gizmo3DRotateY("Gizmo3DRotateY", "Left"))
         self.add_action3d(Gizmo3DRotateZ("Gizmo3DRotateZ", "Left"))
+        self.add_action3d(Gizmo3DMoveXY("Gizmo3DMoveXY", "Left"))
+        self.add_action3d(Gizmo3DMoveXZ("Gizmo3DMoveXZ", "Left"))
+        self.add_action3d(Gizmo3DMoveYZ("Gizmo3DMoveYZ", "Left"))
         self.add_action3d(Select3D("Select3D", "Left"))
 
     def add_action(self, action):

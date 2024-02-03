@@ -1,7 +1,20 @@
-from OpenGL.GL import *
+from OpenGL.GL import (
+    GL_DEPTH_BUFFER_BIT,
+    GL_LINES,
+    glBegin,
+    glClear,
+    glColor4f,
+    glEnd,
+    glLineWidth,
+    glPopMatrix,
+    glPushMatrix,
+    glScalef,
+    glTranslatef,
+    glVertex3f,
+)
 
 from lib.model_rendering import Model
-from lib.vectors import Vector3, Plane
+from lib.vectors import Vector3
 from widgets.editor_widgets import catch_exception
 
 id_to_meshname = {
@@ -11,18 +24,24 @@ id_to_meshname = {
     0x4: "rotation_x",
     0x5: "rotation_y",
     0x6: "rotation_z",
-    0x7: "middle"
+    0x7: "middle",
+    0x8: "plane_xy",
+    0x9: "plane_xz",
+    0xA: "plane_yz",
 }
 
-AXIS_X = 0
-AXIS_Y = 1
-AXIS_Z = 2
+AXIS_X = 0x01
+AXIS_Y = 0x02
+AXIS_Z = 0x04
 
 X_COLOR = (233 / 255, 56 / 255, 79 / 255, 1.0)
 Y_COLOR = (130 / 255, 204 / 255, 26 / 255, 1.0)
 Z_COLOR = (48 / 255, 132 / 255, 235 / 255, 1.0)
 MIDDLE_COLOR = (154 / 255, 144 / 255, 158 / 255, 1.0)
 HOVER_COLOR = (248 / 255, 185 / 255, 0 / 255, 1.0)
+PLANE_XY = Z_COLOR
+PLANE_XZ = Y_COLOR
+PLANE_YZ = X_COLOR
 
 
 class Gizmo(Model):
@@ -40,7 +59,7 @@ class Gizmo(Model):
         for meshname in id_to_meshname.values():
             self.was_hit[meshname] = False
 
-        self.render_axis = None
+        self.render_axis = 0
 
         with open("resources/gizmo_collision.obj", "r") as f:
             self.collision = Model.from_obj(f, rotate=True)
@@ -49,7 +68,7 @@ class Gizmo(Model):
         self.render_axis = axis
 
     def reset_axis(self):
-        self.render_axis = None
+        self.render_axis = 0
 
     def move_to_average(self, positions, rotations):
         if len(positions) == 0:
@@ -94,6 +113,10 @@ class Gizmo(Model):
                 named_meshes["rotation_y"].render_colorid(0x5)
                 if is3d: named_meshes["rotation_z"].render_colorid(0x6)
             named_meshes["middle"].render_colorid(0x7)
+            if is3d:
+                named_meshes["plane_xy"].render_colorid(0x8)
+                named_meshes["plane_xz"].render_colorid(0x9)
+                named_meshes["plane_yz"].render_colorid(0xA)
             glPopMatrix()
 
     def register_callback(self, gizmopart, func):
@@ -156,18 +179,29 @@ class Gizmo(Model):
             glColor4f(*MIDDLE_COLOR if hover_id != 0x7 else HOVER_COLOR)
             self.named_meshes["middle"].render()
 
+        if is3d:
+            if not handle_hit or self.was_hit["plane_xy"]:
+                glColor4f(*PLANE_XY if hover_id != 0x8 else HOVER_COLOR)
+                self.named_meshes["plane_xy"].render()
+            if not handle_hit or self.was_hit["plane_xz"]:
+                glColor4f(*PLANE_XZ if hover_id != 0x9 else HOVER_COLOR)
+                self.named_meshes["plane_xz"].render()
+            if not handle_hit or self.was_hit["plane_yz"]:
+                glColor4f(*PLANE_YZ if hover_id != 0xA else HOVER_COLOR)
+                self.named_meshes["plane_yz"].render()
+
     def render_scaled(self, scale, is3d=True, hover_id=0xFF):
         glPushMatrix()
         glTranslatef(self.position.x, -self.position.z, self.position.y)
 
         glLineWidth(2)
-        if self.render_axis == AXIS_X:
+        if self.render_axis & AXIS_X:
             glColor4f(*X_COLOR)
             self._draw_line(Vector3(-99999, 0, 0), Vector3(99999, 0, 0))
-        elif self.render_axis == AXIS_Y:
+        if self.render_axis & AXIS_Y:
             glColor4f(*Y_COLOR)
             self._draw_line(Vector3(0, 0, -99999), Vector3(0, 0, 99999))
-        elif self.render_axis == AXIS_Z:
+        if self.render_axis & AXIS_Z:
             glColor4f(*Z_COLOR)
             self._draw_line(Vector3(0, -99999, 0), Vector3(0, 99999, 0))
         glLineWidth(1)
