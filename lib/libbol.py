@@ -1,3 +1,4 @@
+import collections
 import functools
 import json
 import math
@@ -1753,6 +1754,32 @@ class BOL(object):
         objects.extend(self.mgentries)
 
         return objects
+
+    def get_intro_cameras(self) -> tuple[list[Camera], bool]:
+        start_camera = None
+        for camera in self.cameras:
+            if camera.startcamera:
+                start_camera = camera
+                break
+
+        intro_cameras = []
+        cycle_detected = False
+
+        while start_camera is not None:
+            if start_camera in intro_cameras:
+                cycle_detected = True
+                break
+            intro_cameras.append(start_camera)
+            start_camera = start_camera.nextcam
+
+        return intro_cameras, cycle_detected
+
+    def get_cameras_bound_to_areas(self) -> dict[Camera, list[int]]:
+        area_cameras = collections.defaultdict(list)
+        for i, area in enumerate(self.areas.areas):
+            if area.area_type == 0x01 and area.camera is not None:
+                area_cameras[area.camera].append(i)
+        return area_cameras
 
     @classmethod
     def from_file(cls, f):
