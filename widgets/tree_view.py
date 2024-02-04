@@ -190,7 +190,7 @@ class AreaEntry(NamedItem):
         bound_to.widget = self
 
     def update_name(self):
-        self.setText(0, AREA_TYPES[self.bound_to.area_type])
+        self.setText(0, f'{AREA_TYPES[self.bound_to.area_type]} {self.index}')
 
 
 class CameraEntry(NamedItem):
@@ -461,8 +461,8 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
         for kartpoint in boldata.kartpoints.positions:
             item = KartpointEntry(self.kartpoints, "Kartpoint", kartpoint)
 
-        for area in boldata.areas.areas:
-            item = AreaEntry(self.areas, "Area", area)
+        for i, area in enumerate(boldata.areas.areas):
+            item = AreaEntry(self.areas, "Area", area, i)
 
         for respawn in boldata.respawnpoints:
             item = RespawnEntry(self.respawnpoints, "Respawn", respawn)
