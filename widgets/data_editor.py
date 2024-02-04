@@ -1392,6 +1392,9 @@ class AreaEdit(DataEditor):
         self.scale[0].valueChanged.connect(
             lambda value: self.scale[2].isHidden() and self.scale[2].setValue(value))
 
+        self.area_type.currentTextChanged.connect(self.update_camera_names)
+        self.camera.currentTextChanged.connect(self.update_camera_names)
+
     def update_data(self):
         obj: Area = get_average_obj(self.bound_to)
         self.position[0].setValueQuiet(obj.position.x)
@@ -1433,6 +1436,13 @@ class AreaEdit(DataEditor):
             if obj.widget is None:
                 continue
             obj.widget.update_name()
+
+    def update_camera_names(self):
+        for area in self.bound_to:
+            if area.widget is None:
+                continue
+            area.widget.treeWidget().update_camera_names()
+            break
 
 
 CAMERA_TYPES = OrderedDict()
@@ -1496,6 +1506,9 @@ class CameraEdit(DataEditor):
         self.camtype.currentIndexChanged.connect(lambda _index: self.catch_text_update())
         self.camtype.currentTextChanged.connect(self.update_name)
 
+        self.startcamera.stateChanged.connect(self.update_all_names)
+        self.nextcam.currentTextChanged.connect(self.update_all_names)
+
     def update_data(self):
         obj: Camera = get_average_obj(self.bound_to)
         self.position[0].setValueQuiet(obj.position.x)
@@ -1543,10 +1556,19 @@ class CameraEdit(DataEditor):
         self.name.setText(obj.name)
 
     def update_name(self):
+        intro_cameras, _cycle_detected = self.bol.get_intro_cameras()
+        area_cameras = self.bol.get_cameras_bound_to_areas()
         for camera in self.bound_to:
             if camera.widget is None:
                 continue
-            camera.widget.update_name()
+            camera.widget.update_name(intro_cameras, area_cameras)
+
+    def update_all_names(self):
+        for camera in self.bound_to:
+            if camera.widget is None:
+                continue
+            camera.widget.treeWidget().update_camera_names()
+            break
 
 
 class RespawnPointEdit(DataEditor):
