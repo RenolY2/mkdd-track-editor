@@ -8,3 +8,4 @@ lib/examples/*
 lib/temp/*
 editor_config.ini
 log.txt
+venv
