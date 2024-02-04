@@ -184,13 +184,17 @@ class Gizmo2DMoveXZ(Gizmo2DMoveX):
     def move(self, editor, buttons, event):
         if editor.gizmo.was_hit["middle"]:
             if editor.snapping_enabled and editor.collision is not None:
-                radius = 2*editor.zoom_factor
-                coords = editor.get_closest_snapping_point(event.x(), event.y(), is3d=False, radius=radius)
+                radius = 2 * editor.zoom_factor
+                coords = editor.get_closest_snapping_point(event.x(),
+                                                           event.y(),
+                                                           is3d=False,
+                                                           radius=radius)
                 if coords is not None:
-                    offset = editor.viewer_toolbar.heightoffset.value()
-                    newcoord = Vector3(coords.x, coords.y, coords.z + offset)
-                    coords = newcoord
-                    editor.move_points_to.emit(coords.x, coords.y, coords.z)
+                    editor.move_points_to.emit(
+                        coords.x,
+                        coords.y,
+                        coords.z + editor.editor.snapping_height_offset,
+                    )
                 return
 
             #editor.gizmo.set_render_axis(AXIS_X)
@@ -450,9 +454,11 @@ class Gizmo3DMove(Gizmo3DMoveX):
             if editor.snapping_enabled and editor.collision is not None:
                 radius = 25
                 coords = editor.get_closest_snapping_point(event.x(), event.y(), radius=radius)
-                offset = editor.viewer_toolbar.heightoffset.value()
-                newcoord = Vector3(coords.x, coords.y, coords.z+offset)
-                coords = newcoord
+                coords = Vector3(
+                    coords.x,
+                    coords.y,
+                    coords.z + editor.editor.snapping_height_offset,
+                )
             else:
                 coords = editor.get_3d_coordinates(event.x(), event.y()) #, planeheight=editor.gizmo.position.y)
 

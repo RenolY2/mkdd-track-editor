@@ -105,13 +105,13 @@ class Collision:
 
     @staticmethod
     def get_closest_point(ray, points, clip_y, radius=0):
-        distances_and_points = []
+        squared_distances_and_points = []
         for i, point in enumerate(points):
             if clip_y is not None and point.z > clip_y:
                 continue
 
             try:
-                distance = _distance_between_line_and_point(
+                squared_distance = _squared_distance_between_line_and_point(
                     ray.origin.x,
                     ray.origin.y,
                     ray.origin.z,
@@ -124,21 +124,19 @@ class Collision:
                 )
             except Exception:
                 continue
-            if distance is not math.nan:
-                distances_and_points.append((distance, i))
+            if squared_distance is not math.nan:
+                squared_distances_and_points.append((squared_distance, i))
 
-        if not distances_and_points:
+        if not squared_distances_and_points:
             return None
 
-        _distance, closest_point_index = min(distances_and_points)
-        closest_distances = []
+        squared_distance, closest_point_index = min(squared_distances_and_points)
 
-        for distance, index in distances_and_points:
-            if _distance - radius <= distance <= _distance + radius:
-                point = points[index]
-                viewerdist = (point - ray.origin).length2()
-                closest_distances.append((viewerdist, index))
-        _distance, closest_point_index = min(closest_distances)
+        squared_distances_and_points = ((points[i].distance2(ray.origin), i)
+                                        for d, i in squared_distances_and_points
+                                        if abs(squared_distance - d) <= radius * radius)
+
+        squared_distance, closest_point_index = min(squared_distances_and_points)
 
         return points[closest_point_index]
 
@@ -170,6 +168,11 @@ def dot(
 @numba.jit(nopython=True, nogil=True, cache=True)
 def length(x: float, y: float, z: float) -> float:
     return math.sqrt(x * x + y * y + z * z)
+
+
+@numba.jit(nopython=True, nogil=True, cache=True)
+def length2(x: float, y: float, z: float) -> float:
+    return x * x + y * y + z * z
 
 
 @numba.jit(nopython=True, nogil=True, cache=True)
@@ -205,7 +208,7 @@ def subtract(
 
 
 @numba.jit(nopython=True, nogil=True, cache=True)
-def _distance_between_line_and_point(
+def _squared_distance_between_line_and_point(
     x: float,
     y: float,
     z: float,
@@ -218,7 +221,7 @@ def _distance_between_line_and_point(
 ) -> float:
     p1_to_p2 = subtract(dx + x, dy + y, dz + z, x, y, z)
     p3_to_p1 = subtract(x, y, z, px, py, pz)
-    return length(*cross(*p1_to_p2, *p3_to_p1)) / length(*p1_to_p2)
+    return length2(*cross(*p1_to_p2, *p3_to_p1)) / length2(*p1_to_p2)
 
 
 @numba.jit(nopython=True, nogil=True, cache=True)
