@@ -1163,14 +1163,14 @@ class KartStartPoints(object):
 # Areas
 
 AREA_TYPES = {
-    0: "Shadow",
-    1: "Camera",
-    2: "Ceiling",
-    3: "No Dead Zone",
-    4: "Unknown 1",
-    5: "Unknown 2",
-    6: "Sound Effect",
-    7: "Lighting",
+    0: "🌘 Shadow",
+    1: "🎥 Replay Camera",
+    2: "🔼 Ceiling",
+    3: "🚫 No Dead Zone",
+    4: "❓ Unknown 1",
+    5: "❓ Unknown 2",
+    6: "📢 Sound Effect",
+    7: "💡 Lighting",
 }
 
 REVERSE_AREA_TYPES = dict(zip(AREA_TYPES.values(), AREA_TYPES.keys()))
