@@ -151,6 +151,9 @@ class ErrorAnalyzer(QtWidgets.QDialog):
             cls.check_enemy_path_points(bol, write_line)
             cls.check_checkpoints(bol, write_line)
 
+        # Check cameras.
+        cls.check_cameras(bol, write_line)
+
         return lines
 
     @classmethod
@@ -242,6 +245,22 @@ class ErrorAnalyzer(QtWidgets.QDialog):
         if len(bol.mgentries) != 8:
             write_line(f'Battle stages should have 8 mini game params, but {len(bol.mgentries)} '
                        'params are present.')
+
+    @classmethod
+    def check_cameras(cls, bol, write_line):
+        start_cameras = tuple((i, c) for i, c in enumerate(bol.cameras) if c.startcamera)
+        if len(start_cameras) > 1:
+            start_cameras = ', '.join(f'Camera {i}' for i, _c in start_cameras)
+            write_line(f'More than one start camera for the intro sequence: {start_cameras}')
+
+        intro_cameras, cycle_detected = bol.get_intro_cameras()
+        if cycle_detected:
+            write_line('A cycle has been detected in the camera intro sequence.')
+        else:
+            for i, camera in enumerate(bol.cameras):
+                if camera.nextcam is not None and camera not in intro_cameras:
+                    write_line(f'Camera {i} is not in the intro sequence but has the next camera '
+                               'field set.')
 
 
 def check_checkpoints(c1, c2):
