@@ -3145,12 +3145,24 @@ class GenEditor(QtWidgets.QMainWindow):
             elif isinstance(obj, libbol.Area):
                 self.level_file.areas.areas.remove(obj)
             elif isinstance(obj, libbol.Camera):
+                for area in self.level_file.areas.areas:
+                    if area.camera is obj:
+                        area.camera = None
+                for camera in self.level_file.cameras:
+                    if camera.nextcam is obj:
+                        camera.nextcam = None
                 self.level_file.cameras.remove(obj)
             elif isinstance(obj, libbol.CheckpointGroup):
                 self.level_file.checkpoints.groups.remove(obj)
             elif isinstance(obj, libbol.EnemyPointGroup):
                 self.level_file.enemypointgroups.groups.remove(obj)
             elif isinstance(obj, libbol.Route):
+                for mapobj in self.level_file.objects.objects:
+                    if mapobj.route is obj:
+                        mapobj.route = None
+                for camera in self.level_file.cameras:
+                    if camera.route is obj:
+                        camera.route = None
                 self.level_file.routes.remove(obj)
             elif isinstance(obj, libbol.LightParam):
                 self.level_file.lightparams.remove(obj)
