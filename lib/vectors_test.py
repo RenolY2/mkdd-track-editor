@@ -2,7 +2,11 @@ import sys
 
 import pytest
 
-from vectors import Vector3
+from vectors import (
+    Line,
+    Plane,
+    Vector3,
+)
 
 
 def test_vector3_initializer():
@@ -95,6 +99,60 @@ def test_vector3_linear_algebra():
 
     assert Vector3(1, 2, 3).distance(Vector3(4, 5, 6)) == pytest.approx(5.196152, 0.000001)
     assert Vector3(1, 2, 3).distance2(Vector3(4, 5, 6)) == 27.0
+
+
+def test_line_collide_plane():
+    line = Line(Vector3(50, 80, 100), Vector3(1, 0, 0))
+    assert not line.collide_plane(Plane.xy_aligned(Vector3(0, 0, 0)))
+    assert not line.collide_plane(Plane.xz_aligned(Vector3(0, 0, 0)))
+    collision = line.collide_plane(Plane.yz_aligned(Vector3(0, 0, 0)))
+    assert collision is not None
+    assert collision.x == pytest.approx(0, 0.000001)
+    assert collision.y == pytest.approx(80, 0.000001)
+    assert collision.z == pytest.approx(100, 0.000001)
+
+    line.direction *= -1
+    assert not line.collide_plane(Plane.xy_aligned(Vector3(0, 0, 0)))
+    assert not line.collide_plane(Plane.xz_aligned(Vector3(0, 0, 0)))
+    collision = line.collide_plane(Plane.yz_aligned(Vector3(0, 0, 0)))
+    assert collision is not None
+    assert collision.x == pytest.approx(0, 0.000001)
+    assert collision.y == pytest.approx(80, 0.000001)
+    assert collision.z == pytest.approx(100, 0.000001)
+
+    line = Line(Vector3(50, 80, 100), Vector3(0, 1, 0))
+    assert not line.collide_plane(Plane.xy_aligned(Vector3(0, 0, 0)))
+    collision = line.collide_plane(Plane.xz_aligned(Vector3(0, 0, 0)))
+    assert collision is not None
+    assert collision.x == pytest.approx(50, 0.000001)
+    assert collision.y == pytest.approx(0, 0.000001)
+    assert collision.z == pytest.approx(100, 0.000001)
+    assert not line.collide_plane(Plane.yz_aligned(Vector3(0, 0, 0)))
+    line.direction *= -1
+    assert not line.collide_plane(Plane.xy_aligned(Vector3(0, 0, 0)))
+    collision = line.collide_plane(Plane.xz_aligned(Vector3(0, 0, 0)))
+    assert collision is not None
+    assert collision.x == pytest.approx(50, 0.000001)
+    assert collision.y == pytest.approx(0, 0.000001)
+    assert collision.z == pytest.approx(100, 0.000001)
+    assert not line.collide_plane(Plane.yz_aligned(Vector3(0, 0, 0)))
+
+    line = Line(Vector3(50, 80, 100), Vector3(0, 0, 1))
+    collision = line.collide_plane(Plane.xy_aligned(Vector3(0, 0, 0)))
+    assert collision is not None
+    assert collision.x == pytest.approx(50, 0.000001)
+    assert collision.y == pytest.approx(80, 0.000001)
+    assert collision.z == pytest.approx(0, 0.000001)
+    assert not line.collide_plane(Plane.xz_aligned(Vector3(0, 0, 0)))
+    assert not line.collide_plane(Plane.yz_aligned(Vector3(0, 0, 0)))
+    line.direction *= -1
+    collision = line.collide_plane(Plane.xy_aligned(Vector3(0, 0, 0)))
+    assert collision is not None
+    assert collision.x == pytest.approx(50, 0.000001)
+    assert collision.y == pytest.approx(80, 0.000001)
+    assert collision.z == pytest.approx(0, 0.000001)
+    assert not line.collide_plane(Plane.xz_aligned(Vector3(0, 0, 0)))
+    assert not line.collide_plane(Plane.yz_aligned(Vector3(0, 0, 0)))
 
 
 if __name__ == '__main__':

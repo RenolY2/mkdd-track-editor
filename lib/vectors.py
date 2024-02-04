@@ -159,6 +159,14 @@ class Line:
         self.direction = direction
         self.direction.normalize()
 
+    def collide_plane(self, plane: Plane) -> Vector3 | None:
+        ndotu = plane.normal.dot(self.direction)
+        if abs(ndotu) < 0.000001:
+            return None
+
+        w = self.origin - plane.origin
+        return w + self.direction * (-plane.normal.dot(w) / ndotu) + plane.origin
+
     def collide(self, tri: Triangle):
         normal = tri.normal
 
@@ -180,18 +188,6 @@ class Line:
                 C2 = intersection_point - tri.p3
                 if normal.dot(tri.p3_to_p1.cross(C2)) >= 0:
                     return intersection_point, d
-
-        return False
-
-    def collide_plane(self, plane: Plane):
-        pos = self.origin
-        direction = self.direction
-
-        if not plane.is_parallel(direction):
-            d = ((plane.origin - pos).dot(plane.normal)) / plane.normal.dot(direction)
-            if d >= 0:
-                point = pos + (direction * d)
-                return point, d
 
         return False
 

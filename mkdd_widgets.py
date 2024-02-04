@@ -321,9 +321,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
         ground_plane = Plane.xz_aligned(ground_point)
         intersection = ray.collide_plane(ground_plane)
 
-        if intersection is not False:
-            intersection, _distance = intersection
-
+        if intersection is not None:
             if self.mode == MODE_TOPDOWN:
                 self.offset_x = -intersection.x
                 self.offset_z = intersection.z
@@ -1614,22 +1612,20 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
         return Line(pos, dir)
 
-    def get_3d_coordinates(self, mousex, mousey, planeheight=None):
+    def get_3d_coordinates(self, mousex, mousey, plane=None):
         ray = self.create_ray_from_mouseclick(mousex, mousey)
         pos = None
 
-        if self.collision is not None and planeheight is None:
+        if plane is None and self.collision is not None:
             pos = self.collision.collide_ray(ray)
 
-        if pos is None or planeheight is not None:
-            if planeheight is None:
+        if pos is None:
+            if plane is None:
                 plane = Plane.xy_aligned(Vector3(0.0, 0.0, 0.0))
-            else:
-                plane = Plane.xy_aligned(Vector3(0.0,0.0, planeheight))
 
             collision = ray.collide_plane(plane)
-            if collision is not False:
-                pos, _ = collision
+            if collision is not None:
+                pos = collision
 
         return pos
 
