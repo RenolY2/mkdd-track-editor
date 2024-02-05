@@ -1683,6 +1683,7 @@ class GenEditor(QtWidgets.QMainWindow):
         for obj in self.level_file.get_all_objects():
             if hasattr(obj, 'hidden'):
                 obj.hidden = False
+                obj.widget.update_name()
         self.update_3d()
 
     def on_hide_selected_action_triggered(self):
@@ -1690,6 +1691,7 @@ class GenEditor(QtWidgets.QMainWindow):
         for obj in self.level_view.selected:
             if hasattr(obj, 'hidden') and not obj.hidden:
                 obj.hidden = True
+                obj.widget.update_name()
                 hidden += 1
         if hidden:
             self.level_view.selected = []
@@ -1703,6 +1705,7 @@ class GenEditor(QtWidgets.QMainWindow):
         for obj in self.level_file.get_all_objects():
             if hasattr(obj, 'hidden') and obj not in selected:
                 obj.hidden = True
+                obj.widget.update_name()
         self.update_3d()
 
     def setup_ui_toolbar(self):
