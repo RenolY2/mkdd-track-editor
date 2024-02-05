@@ -741,7 +741,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                 offset = len(objlist)
 
                 if vismenu.enemyroute.is_selectable():
-                    for i, obj in enumerate(obj for obj in self.level_file.enemypointgroups.points() if obj not in selected):
+                    for i, obj in enumerate(obj
+                                            for obj in self.level_file.enemypointgroups.points()
+                                            if not obj.hidden and obj not in selected):
                         objlist.append(
                             ObjectSelectionEntry(obj=obj,
                                                  pos1=obj.position,
@@ -764,6 +766,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     i = 0
                     for route in self.level_file.routes:
                         for obj in route.points:
+                            if obj.hidden:
+                                continue
                             if obj in selected:
                                 continue
                             if (not ((route in object_routes and selectable_objectroutes) or
@@ -782,7 +786,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     offset = len(objlist)
 
                 if vismenu.checkpoints.is_selectable():
-                    for i, obj in enumerate(obj for obj in self.level_file.objects_with_2positions() if obj not in selected):
+                    for i, obj in enumerate(obj
+                                            for obj in self.level_file.objects_with_2positions()
+                                            if not obj.hidden and obj not in selected):
                         objlist.append(
                             ObjectSelectionEntry(obj=obj,
                                              pos1=obj.start,
@@ -795,8 +801,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     offset = len(objlist)
 
                 if vismenu.cameras.is_selectable():
-                    for i, obj in enumerate(obj for obj in self.level_file.cameras
-                                            if obj not in selected and obj.name != "para"):
+                    for i, obj in enumerate(
+                            obj for obj in self.level_file.cameras
+                            if not obj.hidden and obj.name != "para" and obj not in selected):
                         if obj.camtype in (5, 6):
                             objlist.append(
                                 ObjectSelectionEntry(obj=obj,
@@ -839,7 +846,7 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     if not is_selectable:
                         continue
 
-                    for i, obj in enumerate(obj for obj in collection if obj not in selected):
+                    for i, obj in enumerate(obj for obj in collection if not obj.hidden and obj not in selected):
                         objlist.append(
                             ObjectSelectionEntry(obj=obj,
                                                  pos1=obj.position,
@@ -1136,6 +1143,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     elif route in camera_routes:
                         route_color = "cameraroute"
                     for point in route.points:
+                        if point.hidden:
+                            continue
                         point_selected = point in select_optimize
                         self.models.render_generic_position_colored(point.position, point_selected, route_color)
                         selected = selected or point_selected
@@ -1145,11 +1154,17 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     glBegin(GL_LINE_STRIP)
                     glColor3f(0.0, 0.0, 0.0)
                     for point in route.points:
+                        if point.hidden:
+                            glEnd()
+                            glBegin(GL_LINE_STRIP)
+                            continue
                         pos = point.position
                         glVertex3f(pos.x, -pos.z, pos.y)
                     glEnd()
                     for i, point in enumerate(route.points[1:]):
                         prev_point = route.points[i]
+                        if point.hidden or prev_point.hidden:
+                            continue
                         mid_position = (point.position + prev_point.position) / 2.0
                         if self.mode == MODE_TOPDOWN:
                             scale = 3 * zf
@@ -1177,6 +1192,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
                     group_selected = False
                     for point in group.points:
+                        if point.hidden:
+                            continue
+
                         if point in select_optimize:
                             group_selected = True
                             glColor3f(0.3, 0.3, 0.3)
@@ -1223,6 +1241,10 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     glBegin(GL_LINE_STRIP)
                     glColor3f(0.0, 0.0, 0.0)
                     for point in group.points:
+                        if point.hidden:
+                            glEnd()
+                            glBegin(GL_LINE_STRIP)
+                            continue
                         pos = point.position
                         glVertex3f(pos.x, -pos.z, pos.y)
                     glEnd()
@@ -1244,6 +1266,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                         if group is groupB or len(groupB.points) == 0:
                             continue
                         pointB = groupB.points[0]
+                        if pointA.hidden or pointB.hidden:
+                            continue
                         if pointA.link == pointB.link:
                             groupB_selected = any(map(lambda p: p in select_optimize, groupB.points))
                             if group_selected or groupB_selected:
@@ -1282,6 +1306,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     prev = None
                     # Draw the endpoints
                     for checkpoint in group.points:
+                        if checkpoint.hidden:
+                            continue
+
                         start_point_selected = checkpoint.start in positions
                         end_point_selected = checkpoint.end in positions
                         is_sectionpoint = checkpoint.unk4 != 0
@@ -1303,6 +1330,10 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     # Draw the lines between the points
                     glBegin(GL_LINES)
                     for checkpoint in group.points:
+                        if checkpoint.hidden:
+                            prev = None
+                            continue
+
                         if checkpoint in concave_checkpoints:
                             glColor3f(1.0, 0.0, 0.0)
                         elif checkpoint in section_points:
@@ -1345,6 +1376,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     point_index = 0
                     for i, group in enumerate(self.level_file.checkpoints.groups):
                         for checkpoint in group.points:
+                            if checkpoint.hidden:
+                                continue
                             if point_index in checkpoints_to_highlight:
                                 if checkpoint in concave_checkpoints:
                                     glColor3f(1.0, 0.0, 0.0)
@@ -1366,6 +1399,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     glColor3f(*colors[i % 4])
                     prev = None
                     for checkpoint in group.points:
+                        if checkpoint.hidden:
+                            prev = None
+                            continue
                         if prev is None:
                             prev = checkpoint
                         else:
@@ -1385,6 +1421,9 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
                     glColor3f(*colors[i % 4])
                     prev = None
                     for checkpoint in group.points:
+                        if checkpoint.hidden:
+                            prev = None
+                            continue
                         if prev is None:
                             prev = checkpoint
                         else:
@@ -1402,16 +1441,22 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
             if vismenu.objects.is_visible():
                 for object in self.level_file.objects.objects:
+                    if object.hidden:
+                        continue
                     selected_value = 2 if object is active_element else object in select_optimize
                     self.models.render_generic_position_rotation_colored(
                         "objects", object.position, object.rotation, selected_value)
             if vismenu.kartstartpoints.is_visible():
                 for object in self.level_file.kartpoints.positions:
+                    if object.hidden:
+                        continue
                     selected_value = 2 if object is active_element else object in select_optimize
                     self.models.render_generic_position_rotation_colored(
                         "startpoints", object.position, object.rotation, selected_value)
             if vismenu.areas.is_visible():
                 for object in self.level_file.areas.areas:
+                    if object.hidden:
+                        continue
                     selected_value = 2 if object is active_element else object in select_optimize
                     self.models.render_generic_position_rotation_colored(
                         "areas", object.position, object.rotation, selected_value)
@@ -1433,6 +1478,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
             if vismenu.cameras.is_visible():
                 for object in self.level_file.cameras:
+                    if object.hidden:
+                        continue
                     if object.name == "para":
                         continue
                     selected_value = 2 if object is active_element else object in select_optimize
@@ -1463,6 +1510,8 @@ class BolMapViewer(QtOpenGLWidgets.QOpenGLWidget):
 
             if vismenu.respawnpoints.is_visible():
                 for object in self.level_file.respawnpoints:
+                    if object.hidden:
+                        continue
                     selected_value = 2 if object is active_element else object in select_optimize
                     self.models.render_generic_position_rotation_colored(
                         "respawn", object.position, object.rotation, selected_value)
