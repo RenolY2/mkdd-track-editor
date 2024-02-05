@@ -631,6 +631,8 @@ class CheckpointGroup(object):
         self.prevgroup = [0, -1, -1, -1]
         self.nextgroup = [0, -1, -1, -1]
 
+        self.widget = None
+
     @classmethod
     def new(cls):
         return cls(0)
@@ -711,6 +713,7 @@ class Checkpoint(object):
         self.unk4 = unk4
 
         self.hidden = False
+        self.widget = None
 
     @classmethod
     def new(cls):
@@ -744,7 +747,12 @@ class Checkpoint(object):
             f.write(b'\x01' if self.hidden else b'\x00')
 
     def copy(self):
-        return deepcopy(self)
+        widget = self.widget
+        self.widget = None
+        try:
+            return deepcopy(self)
+        finally:
+            self.widget = widget
 
     def __iadd__(self, other):
         self.start += other.start
@@ -816,6 +824,8 @@ class Route(object):
         self.unk1 = 0
         self.unk2 = 0
 
+        self.widget = None
+
     @classmethod
     def new(cls):
         return cls()
@@ -879,6 +889,7 @@ class RoutePoint(PositionedObject):
         self.unk = 0
 
         self.hidden = False
+        self.widget = None
 
     @classmethod
     def new(cls):
@@ -916,7 +927,12 @@ class RoutePoint(PositionedObject):
         return struct_size
 
     def copy(self):
-        return deepcopy(self)
+        widget = self.widget
+        self.widget = None
+        try:
+            return deepcopy(self)
+        finally:
+            self.widget = widget
 
     def __iadd__(self, other):
         self.position += other.position
@@ -1654,6 +1670,8 @@ class LightParam(PositionedObject):
         self.color1 = ColorRGBA(0x64, 0x64, 0x64, 0xFF)
         self.color2 = ColorRGBA(0x64, 0x64, 0x64, 0x00)
 
+        self.widget = None
+
     @classmethod
     def new(cls):
         return cls(Vector3(0.0, 0.0, 0.0))
@@ -1673,7 +1691,12 @@ class LightParam(PositionedObject):
         self.color2.write(f)
 
     def copy(self):
-        return deepcopy(self)
+        widget = self.widget
+        self.widget = None
+        try:
+            return deepcopy(self)
+        finally:
+            self.widget = widget
 
     def __iadd__(self, other):
         self.position += other.position
@@ -1702,6 +1725,8 @@ class MGEntry(object):
         self.unk3 = 0
         self.unk4 = 0
 
+        self.widget = None
+
     @classmethod
     def new(cls):
         return cls()
@@ -1720,7 +1745,12 @@ class MGEntry(object):
         f.write(pack(">hhhh", self.unk1, self.unk2, self.unk3, self.unk4))
 
     def copy(self):
-        return deepcopy(self)
+        widget = self.widget
+        self.widget = None
+        try:
+            return deepcopy(self)
+        finally:
+            self.widget = widget
 
     def __iadd__(self, other):
         self.unk1 += other.unk1

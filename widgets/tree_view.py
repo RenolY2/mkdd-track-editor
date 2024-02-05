@@ -23,6 +23,8 @@ class ObjectGroup(BaseTreeWidgetItem):
             super().__init__(parent)
         self.setText(0, name)
         self.bound_to = bound_to
+        if bound_to is not None:
+            bound_to.widget = self
 
     def remove_children(self):
         self.takeChildren()
@@ -45,7 +47,6 @@ class ObjectGroupObjects(ObjectGroup):
 class EnemyPointGroup(ObjectGroup):
     def __init__(self, parent, bound_to):
         super().__init__("Enemy Path", parent=parent, bound_to=bound_to)
-        bound_to.widget = self
         self.update_name()
 
     def update_name(self):
@@ -89,6 +90,8 @@ class NamedItem(BaseTreeWidgetItem):
         super().__init__(parent)
         self.setText(0, name)
         self.bound_to = bound_to
+        if bound_to is not None:
+            bound_to.widget = self
         self.index = index
         self.update_name()
 
@@ -97,9 +100,6 @@ class NamedItem(BaseTreeWidgetItem):
 
 
 class EnemyRoutePoint(NamedItem):
-    def __init__(self, parent, name, bound_to, index=None):
-        super().__init__(parent, name, bound_to, index)
-        bound_to.widget = self
 
     def update_name(self):
         group_item = self.parent()
@@ -161,9 +161,6 @@ class ObjectRoutePoint(NamedItem):
 
 
 class ObjectEntry(NamedItem):
-    def __init__(self, parent, name, bound_to):
-        super().__init__(parent, name, bound_to)
-        bound_to.widget = self
 
     def update_name(self):
         self.setText(0, get_full_name(self.bound_to.objectid))
@@ -174,29 +171,18 @@ class ObjectEntry(NamedItem):
 
 class KartpointEntry(NamedItem):
 
-    def __init__(self, parent, name, bound_to):
-        super().__init__(parent, name, bound_to)
-
-        bound_to.widget = self
-
     def update_name(self):
         playerid = self.bound_to.playerid
         self.setText(0, f'Kart Start Point ({KART_START_POINTS_PLAYER_IDS[playerid]})')
 
 
 class AreaEntry(NamedItem):
-    def __init__(self, parent, name, bound_to, index=None):
-        super().__init__(parent, name, bound_to, index)
-        bound_to.widget = self
 
     def update_name(self):
         self.setText(0, f'{AREA_TYPES[self.bound_to.area_type]} {self.index}')
 
 
 class CameraEntry(NamedItem):
-    def __init__(self, parent, name, bound_to, index=None):
-        super().__init__(parent, name, bound_to, index)
-        bound_to.widget = self
 
     def update_name(self, intro_cameras=None, area_cameras=None):
         if intro_cameras is None or area_cameras is None:
@@ -224,9 +210,6 @@ class CameraEntry(NamedItem):
 
 
 class RespawnEntry(NamedItem):
-    def __init__(self, parent, name, bound_to, index=None):
-        super().__init__(parent, name, bound_to, index)
-        bound_to.widget = self
 
     def update_name(self):
         for i in range(self.parent().childCount()):
