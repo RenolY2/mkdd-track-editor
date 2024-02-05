@@ -326,6 +326,7 @@ class EnemyPoint(PositionedObject):
         self.driftsupplement = driftsupplement
         self.nomushroomzone = nomushroomzone
 
+        self.hidden = False
         self.widget = None
 
         assert self.swerve in (-3, -2, -1, 0, 1, 2, 3)
@@ -354,6 +355,10 @@ class EnemyPoint(PositionedObject):
             args.extend((0, 0, 0, 0))
 
         obj = cls(*args)
+
+        if extended_format:
+            obj.hidden = f.read(1) != b'\x00'
+
         obj._size = f.tell() - start
         if old_bol:
             obj._size += 8
@@ -366,6 +371,9 @@ class EnemyPoint(PositionedObject):
         f.write(pack(">bBBBBBB", self.swerve, self.itemsonly, self.group, self.driftacuteness, self.driftduration, self.driftsupplement, self.nomushroomzone))
         f.write(b"\x00"*5)
         #assert f.tell() - start == self._size
+
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
 
     def copy(self):
         widget = self.widget
@@ -702,6 +710,8 @@ class Checkpoint(object):
         self.unk3 = unk3
         self.unk4 = unk4
 
+        self.hidden = False
+
     @classmethod
     def new(cls):
         return cls(Vector3(0.0, 0.0, 0.0),
@@ -717,12 +727,21 @@ class Checkpoint(object):
         assert unk2 == 0 or unk2 == 1
         assert unk3 == 0 or unk3 == 1
         assert unk4 in (0, 1)  # 1 expected only for the custom "Lap Checkpoint" parameter
-        return cls(start, end, unk1, unk2, unk3, unk4)
+
+        obj = cls(start, end, unk1, unk2, unk3, unk4)
+
+        if extended_format:
+            obj.hidden = f.read(1) != b'\x00'
+
+        return obj
 
     def write(self, f, extended_format: bool):
         f.write(pack(">fff", self.start.x, self.start.y, self.start.z))
         f.write(pack(">fff", self.end.x, self.end.y, self.end.z))
         f.write(pack(">BBBB", self.unk1, self.unk2, self.unk3, self.unk4))
+
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
 
     def copy(self):
         return deepcopy(self)
@@ -859,6 +878,8 @@ class RoutePoint(PositionedObject):
         super().__init__(position)
         self.unk = 0
 
+        self.hidden = False
+
     @classmethod
     def new(cls):
         return cls(Vector3(0.0, 0.0, 0.0))
@@ -873,6 +894,10 @@ class RoutePoint(PositionedObject):
 
         padding = f.read(16)
         assert padding == b"\x00"*16
+
+        if extended_format:
+            point.hidden = f.read(1) != b'\x00'
+
         return point
 
     def write(self, f, extended_format: bool):
@@ -880,11 +905,14 @@ class RoutePoint(PositionedObject):
                      self.unk))
         f.write(b"\x00"*16)
 
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
+
     @classmethod
     def get_struct_size(cls, extended_format: bool):
         struct_size = 0x20
         if extended_format:
-            pass
+            struct_size += 1  # Hidden flag
         return struct_size
 
     def copy(self):
@@ -921,6 +949,7 @@ class MapObject(PositionedObject):
         self.unk_2f = 0
         self.userdata = [0 for i in range(8)]
 
+        self.hidden = False
         self.widget = None
 
     @classmethod
@@ -964,6 +993,10 @@ class MapObject(PositionedObject):
 
         for i in range(8):
             obj.userdata[i] = read_int16(f)
+
+        if extended_format:
+            obj.hidden = f.read(1) != b'\x00'
+
         obj._size = f.tell() - start
         return obj
 
@@ -986,6 +1019,10 @@ class MapObject(PositionedObject):
 
         for i in range(8):
             f.write(pack(">h", self.userdata[i]))
+
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
+
         #assert f.tell() - start == self._size
 
     def read_json_file(self):
@@ -1098,6 +1135,7 @@ class KartStartPoint(PositionedObject):
 
         self.unknown = 0
 
+        self.hidden = False
         self.widget = None
 
     @classmethod
@@ -1115,6 +1153,10 @@ class KartStartPoint(PositionedObject):
         kstart.playerid = read_uint8(f)
         kstart.unknown = read_uint16(f)
         #assert kstart.unknown == 0
+
+        if extended_format:
+            kstart.hidden = f.read(1) != b'\x00'
+
         return kstart
 
     def write(self, f, extended_format: bool):
@@ -1123,11 +1165,14 @@ class KartStartPoint(PositionedObject):
         self.rotation.write(f)
         f.write(pack(">BBH", self.poleposition, self.playerid, self.unknown))
 
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
+
     @classmethod
     def get_struct_size(cls, extended_format: bool):
         struct_size = 0x28
         if extended_format:
-            pass
+            struct_size += 1  # Hidden flag
         return struct_size
 
     def copy(self):
@@ -1224,6 +1269,7 @@ class Area(PositionedObject):
         self.shadow_id = 0
         self.lightparam_index = 0
 
+        self.hidden = False
         self.widget = None
 
     @classmethod
@@ -1250,6 +1296,9 @@ class Area(PositionedObject):
 
         assert area.shape in (0, 1)
         assert area.area_type in list(AREA_TYPES.keys())
+
+        if extended_format:
+            area.hidden = f.read(1) != b'\x00'
 
         return area
 
@@ -1278,6 +1327,9 @@ class Area(PositionedObject):
         f.write(pack(">BBh", self.shape, self.area_type, camera_index))
         f.write(pack(">II", self.feather.i0, self.feather.i1))
         f.write(pack(">hhhh", self.unkfixedpoint, self.unkshort, self.shadow_id, self.lightparam_index))
+
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
 
     def copy(self):
         widget = self.widget
@@ -1389,6 +1441,7 @@ class Camera(PositionedObject):
         self._nextcam = -1
         self.name = "null"
 
+        self.hidden = False
         self.widget = None
 
     @classmethod
@@ -1425,6 +1478,9 @@ class Camera(PositionedObject):
         cam.fov.end = read_uint16(f)
         cam._nextcam = read_int16(f)
         cam.name = str(f.read(4), encoding="ascii")
+
+        if extended_format:
+            cam.hidden = f.read(1) != b'\x00'
 
         return cam
 
@@ -1465,6 +1521,9 @@ class Camera(PositionedObject):
                      self.routespeed, self.fov.end, nextcamid))
         assert len(self.name) == 4
         f.write(bytes(self.name, encoding="ascii"))
+
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
 
     def copy(self):
         widget = self.widget
@@ -1529,6 +1588,7 @@ class JugemPoint(PositionedObject):
         self.unk2 = 0
         self.unk3 = 0
 
+        self.hidden = False
         self.widget = None
 
     @classmethod
@@ -1545,12 +1605,18 @@ class JugemPoint(PositionedObject):
         jugem.unk2 = read_int16(f)
         jugem.unk3 = read_int16(f)
 
+        if extended_format:
+            jugem.hidden = f.read(1) != b'\x00'
+
         return jugem
 
     def write(self, f, extended_format: bool):
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         self.rotation.write(f)
         f.write(pack(">HHhh", self.respawn_id, self.unk1, self.unk2, self.unk3))
+
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
 
     def copy(self):
         widget = self.widget
