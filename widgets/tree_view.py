@@ -190,7 +190,7 @@ class AreaEntry(NamedItem):
         bound_to.widget = self
 
     def update_name(self):
-        self.setText(0, AREA_TYPES[self.bound_to.area_type])
+        self.setText(0, f'{AREA_TYPES[self.bound_to.area_type]} {self.index}')
 
 
 class CameraEntry(NamedItem):
@@ -198,8 +198,29 @@ class CameraEntry(NamedItem):
         super().__init__(parent, name, bound_to, index)
         bound_to.widget = self
 
-    def update_name(self):
-        self.setText(0, "Camera {0} (Type: {1:03X})".format(self.index, self.bound_to.camtype))
+    def update_name(self, intro_cameras=None, area_cameras=None):
+        if intro_cameras is None or area_cameras is None:
+            bol = self.treeWidget().editor.level_file
+            intro_cameras, _cycle_detected = bol.get_intro_cameras()
+            area_cameras = bol.get_cameras_bound_to_areas()
+
+        camera = self.bound_to
+
+        camera_tags = ''
+        try:
+            intro_camera_index = intro_cameras.index(camera)
+            camera_tags += f' - Intro {intro_camera_index + 1}/{len(intro_cameras)}'
+        except ValueError:
+            pass
+        area_indexes = area_cameras.get(camera)
+        if area_indexes is not None:
+            if len(area_indexes) == 1:
+                camera_tags += f' - Replay Area: {area_indexes[0]}'
+            else:
+                area_indexes = ', '.join(str(i) for i in area_indexes)
+                camera_tags += f' - Replay Areas: {area_indexes}'
+
+        self.setText(0, f"Camera {self.index} ({camera.camtype:03X}){camera_tags}")
 
 
 class RespawnEntry(NamedItem):
@@ -461,8 +482,8 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
         for kartpoint in boldata.kartpoints.positions:
             item = KartpointEntry(self.kartpoints, "Kartpoint", kartpoint)
 
-        for area in boldata.areas.areas:
-            item = AreaEntry(self.areas, "Area", area)
+        for i, area in enumerate(boldata.areas.areas):
+            item = AreaEntry(self.areas, "Area", area, i)
 
         for respawn in boldata.respawnpoints:
             item = RespawnEntry(self.respawnpoints, "Respawn", respawn)
@@ -566,3 +587,12 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
         self.cameras.bound_to = levelfile.cameras
         self.respawnpoints.bound_to = levelfile.respawnpoints
         self.lightparams.bound_to = levelfile.lightparams
+
+    def update_camera_names(self):
+        bol = self.editor.level_file
+        intro_cameras, _cycle_detected = bol.get_intro_cameras()
+        area_cameras = bol.get_cameras_bound_to_areas()
+        top_level_item = self.cameras
+        for i in range(top_level_item.childCount()):
+            tree_item = top_level_item.child(i)
+            tree_item.update_name(intro_cameras, area_cameras)
