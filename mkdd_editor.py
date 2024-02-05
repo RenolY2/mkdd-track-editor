@@ -560,6 +560,8 @@ class GenEditor(QtWidgets.QMainWindow):
         if self.visibility_menu.enemyroute.is_visible():
             for enemy_path in self.level_file.enemypointgroups.groups:
                 for enemy_path_point in enemy_path.points:
+                    if enemy_path_point.hidden:
+                        continue
                     extend(enemy_path_point.position)
 
         visible_objectroutes = self.visibility_menu.objectroutes.is_visible()
@@ -577,27 +579,41 @@ class GenEditor(QtWidgets.QMainWindow):
                          (object_route not in assigned_routes and visible_unassignedroutes))):
                     continue
                 for object_route_point in object_route.points:
+                    if object_route_point.hidden:
+                        continue
                     extend(object_route_point.position)
 
         if self.visibility_menu.checkpoints.is_visible():
             for checkpoint_group in self.level_file.checkpoints.groups:
                 for checkpoint in checkpoint_group.points:
+                    if checkpoint.hidden:
+                        continue
                     extend(checkpoint.start)
                     extend(checkpoint.end)
         if self.visibility_menu.objects.is_visible():
             for object_ in self.level_file.objects.objects:
+                if object_.hidden:
+                    continue
                 extend(object_.position)
         if self.visibility_menu.areas.is_visible():
             for area in self.level_file.areas.areas:
+                if area.hidden:
+                    continue
                 extend(area.position)
         if self.visibility_menu.cameras.is_visible():
             for camera in self.level_file.cameras:
+                if camera.hidden:
+                    continue
                 extend(camera.position)
         if self.visibility_menu.respawnpoints.is_visible():
             for respawn_point in self.level_file.respawnpoints:
+                if respawn_point.hidden:
+                    continue
                 extend(respawn_point.position)
         if self.visibility_menu.kartstartpoints.is_visible():
             for karts_point in self.level_file.kartpoints.positions:
+                if karts_point.hidden:
+                    continue
                 extend(karts_point.position)
         if (self.level_view.minimap is not None and self.level_view.minimap.is_available()
                 and self.visibility_menu.minimap.is_visible()):
