@@ -316,7 +316,7 @@ class GenEditor(QtWidgets.QMainWindow):
                 self.setWindowTitle(f"{APP_NAME}")
 
     def generate_undo_entry(self) -> UndoEntry:
-        bol_document = self.level_file.to_bytes()
+        bol_document = self.level_file.to_bytes(extended_format=True)
 
         # List containing a tuple with the emptiness and ID of each of the enemy paths.
         enemy_paths = self.level_file.enemypointgroups.groups
@@ -362,7 +362,7 @@ class GenEditor(QtWidgets.QMainWindow):
 
         bol_changed = current_undo_entry.bol_hash != undo_entry.bol_hash
 
-        self.level_file = BOL.from_bytes(undo_entry.bol_document)
+        self.level_file = BOL.from_bytes(undo_entry.bol_document, extended_format=True)
 
         # The BOL document cannot store information on empty enemy paths; this information is
         # sourced from a separate list.
