@@ -961,6 +961,21 @@ class GenEditor(QtWidgets.QMainWindow):
 
         self.view_menu.addSeparator()
 
+        show_hide_objects_menu = QtWidgets.QMenu('Show/Hide Objects', self)
+        self.view_menu.addMenu(show_hide_objects_menu)
+        show_hidden_objects_action = show_hide_objects_menu.addAction('Show Hidden Objects')
+        show_hidden_objects_action.setShortcut('Alt+H')
+        show_hidden_objects_action.triggered.connect(self.on_show_hidden_objects_action_triggered)
+        show_hide_objects_menu.addSeparator()
+        hide_selected_action = show_hide_objects_menu.addAction('Hide Selected')
+        hide_selected_action.setShortcut('H')
+        hide_selected_action.triggered.connect(self.on_hide_selected_action_triggered)
+        hide_unselected_action = show_hide_objects_menu.addAction('Hide Unselected')
+        hide_unselected_action.setShortcut('Shift+H')
+        hide_unselected_action.triggered.connect(self.on_hide_unselected_action_triggered)
+
+        self.view_menu.addSeparator()
+
         self.viewer_toolbar_action = self.view_menu.addAction('Viewer Toolbar')
         self.viewer_toolbar_action.setShortcut('Ctrl+T')
         self.viewer_toolbar_action.setCheckable(True)
@@ -1663,6 +1678,32 @@ class GenEditor(QtWidgets.QMainWindow):
         if checked:
             self.level_view.change_from_topdown_to_3d()
             self.statusbar.clearMessage()
+
+    def on_show_hidden_objects_action_triggered(self):
+        for obj in self.level_file.get_all_objects():
+            if hasattr(obj, 'hidden'):
+                obj.hidden = False
+        self.update_3d()
+
+    def on_hide_selected_action_triggered(self):
+        hidden = 0
+        for obj in self.level_view.selected:
+            if hasattr(obj, 'hidden') and not obj.hidden:
+                obj.hidden = True
+                hidden += 1
+        if hidden:
+            self.level_view.selected = []
+            self.level_view.selected_positions = []
+            self.level_view.selected_rotations = []
+            self.select_from_3d_to_treeview()
+            self.update_3d()
+
+    def on_hide_unselected_action_triggered(self):
+        selected = set(self.level_view.selected)
+        for obj in self.level_file.get_all_objects():
+            if hasattr(obj, 'hidden') and obj not in selected:
+                obj.hidden = True
+        self.update_3d()
 
     def setup_ui_toolbar(self):
         # self.toolbar = QtWidgets.QToolBar("Test", self)
@@ -3286,6 +3327,11 @@ class GenEditor(QtWidgets.QMainWindow):
         copied_objects = pickle.loads(data)
         if not copied_objects:
             return
+
+        # For visibility, disregard the incoming hidden state.
+        for copied_object in copied_objects:
+            if hasattr(copied_object, 'hidden'):
+                copied_object.hidden = False
 
         # The currently selected items are used as reference for the insertion points. For each
         # element kind, we need to figure out the target group, and the index in the target group.
