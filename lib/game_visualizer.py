@@ -109,18 +109,25 @@ class Game:
             return "Game ID cannot be read from memory."
 
         gameid = bytes(gameid_buffer)
-        if gameid in (b"GM4P", b"GM4J"):
-            return "PAL/NTSC-J version of MKDD currently isn't supported for Dolphin hooking."
-        if gameid != b"GM4E":
+        #if gameid in (b"GM4P", b"GM4J"):
+        #    return "PAL/NTSC-J version of MKDD currently isn't supported for Dolphin hooking."
+        if gameid not in (b"GM4E", b"GM4J", b"GM4P"):
             gameid_str = str(gameid, encoding="ascii")
             return f"Game doesn't seem to be MKDD: Found Game ID '{gameid_str}'."
 
-        stringcheck = self.dolphin.read_ram(0x80419020 - 0x80000000, 5)
-        if stringcheck == b"title":
-            self.region = "US_DEBUG"
-        else:
-            self.region = "US"
-
+        
+        if gameid == b"GM4E":
+            # Only way to tell apart US and US Debug is by differences in the binary data/code.
+            stringcheck = self.dolphin.read_ram(0x80419020 - 0x80000000, 5)
+            if stringcheck == b"title":
+                self.region = "US_DEBUG"
+            else:
+                self.region = "US"
+        elif gameid == b"GM4P":
+            self.region = "PAL"
+        elif gameid == b"GM4J":
+            self.region = "JP"
+            
         print("Success! Detected region", self.region)
         return ""
 
@@ -335,6 +342,10 @@ class Game:
             kartctrlPtr = self.dolphin.read_uint32(0x803CC588)
         elif self.region == "US_DEBUG":
             kartctrlPtr = self.dolphin.read_uint32(0x804171a0)
+        elif self.region == "PAL":
+            kartctrlPtr = self.dolphin.read_uint32(0x803db240-0x4E78) #r13 - offset
+        elif self.region == "JP":
+            kartctrlPtr = self.dolphin.read_uint32(0x803eba40-0x4E98)
         else:
             kartctrlPtr = None
 
@@ -349,13 +360,20 @@ class Game:
             self.kart_count = max(0, min(8, self.dolphin.read_uint32(0x803CB6B1) >> 24))
         elif self.region == "US_DEBUG":
             self.kart_count = max(0, min(8, self.dolphin.read_uint32(0x80416271) >> 24))
+        elif self.region == "PAL":
+            self.kart_count = max(0, min(8, self.dolphin.read_uint32(0x803db240-0x5D4F) >> 24))
+        elif self.region == "JP":
+            self.kart_count = max(0, min(8, self.dolphin.read_uint32(0x803eba40-0x5D6F) >> 24))
 
         # Check whether "Player Karts: Enable Auto Pilot [Ralf]" is on.
         if self.region == "US":
             autopilot = self.dolphin.read_uint32(0x802C60F4) == 0x60000000
         elif self.region == "US_DEBUG":
             autopilot = self.dolphin.read_uint32(0x80306644) == 0x60000000
-
+        elif self.region == "PAL":
+            autopilot = self.dolphin.read_uint32(0x802c60b8) == 0x60000000
+        elif self.region == "JP":
+            autopilot = self.dolphin.read_uint32(0x802c611c) == 0x60000000
 
         for i in range(self.kart_count):
             kartPtr = self.dolphin.read_uint32(kartctrlPtr + 0xA0 + i * 4)
