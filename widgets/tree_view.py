@@ -5,8 +5,13 @@ from lib.libbol import BOL, get_full_name, AREA_TYPES, KART_START_POINTS_PLAYER_
 
 class BaseTreeWidgetItem(QtWidgets.QTreeWidgetItem):
 
+    dim_color = None
+
     def get_index_in_parent(self):
         return self.parent().indexOfChild(self)
+
+    def dim_label(self, dim: bool):
+        self.setForeground(0, self.dim_color if dim else QtGui.QBrush())
 
 
 class BolHeader(BaseTreeWidgetItem):
@@ -23,6 +28,8 @@ class ObjectGroup(BaseTreeWidgetItem):
             super().__init__(parent)
         self.setText(0, name)
         self.bound_to = bound_to
+        if bound_to is not None:
+            bound_to.widget = self
 
     def remove_children(self):
         self.takeChildren()
@@ -89,6 +96,8 @@ class NamedItem(BaseTreeWidgetItem):
         super().__init__(parent)
         self.setText(0, name)
         self.bound_to = bound_to
+        if bound_to is not None:
+            bound_to.widget = self
         self.index = index
         self.update_name()
 
@@ -97,11 +106,10 @@ class NamedItem(BaseTreeWidgetItem):
 
 
 class EnemyRoutePoint(NamedItem):
-    def __init__(self, parent, name, bound_to, index=None):
-        super().__init__(parent, name, bound_to, index)
-        bound_to.widget = self
 
     def update_name(self):
+        self.dim_label(self.bound_to.hidden)
+
         group_item = self.parent()
         group = group_item.bound_to
         offset = 0
@@ -132,6 +140,8 @@ class EnemyRoutePoint(NamedItem):
 
 class Checkpoint(NamedItem):
     def update_name(self):
+        self.dim_label(self.bound_to.hidden)
+
         offset = 0
         group_item = self.parent()
         groups_item = group_item.parent()
@@ -152,6 +162,8 @@ class Checkpoint(NamedItem):
 
 class ObjectRoutePoint(NamedItem):
     def update_name(self):
+        self.dim_label(self.bound_to.hidden)
+
         group_item = self.parent()
         group = group_item.bound_to
 
@@ -161,11 +173,9 @@ class ObjectRoutePoint(NamedItem):
 
 
 class ObjectEntry(NamedItem):
-    def __init__(self, parent, name, bound_to):
-        super().__init__(parent, name, bound_to)
-        bound_to.widget = self
 
     def update_name(self):
+        self.dim_label(self.bound_to.hidden)
         self.setText(0, get_full_name(self.bound_to.objectid))
 
     def __lt__(self, other):
@@ -174,31 +184,24 @@ class ObjectEntry(NamedItem):
 
 class KartpointEntry(NamedItem):
 
-    def __init__(self, parent, name, bound_to):
-        super().__init__(parent, name, bound_to)
-
-        bound_to.widget = self
-
     def update_name(self):
+        self.dim_label(self.bound_to.hidden)
         playerid = self.bound_to.playerid
         self.setText(0, f'Kart Start Point ({KART_START_POINTS_PLAYER_IDS[playerid]})')
 
 
 class AreaEntry(NamedItem):
-    def __init__(self, parent, name, bound_to, index=None):
-        super().__init__(parent, name, bound_to, index)
-        bound_to.widget = self
 
     def update_name(self):
+        self.dim_label(self.bound_to.hidden)
         self.setText(0, f'{AREA_TYPES[self.bound_to.area_type]} {self.index}')
 
 
 class CameraEntry(NamedItem):
-    def __init__(self, parent, name, bound_to, index=None):
-        super().__init__(parent, name, bound_to, index)
-        bound_to.widget = self
 
     def update_name(self, intro_cameras=None, area_cameras=None):
+        self.dim_label(self.bound_to.hidden)
+
         if intro_cameras is None or area_cameras is None:
             bol = self.treeWidget().editor.level_file
             intro_cameras, _cycle_detected = bol.get_intro_cameras()
@@ -224,11 +227,9 @@ class CameraEntry(NamedItem):
 
 
 class RespawnEntry(NamedItem):
-    def __init__(self, parent, name, bound_to, index=None):
-        super().__init__(parent, name, bound_to, index)
-        bound_to.widget = self
 
     def update_name(self):
+        self.dim_label(self.bound_to.hidden)
         for i in range(self.parent().childCount()):
             if self == self.parent().child(i):
                 self.setText(0, "Respawn Point {0} (ID: {1} / 0x{1:02X})".format(i, self.bound_to.respawn_id))
@@ -259,6 +260,8 @@ class LevelDataTreeView(QtWidgets.QTreeWidget):
 
     def __init__(self, editor, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        BaseTreeWidgetItem.dim_color = self.palette().light()
 
         self.editor = editor
 

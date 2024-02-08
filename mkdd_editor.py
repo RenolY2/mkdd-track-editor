@@ -316,7 +316,7 @@ class GenEditor(QtWidgets.QMainWindow):
                 self.setWindowTitle(f"{APP_NAME}")
 
     def generate_undo_entry(self) -> UndoEntry:
-        bol_document = self.level_file.to_bytes()
+        bol_document = self.level_file.to_bytes(extended_format=True)
 
         # List containing a tuple with the emptiness and ID of each of the enemy paths.
         enemy_paths = self.level_file.enemypointgroups.groups
@@ -362,7 +362,7 @@ class GenEditor(QtWidgets.QMainWindow):
 
         bol_changed = current_undo_entry.bol_hash != undo_entry.bol_hash
 
-        self.level_file = BOL.from_bytes(undo_entry.bol_document)
+        self.level_file = BOL.from_bytes(undo_entry.bol_document, extended_format=True)
 
         # The BOL document cannot store information on empty enemy paths; this information is
         # sourced from a separate list.
@@ -560,6 +560,8 @@ class GenEditor(QtWidgets.QMainWindow):
         if self.visibility_menu.enemyroute.is_visible():
             for enemy_path in self.level_file.enemypointgroups.groups:
                 for enemy_path_point in enemy_path.points:
+                    if enemy_path_point.hidden:
+                        continue
                     extend(enemy_path_point.position)
 
         visible_objectroutes = self.visibility_menu.objectroutes.is_visible()
@@ -577,27 +579,41 @@ class GenEditor(QtWidgets.QMainWindow):
                          (object_route not in assigned_routes and visible_unassignedroutes))):
                     continue
                 for object_route_point in object_route.points:
+                    if object_route_point.hidden:
+                        continue
                     extend(object_route_point.position)
 
         if self.visibility_menu.checkpoints.is_visible():
             for checkpoint_group in self.level_file.checkpoints.groups:
                 for checkpoint in checkpoint_group.points:
+                    if checkpoint.hidden:
+                        continue
                     extend(checkpoint.start)
                     extend(checkpoint.end)
         if self.visibility_menu.objects.is_visible():
             for object_ in self.level_file.objects.objects:
+                if object_.hidden:
+                    continue
                 extend(object_.position)
         if self.visibility_menu.areas.is_visible():
             for area in self.level_file.areas.areas:
+                if area.hidden:
+                    continue
                 extend(area.position)
         if self.visibility_menu.cameras.is_visible():
             for camera in self.level_file.cameras:
+                if camera.hidden:
+                    continue
                 extend(camera.position)
         if self.visibility_menu.respawnpoints.is_visible():
             for respawn_point in self.level_file.respawnpoints:
+                if respawn_point.hidden:
+                    continue
                 extend(respawn_point.position)
         if self.visibility_menu.kartstartpoints.is_visible():
             for karts_point in self.level_file.kartpoints.positions:
+                if karts_point.hidden:
+                    continue
                 extend(karts_point.position)
         if (self.level_view.minimap is not None and self.level_view.minimap.is_available()
                 and self.visibility_menu.minimap.is_visible()):
@@ -958,6 +974,21 @@ class GenEditor(QtWidgets.QMainWindow):
         self.view_menu.addAction(self.change_to_3dview_action)
         self.change_to_3dview_action.setCheckable(True)
         self.change_to_3dview_action.setShortcut("Ctrl+2")
+
+        self.view_menu.addSeparator()
+
+        show_hide_objects_menu = QtWidgets.QMenu('Show/Hide Objects', self)
+        self.view_menu.addMenu(show_hide_objects_menu)
+        show_hidden_objects_action = show_hide_objects_menu.addAction('Show Hidden Objects')
+        show_hidden_objects_action.setShortcut('Alt+H')
+        show_hidden_objects_action.triggered.connect(self.on_show_hidden_objects_action_triggered)
+        show_hide_objects_menu.addSeparator()
+        hide_selected_action = show_hide_objects_menu.addAction('Hide Selected')
+        hide_selected_action.setShortcut('H')
+        hide_selected_action.triggered.connect(self.on_hide_selected_action_triggered)
+        hide_unselected_action = show_hide_objects_menu.addAction('Hide Unselected')
+        hide_unselected_action.setShortcut('Shift+H')
+        hide_unselected_action.triggered.connect(self.on_hide_unselected_action_triggered)
 
         self.view_menu.addSeparator()
 
@@ -1663,6 +1694,35 @@ class GenEditor(QtWidgets.QMainWindow):
         if checked:
             self.level_view.change_from_topdown_to_3d()
             self.statusbar.clearMessage()
+
+    def on_show_hidden_objects_action_triggered(self):
+        for obj in self.level_file.get_all_objects():
+            if hasattr(obj, 'hidden'):
+                obj.hidden = False
+                obj.widget.update_name()
+        self.update_3d()
+
+    def on_hide_selected_action_triggered(self):
+        hidden = 0
+        for obj in self.level_view.selected:
+            if hasattr(obj, 'hidden') and not obj.hidden:
+                obj.hidden = True
+                obj.widget.update_name()
+                hidden += 1
+        if hidden:
+            self.level_view.selected = []
+            self.level_view.selected_positions = []
+            self.level_view.selected_rotations = []
+            self.select_from_3d_to_treeview()
+            self.update_3d()
+
+    def on_hide_unselected_action_triggered(self):
+        selected = set(self.level_view.selected)
+        for obj in self.level_file.get_all_objects():
+            if hasattr(obj, 'hidden') and obj not in selected:
+                obj.hidden = True
+                obj.widget.update_name()
+        self.update_3d()
 
     def setup_ui_toolbar(self):
         # self.toolbar = QtWidgets.QToolBar("Test", self)
@@ -3286,6 +3346,11 @@ class GenEditor(QtWidgets.QMainWindow):
         copied_objects = pickle.loads(data)
         if not copied_objects:
             return
+
+        # For visibility, disregard the incoming hidden state.
+        for copied_object in copied_objects:
+            if hasattr(copied_object, 'hidden'):
+                copied_object.hidden = False
 
         # The currently selected items are used as reference for the insertion points. For each
         # element kind, we need to figure out the target group, and the index in the target group.

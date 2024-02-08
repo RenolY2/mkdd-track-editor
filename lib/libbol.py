@@ -217,12 +217,12 @@ class ObjectContainer(list):
         self.object_type = object_type
 
     @classmethod
-    def from_file(cls, f, count, objcls, *args):
+    def from_file(cls, f, count, objcls, extended_format, *args):
         container = cls()
         container.object_type = objcls
 
         for i in range(count):
-            obj = objcls.from_file(f, *args)
+            obj = objcls.from_file(f, extended_format, *args)
             container.append(obj)
 
         return container
@@ -326,6 +326,7 @@ class EnemyPoint(PositionedObject):
         self.driftsupplement = driftsupplement
         self.nomushroomzone = nomushroomzone
 
+        self.hidden = False
         self.widget = None
 
         assert self.swerve in (-3, -2, -1, 0, 1, 2, 3)
@@ -342,7 +343,7 @@ class EnemyPoint(PositionedObject):
         )
 
     @classmethod
-    def from_file(cls, f, old_bol=False):
+    def from_file(cls, f, old_bol: bool, extended_format: bool):
         start = f.tell()
         args = [Vector3(*unpack(">fff", f.read(12)))]
         if not old_bol:
@@ -354,18 +355,25 @@ class EnemyPoint(PositionedObject):
             args.extend((0, 0, 0, 0))
 
         obj = cls(*args)
+
+        if extended_format:
+            obj.hidden = f.read(1) != b'\x00'
+
         obj._size = f.tell() - start
         if old_bol:
             obj._size += 8
         return obj
 
-    def write(self, f):
+    def write(self, f, extended_format: bool):
         start = f.tell()
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         f.write(pack(">Hhf", self.driftdirection, self.link, self.scale))
         f.write(pack(">bBBBBBB", self.swerve, self.itemsonly, self.group, self.driftacuteness, self.driftduration, self.driftsupplement, self.nomushroomzone))
         f.write(b"\x00"*5)
         #assert f.tell() - start == self._size
+
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
 
     def copy(self):
         widget = self.widget
@@ -481,13 +489,13 @@ class EnemyPointGroups(object):
         self.groups = []
 
     @classmethod
-    def from_file(cls, f, count, old_bol=False):
+    def from_file(cls, f, count, old_bol, extended_format: bool):
         enemypointgroups = cls()
         group_ids = {}
         curr_group = None
 
         for i in range(count):
-            enemypoint = EnemyPoint.from_file(f, old_bol)
+            enemypoint = EnemyPoint.from_file(f, old_bol, extended_format)
             if enemypoint.group not in group_ids:
                 # start of group
                 curr_group = EnemyPointGroup()
@@ -623,6 +631,8 @@ class CheckpointGroup(object):
         self.prevgroup = [0, -1, -1, -1]
         self.nextgroup = [0, -1, -1, -1]
 
+        self.widget = None
+
     @classmethod
     def new(cls):
         return cls(0)
@@ -656,7 +666,7 @@ class CheckpointGroup(object):
         self.points = self.points[:pos+1]
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, extended_format: bool):
         pointcount = read_uint16(f)
         checkpointgroup = cls(read_uint16(f))
         checkpointgroup._pointcount = pointcount
@@ -669,7 +679,7 @@ class CheckpointGroup(object):
 
         return checkpointgroup
 
-    def write(self, f):
+    def write(self, f, extended_format: bool):
         self._pointcount = len(self.points)
 
         f.write(pack(">HH", self._pointcount, self.grouplink))
@@ -702,6 +712,9 @@ class Checkpoint(object):
         self.unk3 = unk3
         self.unk4 = unk4
 
+        self.hidden = False
+        self.widget = None
+
     @classmethod
     def new(cls):
         return cls(Vector3(0.0, 0.0, 0.0),
@@ -709,7 +722,7 @@ class Checkpoint(object):
 
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, extended_format: bool):
         startoff = f.tell()
         start = Vector3(*unpack(">fff", f.read(12)))
         end = Vector3(*unpack(">fff", f.read(12)))
@@ -717,15 +730,29 @@ class Checkpoint(object):
         assert unk2 == 0 or unk2 == 1
         assert unk3 == 0 or unk3 == 1
         assert unk4 in (0, 1)  # 1 expected only for the custom "Lap Checkpoint" parameter
-        return cls(start, end, unk1, unk2, unk3, unk4)
 
-    def write(self, f):
+        obj = cls(start, end, unk1, unk2, unk3, unk4)
+
+        if extended_format:
+            obj.hidden = f.read(1) != b'\x00'
+
+        return obj
+
+    def write(self, f, extended_format: bool):
         f.write(pack(">fff", self.start.x, self.start.y, self.start.z))
         f.write(pack(">fff", self.end.x, self.end.y, self.end.z))
         f.write(pack(">BBBB", self.unk1, self.unk2, self.unk3, self.unk4))
 
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
+
     def copy(self):
-        return deepcopy(self)
+        widget = self.widget
+        self.widget = None
+        try:
+            return deepcopy(self)
+        finally:
+            self.widget = widget
 
     def __iadd__(self, other):
         self.start += other.start
@@ -748,16 +775,16 @@ class CheckpointGroups(object):
         self.groups = []
 
     @classmethod
-    def from_file(cls, f, count):
+    def from_file(cls, f, count, extended_format: bool):
         checkpointgroups = cls()
 
         for i in range(count):
-            group = CheckpointGroup.from_file(f)
+            group = CheckpointGroup.from_file(f, extended_format)
             checkpointgroups.groups.append(group)
 
         for group in checkpointgroups.groups:
             for i in range(group._pointcount):
-                checkpoint = Checkpoint.from_file(f)
+                checkpoint = Checkpoint.from_file(f, extended_format)
                 group.points.append(checkpoint)
 
         return checkpointgroups
@@ -797,13 +824,15 @@ class Route(object):
         self.unk1 = 0
         self.unk2 = 0
 
+        self.widget = None
+
     @classmethod
     def new(cls):
         return cls()
 
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, extended_format: bool):
         route = cls()
         route._pointcount = read_uint16(f)
         route._pointstart = read_uint16(f)
@@ -828,7 +857,7 @@ class Route(object):
         for i in range(self._pointcount):
             self.points.append(points[self._pointstart+i])
 
-    def write(self, f, pointstart):
+    def write(self, f, pointstart, extended_format: bool):
         f.write(pack(">HH", len(self.points), pointstart))
         f.write(pack(">IB", self.unk1, self.unk2))
         f.write(b"\x00"*7)
@@ -859,13 +888,16 @@ class RoutePoint(PositionedObject):
         super().__init__(position)
         self.unk = 0
 
+        self.hidden = False
+        self.widget = None
+
     @classmethod
     def new(cls):
         return cls(Vector3(0.0, 0.0, 0.0))
 
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, extended_format: bool):
         position = Vector3(*unpack(">fff", f.read(12)))
         point = cls(position)
 
@@ -873,15 +905,34 @@ class RoutePoint(PositionedObject):
 
         padding = f.read(16)
         assert padding == b"\x00"*16
+
+        if extended_format:
+            point.hidden = f.read(1) != b'\x00'
+
         return point
 
-    def write(self, f):
+    def write(self, f, extended_format: bool):
         f.write(pack(">fffI", self.position.x, self.position.y, self.position.z,
                      self.unk))
         f.write(b"\x00"*16)
 
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
+
+    @classmethod
+    def get_struct_size(cls, extended_format: bool):
+        struct_size = 0x20
+        if extended_format:
+            struct_size += 1  # Hidden flag
+        return struct_size
+
     def copy(self):
-        return deepcopy(self)
+        widget = self.widget
+        self.widget = None
+        try:
+            return deepcopy(self)
+        finally:
+            self.widget = widget
 
     def __iadd__(self, other):
         self.position += other.position
@@ -914,6 +965,7 @@ class MapObject(PositionedObject):
         self.unk_2f = 0
         self.userdata = [0 for i in range(8)]
 
+        self.hidden = False
         self.widget = None
 
     @classmethod
@@ -921,7 +973,7 @@ class MapObject(PositionedObject):
         return cls(Vector3(0.0, 0.0, 0.0), 1)
 
     @classmethod
-    def from_file(cls, f, routes: ObjectContainer):
+    def from_file(cls, f, routes: ObjectContainer, extended_format: bool):
         start = f.tell()
         position = Vector3(*unpack(">fff", f.read(12)))
         scale = Vector3(*unpack(">fff", f.read(12)))
@@ -957,10 +1009,14 @@ class MapObject(PositionedObject):
 
         for i in range(8):
             obj.userdata[i] = read_int16(f)
+
+        if extended_format:
+            obj.hidden = f.read(1) != b'\x00'
+
         obj._size = f.tell() - start
         return obj
 
-    def write(self, f, routes: ObjectContainer):
+    def write(self, f, routes: ObjectContainer, extended_format: bool):
         start = f.tell()
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         f.write(pack(">fff", self.scale.x, self.scale.y, self.scale.z))
@@ -979,6 +1035,10 @@ class MapObject(PositionedObject):
 
         for i in range(8):
             f.write(pack(">h", self.userdata[i]))
+
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
+
         #assert f.tell() - start == self._size
 
     def read_json_file(self):
@@ -1062,11 +1122,11 @@ class MapObjects(object):
         self.objects = []
 
     @classmethod
-    def from_file(cls, f, objectcount, routes: ObjectContainer):
+    def from_file(cls, f, objectcount, routes: ObjectContainer, extended_format: bool):
         mapobjs = cls()
 
         for i in range(objectcount):
-            obj = MapObject.from_file(f, routes)
+            obj = MapObject.from_file(f, routes, extended_format)
             mapobjs.objects.append(obj)
 
         return mapobjs
@@ -1091,6 +1151,7 @@ class KartStartPoint(PositionedObject):
 
         self.unknown = 0
 
+        self.hidden = False
         self.widget = None
 
     @classmethod
@@ -1098,7 +1159,7 @@ class KartStartPoint(PositionedObject):
         return cls(Vector3(0.0, 0.0, 0.0))
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, extended_format: bool):
         position = Vector3(*unpack(">fff", f.read(12)))
 
         kstart = cls(position)
@@ -1108,13 +1169,27 @@ class KartStartPoint(PositionedObject):
         kstart.playerid = read_uint8(f)
         kstart.unknown = read_uint16(f)
         #assert kstart.unknown == 0
+
+        if extended_format:
+            kstart.hidden = f.read(1) != b'\x00'
+
         return kstart
 
-    def write(self, f):
+    def write(self, f, extended_format: bool):
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         f.write(pack(">fff", self.scale.x, self.scale.y, self.scale.z))
         self.rotation.write(f)
         f.write(pack(">BBH", self.poleposition, self.playerid, self.unknown))
+
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
+
+    @classmethod
+    def get_struct_size(cls, extended_format: bool):
+        struct_size = 0x28
+        if extended_format:
+            struct_size += 1  # Hidden flag
+        return struct_size
 
     def copy(self):
         widget = self.widget
@@ -1150,11 +1225,11 @@ class KartStartPoints(object):
         self.positions = []
 
     @classmethod
-    def from_file(cls, f, count):
+    def from_file(cls, f, count, extended_format: bool):
         kspoints = cls()
 
         for i in range(count):
-            kstart = KartStartPoint.from_file(f)
+            kstart = KartStartPoint.from_file(f, extended_format)
             kspoints.positions.append(kstart)
 
         return kspoints
@@ -1210,6 +1285,7 @@ class Area(PositionedObject):
         self.shadow_id = 0
         self.lightparam_index = 0
 
+        self.hidden = False
         self.widget = None
 
     @classmethod
@@ -1217,7 +1293,7 @@ class Area(PositionedObject):
         return cls(Vector3(0.0, 0.0, 0.0))
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, extended_format: bool):
         position = Vector3(*unpack(">fff", f.read(12)))
 
         area = cls(position)
@@ -1237,6 +1313,9 @@ class Area(PositionedObject):
         assert area.shape in (0, 1)
         assert area.area_type in list(AREA_TYPES.keys())
 
+        if extended_format:
+            area.hidden = f.read(1) != b'\x00'
+
         return area
 
     def setcam(self, cameras: ObjectContainer):
@@ -1248,7 +1327,7 @@ class Area(PositionedObject):
             except ValueError:
                 self.camera = None
 
-    def write(self, f, cameras: ObjectContainer):
+    def write(self, f, cameras: ObjectContainer, extended_format: bool):
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         f.write(pack(">fff", self.scale.x, self.scale.y, self.scale.z))
         self.rotation.write(f)
@@ -1264,6 +1343,9 @@ class Area(PositionedObject):
         f.write(pack(">BBh", self.shape, self.area_type, camera_index))
         f.write(pack(">II", self.feather.i0, self.feather.i1))
         f.write(pack(">hhhh", self.unkfixedpoint, self.unkshort, self.shadow_id, self.lightparam_index))
+
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
 
     def copy(self):
         widget = self.widget
@@ -1311,10 +1393,10 @@ class Areas(object):
         self.areas = []
 
     @classmethod
-    def from_file(cls, f, count):
+    def from_file(cls, f, count, extended_format: bool):
         areas = cls()
         for i in range(count):
-            areas.areas.append(Area.from_file(f))
+            areas.areas.append(Area.from_file(f, extended_format))
 
         return areas
 
@@ -1375,6 +1457,7 @@ class Camera(PositionedObject):
         self._nextcam = -1
         self.name = "null"
 
+        self.hidden = False
         self.widget = None
 
     @classmethod
@@ -1382,7 +1465,7 @@ class Camera(PositionedObject):
         return cls(Vector3(0.0, 0.0, 0.0))
 
     @classmethod
-    def from_file(cls, f, routes: ObjectContainer):
+    def from_file(cls, f, routes: ObjectContainer, extended_format: bool):
         position = Vector3(*unpack(">fff", f.read(12)))
 
         cam = cls(position)
@@ -1412,6 +1495,9 @@ class Camera(PositionedObject):
         cam._nextcam = read_int16(f)
         cam.name = str(f.read(4), encoding="ascii")
 
+        if extended_format:
+            cam.hidden = f.read(1) != b'\x00'
+
         return cam
 
     def setnextcam(self, cameras: ObjectContainer):
@@ -1423,7 +1509,7 @@ class Camera(PositionedObject):
             except ValueError:
                 self.nextcam = None
 
-    def write(self, f, routes: ObjectContainer, cameras: ObjectContainer):
+    def write(self, f, routes: ObjectContainer, cameras: ObjectContainer, extended_format: bool):
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         self.rotation.write(f)
         f.write(pack(">fff", self.position2.x, self.position2.y, self.position2.z))
@@ -1451,6 +1537,9 @@ class Camera(PositionedObject):
                      self.routespeed, self.fov.end, nextcamid))
         assert len(self.name) == 4
         f.write(bytes(self.name, encoding="ascii"))
+
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
 
     def copy(self):
         widget = self.widget
@@ -1515,6 +1604,7 @@ class JugemPoint(PositionedObject):
         self.unk2 = 0
         self.unk3 = 0
 
+        self.hidden = False
         self.widget = None
 
     @classmethod
@@ -1522,7 +1612,7 @@ class JugemPoint(PositionedObject):
         return cls(Vector3(0.0, 0.0, 0.0))
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, extended_format: bool):
         position = Vector3(*unpack(">fff", f.read(12)))
         jugem = cls(position)
         jugem.rotation = Rotation.from_file(f)
@@ -1531,12 +1621,18 @@ class JugemPoint(PositionedObject):
         jugem.unk2 = read_int16(f)
         jugem.unk3 = read_int16(f)
 
+        if extended_format:
+            jugem.hidden = f.read(1) != b'\x00'
+
         return jugem
 
-    def write(self, f):
+    def write(self, f, extended_format: bool):
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         self.rotation.write(f)
         f.write(pack(">HHhh", self.respawn_id, self.unk1, self.unk2, self.unk3))
+
+        if extended_format:
+            f.write(b'\x01' if self.hidden else b'\x00')
 
     def copy(self):
         widget = self.widget
@@ -1574,12 +1670,14 @@ class LightParam(PositionedObject):
         self.color1 = ColorRGBA(0x64, 0x64, 0x64, 0xFF)
         self.color2 = ColorRGBA(0x64, 0x64, 0x64, 0x00)
 
+        self.widget = None
+
     @classmethod
     def new(cls):
         return cls(Vector3(0.0, 0.0, 0.0))
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, extended_format: bool):
         lp = cls.new()
         lp.color1 = ColorRGBA.from_file(f)
         lp.position = Vector3(*unpack(">fff", f.read(12)))
@@ -1587,13 +1685,18 @@ class LightParam(PositionedObject):
 
         return lp
 
-    def write(self, f):
+    def write(self, f, extended_format: bool):
         self.color1.write(f)
         f.write(pack(">fff", self.position.x, self.position.y, self.position.z))
         self.color2.write(f)
 
     def copy(self):
-        return deepcopy(self)
+        widget = self.widget
+        self.widget = None
+        try:
+            return deepcopy(self)
+        finally:
+            self.widget = widget
 
     def __iadd__(self, other):
         self.position += other.position
@@ -1622,12 +1725,14 @@ class MGEntry(object):
         self.unk3 = 0
         self.unk4 = 0
 
+        self.widget = None
+
     @classmethod
     def new(cls):
         return cls()
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, extended_format: bool):
         mgentry = MGEntry()
         mgentry.unk1 = read_int16(f)
         mgentry.unk2 = read_int16(f)
@@ -1636,11 +1741,16 @@ class MGEntry(object):
 
         return mgentry
 
-    def write(self, f):
+    def write(self, f, extended_format: bool):
         f.write(pack(">hhhh", self.unk1, self.unk2, self.unk3, self.unk4))
 
     def copy(self):
-        return deepcopy(self)
+        widget = self.widget
+        self.widget = None
+        try:
+            return deepcopy(self)
+        finally:
+            self.widget = widget
 
     def __iadd__(self, other):
         self.unk1 += other.unk1
@@ -1782,7 +1892,7 @@ class BOL(object):
         return area_cameras
 
     @classmethod
-    def from_file(cls, f):
+    def from_file(cls, f, extended_format: bool = False):
         bol = cls()
         magic = f.read(4)
         assert magic == b"0015" or magic == b"0012"
@@ -1838,28 +1948,32 @@ class BOL(object):
         #calculated_count = (sectionoffsets[CHECKPOINT] - sectionoffsets[ENEMYITEMPOINT])//0x20
         #assert sectioncounts[ENEMYITEMPOINT] == calculated_count
         f.seek(sectionoffsets[ENEMYITEMPOINT])
-        bol.enemypointgroups = EnemyPointGroups.from_file(f, sectioncounts[ENEMYITEMPOINT], old_bol)
+        bol.enemypointgroups = EnemyPointGroups.from_file(f, sectioncounts[ENEMYITEMPOINT], old_bol,
+                                                          extended_format)
 
         f.seek(sectionoffsets[CHECKPOINT])
-        bol.checkpoints = CheckpointGroups.from_file(f, sectioncounts[CHECKPOINT])
+        bol.checkpoints = CheckpointGroups.from_file(f, sectioncounts[CHECKPOINT], extended_format)
 
         f.seek(sectionoffsets[ROUTEGROUP])
-        bol.routes = ObjectContainer.from_file(f, sectioncounts[ROUTEGROUP], Route)
+        bol.routes = ObjectContainer.from_file(f, sectioncounts[ROUTEGROUP], Route, extended_format)
 
         f.seek(sectionoffsets[ROUTEPOINT])
         routepoints = []
-        count = (sectionoffsets[OBJECTS] - sectionoffsets[ROUTEPOINT])//0x20
+        route_struct_size = RoutePoint.get_struct_size(extended_format)
+        count = (sectionoffsets[OBJECTS] - sectionoffsets[ROUTEPOINT]) // route_struct_size
         for i in range(count):
-            routepoints.append(RoutePoint.from_file(f))
+            routepoints.append(RoutePoint.from_file(f, extended_format))
 
         for route in bol.routes:
             route.add_routepoints(routepoints)
 
         f.seek(sectionoffsets[OBJECTS])
-        bol.objects = MapObjects.from_file(f, sectioncounts[OBJECTS], bol.routes)
+        bol.objects = MapObjects.from_file(f, sectioncounts[OBJECTS], bol.routes, extended_format)
 
         f.seek(sectionoffsets[KARTPOINT])
-        bol.kartpoints = KartStartPoints.from_file(f, (sectionoffsets[AREA] - sectionoffsets[KARTPOINT])//0x28)
+        kart_start_point_struct_size = KartStartPoint.get_struct_size(extended_format)
+        count = (sectionoffsets[AREA] - sectionoffsets[KARTPOINT]) // kart_start_point_struct_size
+        bol.kartpoints = KartStartPoints.from_file(f, count, extended_format)
 
         # on the dekoboko dev track from a MKDD demo this assertion doesn't hold for some reason
         if not old_bol:
@@ -1871,10 +1985,11 @@ class BOL(object):
                 bol.kartpoints.positions[0].playerid = 0xFF
 
         f.seek(sectionoffsets[AREA])
-        bol.areas = Areas.from_file(f, sectioncounts[AREA])
+        bol.areas = Areas.from_file(f, sectioncounts[AREA], extended_format)
 
         f.seek(sectionoffsets[CAMERA])
-        bol.cameras = ObjectContainer.from_file(f, sectioncounts[CAMERA], Camera, bol.routes)
+        bol.cameras = ObjectContainer.from_file(f, sectioncounts[CAMERA], Camera, bol.routes,
+                                                extended_format)
         for camera in bol.cameras:
             camera.setnextcam(bol.cameras)
 
@@ -1882,22 +1997,25 @@ class BOL(object):
             area.setcam(bol.cameras)
 
         f.seek(sectionoffsets[RESPAWNPOINT])
-        bol.respawnpoints = ObjectContainer.from_file(f, sectioncounts[RESPAWNPOINT], JugemPoint)
+        bol.respawnpoints = ObjectContainer.from_file(f, sectioncounts[RESPAWNPOINT], JugemPoint,
+                                                      extended_format)
 
         f.seek(sectionoffsets[LIGHTPARAM])
 
-        bol.lightparams = ObjectContainer.from_file(f, sectioncounts[LIGHTPARAM], LightParam)
+        bol.lightparams = ObjectContainer.from_file(f, sectioncounts[LIGHTPARAM], LightParam,
+                                                    extended_format)
 
         f.seek(sectionoffsets[MINIGAME])
-        bol.mgentries = ObjectContainer.from_file(f, sectioncounts[MINIGAME], MGEntry)
+        bol.mgentries = ObjectContainer.from_file(f, sectioncounts[MINIGAME], MGEntry,
+                                                  extended_format)
 
         return bol
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> 'BOL':
-        return BOL.from_file(BytesIO(data))
+    def from_bytes(cls, data: bytes, extended_format: bool = False) -> 'BOL':
+        return BOL.from_file(BytesIO(data), extended_format)
 
-    def write(self, f):
+    def write(self, f, extended_format: bool = False):
         f.write(b"0015")
         f.write(pack(">B", self.roll))
         self.rgb_ambient.write(f)
@@ -1939,62 +2057,63 @@ class BOL(object):
             #group = self.enemypointgroups.groups[groupindex]
             for point in group.points:
                 point.group = group.id
-                point.write(f)
+                point.write(f, extended_format)
 
         offsets.append(f.tell())
         for group in self.checkpoints.groups:
-            group.write(f)
+            group.write(f, extended_format)
         for group in self.checkpoints.groups:
             for point in group.points:
-                point.write(f)
+                point.write(f, extended_format)
 
         offsets.append(f.tell())
 
         index = 0
         for route in self.routes:
-            route.write(f, index)
+            route.write(f, index, extended_format)
             index += len(route.points)
 
         offsets.append(f.tell())
         for route in self.routes:
             for point in route.points:
-                point.write(f)
+                point.write(f, extended_format)
 
         offsets.append(f.tell())
-        for object in self.objects.objects:
-            object.write(f, self.routes)
+        for obj in self.objects.objects:
+            obj.write(f, self.routes, extended_format)
 
         offsets.append(f.tell())
         for startpoint in self.kartpoints.positions:
-            startpoint.write(f)
+            startpoint.write(f, extended_format)
 
         offsets.append(f.tell())
         for area in self.areas.areas:
-            area.write(f, self.cameras)
+            area.write(f, self.cameras, extended_format)
 
         offsets.append(f.tell())
         for camera in self.cameras:
-            camera.write(f, self.routes, self.cameras)
+            camera.write(f, self.routes, self.cameras, extended_format)
 
         offsets.append(f.tell())
         for respawnpoint in self.respawnpoints:
-            respawnpoint.write(f)
+            respawnpoint.write(f, extended_format)
 
         offsets.append(f.tell())
         for lightparam in self.lightparams:
-            lightparam.write(f)
+            lightparam.write(f, extended_format)
 
         offsets.append(f.tell())
         for mgentry in self.mgentries:
-            mgentry.write(f)
+            mgentry.write(f, extended_format)
+
         assert len(offsets) == 11
         f.seek(offset_start)
         for offset in offsets:
             f.write(pack(">I", offset))
 
-    def to_bytes(self) -> bytes:
+    def to_bytes(self, extended_format: bool = False) -> bytes:
         f = BytesIO()
-        self.write(f)
+        self.write(f, extended_format)
         return f.getvalue()
 
     def adjust_respawn_point(self,
