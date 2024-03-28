@@ -16,6 +16,14 @@ from lib.vectors import Vector3
 from lib.model_rendering import Minimap
 
 
+def calc_width(fontmetric, minval, maxval, is_spinbox=False):
+    digits = max(len(str(minval)), len(str(maxval)))
+    if is_spinbox:
+        digits += 2
+
+    return fontmetric.horizontalAdvanceChar("8") * digits
+
+
 def load_parameter_names(objectname):
     try:
         data = read_object_parameters(objectname)
@@ -504,7 +512,7 @@ class DataEditor(QtWidgets.QWidget):
 
         for subattr in ["r", "g", "b", "a"] if with_alpha else ["r", "g", "b"]:
             spinbox = SpinBox(self)
-            spinbox.setMaximumWidth(self.fontMetrics().averageCharWidth() * 4)
+            spinbox.setMaximumWidth(calc_width(self.fontMetrics(), 0, 255, is_spinbox=True))
             spinbox.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
             spinbox.setRange(0, 255)
             input_edited = create_setter(self.bound_to,
@@ -556,7 +564,7 @@ class DataEditor(QtWidgets.QWidget):
         for subattr in subattributes:
             spinbox = SpinBox(self)
             if max_val <= MAX_UNSIGNED_BYTE:
-                spinbox.setMaximumWidth(self.fontMetrics().averageCharWidth() * 4)
+                spinbox.setMaximumWidth(calc_width(self.fontMetrics(), min_val, max_val, is_spinbox=True))
             spinbox.setRange(min_val, max_val)
             input_edited = create_setter(self.bound_to,
                                          attribute,
@@ -597,7 +605,7 @@ class DataEditor(QtWidgets.QWidget):
         fieldlist = getattr(obj, attribute)
         for i in range(len(fieldlist)):
             spinbox = SpinBox(self)
-            spinbox.setMaximumWidth(self.fontMetrics().averageCharWidth() * 4)
+            spinbox.setMaximumWidth(calc_width(self.fontMetrics(), min_val, max_val, is_spinbox=True))
             spinbox.setRange(min_val, max_val)
             input_edited = create_setter_list(self.bound_to, attribute, i)
             spinbox.valueChanged.connect(input_edited)
