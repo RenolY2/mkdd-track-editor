@@ -324,7 +324,7 @@ class Game:
                 self.dolphin.write_vector(cameras + i*0x48+0x24, camera.position3)
 
                 f, u, l = camera.rotation.get_vectors()
-                self.dolphin.write_ram(cameras + i*0x48+0x8-0x80000000,
+                self.dolphin.write_ram(cameras + i*0x48+0xC-0x80000000,
                                                                 pack(">hhhhhh",
                                                                 int(f.x*10000),
                                                                     int(f.y*10000),
