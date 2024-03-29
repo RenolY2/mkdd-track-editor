@@ -55,7 +55,7 @@ from lib.game_visualizer import Game
 from lib.vectors import Vector3
 
 
-__version__ = '1.3'
+__version__ = '1.4'
 
 APP_NAME = f'MKDD Track Editor {__version__}'
 
