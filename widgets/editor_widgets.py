@@ -200,6 +200,13 @@ class ErrorAnalyzer(QtWidgets.QDialog):
                            f"used by enemy path {enemy_paths_ids[enemy_path.id]}.")
             else:
                 enemy_paths_ids[enemy_path.id] = enemy_path_index
+        
+        # Check if point between start/end has a link 
+        for group_index, group in enumerate(bol.enemypointgroups.groups):
+            for i, point in enumerate(group.points):
+                if 0 < i < len(group.points)-1 and point.link != -1:
+                    write_line("Point {0} in enemy point group {1} has link {2} but must have link -1 because it is not start or end point of group.".format(
+                        i, group_index, point.link))
 
     @classmethod
     def check_checkpoints(cls, bol, write_line):
