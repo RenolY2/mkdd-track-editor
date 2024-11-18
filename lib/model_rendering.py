@@ -794,7 +794,7 @@ class Minimap(object):
 
         glColor4f(1.0, 1.0, 1.0, 1.0)
         glDisable(GL_BLEND)
-        glBlendFunc(GL_ZERO, GL_ONE)
+        glBlendFunc(GL_ONE, GL_ZERO)
         glEnable(GL_ALPHA_TEST)
 
     def copy(self):
