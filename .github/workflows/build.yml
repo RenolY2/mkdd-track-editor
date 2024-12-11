@@ -1,0 +1,89 @@
+name: 🔨 Build
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    name: 🪟 Windows (x64)
+
+    steps:
+      - name: Check Out Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Build
+        run: |
+          # Create a virtual environment.
+          set PYTHONNOUSERSITE=1
+          set "PYTHONPATH="
+          python3 -m venv venv
+          venv/Scripts/activate.ps1
+
+          # Install dependencies.
+          python -m pip install -r requirements-build-windows.txt
+          python -m pip install -r requirements.txt
+
+          # Build the bundle.
+          python setup.py build
+        shell: powershell
+
+      - name: Set Artifact Name
+        id: set-artifact-name
+        run: echo "artifact_name=`ls build`" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.set-artifact-name.outputs.artifact_name }}
+          path: build/*
+
+  build-linux:
+    runs-on: ubuntu-22.04
+    name: 🐧 Linux (x64)
+
+    steps:
+      - name: Check Out Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Build
+        run: |
+          # Create a virtual environment.
+          export PYTHONNOUSERSITE=1
+          unset PYTHONPATH
+          python3 -m venv venv
+          source venv/bin/activate
+
+          # Install dependencies.
+          python -m pip install -r requirements-build-linux.txt
+          python -m pip install -r requirements.txt
+
+          # Build the bundle.
+          python setup.py build
+        shell: bash
+
+      - name: Set Artifact Name
+        id: set-artifact-name
+        run: echo "artifact_name=`ls build`" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.set-artifact-name.outputs.artifact_name }}
+          path: build/*

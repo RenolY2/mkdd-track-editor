@@ -16,6 +16,12 @@ for line in data.splitlines():
 else:
     raise RuntimeError('Unable to parse product version.')
 
+is_ci = bool(os.getenv('CI'))
+triggered_by_tag = os.getenv('GITHUB_REF_TYPE') == 'tag'
+commit_sha = os.getenv('GITHUB_SHA')
+
+version_suffix = f'-{commit_sha[:8]}' if commit_sha and not triggered_by_tag else ''
+
 # Dependencies are automatically detected, but it might need fine tuning.
 
 include_files = [
@@ -29,10 +35,13 @@ include_files = [
 ]
 
 system = platform.system().lower()
-arch = platform.machine().lower()
+
+ARCH_USER_FRIENDLY_ALIASES = {'AMD64': 'x64', 'x86_64': 'x64'}
+machine = platform.machine()
+arch = ARCH_USER_FRIENDLY_ALIASES.get(machine) or machine.lower()
 
 build_dirpath = 'build'
-bundle_dirname = f'mkdd-track-editor-{version}-{system}-{arch}'
+bundle_dirname = f'mkdd-track-editor-{version}{version_suffix}-{system}-{arch}'
 bundle_dirpath = os.path.join(build_dirpath, bundle_dirname)
 
 build_exe_options = {
@@ -162,12 +171,13 @@ for relative_path in sorted(tuple(set(unwelcome_files))):
     else:
         shutil.rmtree(path)
 
-# Create the ZIP archive.
-current_dirpath = os.getcwd()
-os.chdir(build_dirpath)
-try:
-    print('Creating archive...')
-    archive_format = 'zip' if os.name == 'nt' else 'xztar'
-    shutil.make_archive(bundle_dirname, archive_format, '.', bundle_dirname)
-finally:
-    os.chdir(current_dirpath)
+if not is_ci:
+    # Create the ZIP archive.
+    current_dirpath = os.getcwd()
+    os.chdir(build_dirpath)
+    try:
+        print('Creating archive...')
+        archive_format = 'zip' if os.name == 'nt' else 'xztar'
+        shutil.make_archive(bundle_dirname, archive_format, '.', bundle_dirname)
+    finally:
+        os.chdir(current_dirpath)
