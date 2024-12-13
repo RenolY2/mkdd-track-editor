@@ -16,10 +16,8 @@ python3 -m venv venv
 source venv/bin/activate
 export PYTHONNOUSERSITE=1
 
-# Install cx_Freeze and its dependencies.
-python3 -m pip install cx-Freeze==6.15.16 patchelf==0.17.2.1
-
-# Install the application's dependencies.
+# Install dependencies.
+python3 -m pip install -r requirements-build-linux.txt
 python3 -m pip install -r requirements.txt
 
 # Build the bundle.
