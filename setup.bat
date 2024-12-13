@@ -12,7 +12,7 @@ call venv/Scripts/activate.bat
 
 rem Retrieve a fresh checkout from the repository to avoid a potentially
 rem polluted local checkout.
-git clone https://github.com/RenolY2/mkdd-track-editor.git
+git clone https://github.com/RenolY2/mkdd-track-editor.git --depth=1
 cd mkdd-track-editor
 
 rem Install dependencies.
