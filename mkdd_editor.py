@@ -747,12 +747,12 @@ class GenEditor(QtWidgets.QMainWindow):
         open_config_dir_action = QtGui.QAction('Open Configuration Directory...', self)
         quit_action = QtGui.QAction('Quit', self)
 
-        self.file_load_action.triggered.connect(self.button_load_level)
-        self.save_file_action.triggered.connect(self.button_save_level)
-        self.save_file_as_action.triggered.connect(self.button_save_level_as)
-        self.save_file_copy_as_action.triggered.connect(self.button_save_level_copy_as)
-        open_config_dir_action.triggered.connect(open_config_directory)
-        quit_action.triggered.connect(self.close)
+        self.file_load_action.triggered.connect(lambda: self.button_load_level())
+        self.save_file_action.triggered.connect(lambda: self.button_save_level())
+        self.save_file_as_action.triggered.connect(lambda: self.button_save_level_as())
+        self.save_file_copy_as_action.triggered.connect(lambda: self.button_save_level_copy_as())
+        open_config_dir_action.triggered.connect(lambda: open_config_directory())
+        quit_action.triggered.connect(lambda: self.close())
 
         self.file_menu.addAction(self.file_load_action)
         self.file_menu.addMenu(self.file_load_recent_menu)
@@ -1288,7 +1288,7 @@ class GenEditor(QtWidgets.QMainWindow):
             save_cfg(self.configuration)
 
     @catch_exception_with_dialog
-    def action_save_to_dol(self, val):
+    def action_save_to_dol(self):
         filepath, choosentype = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save to File",
             self.pathsconfig["dol"],
