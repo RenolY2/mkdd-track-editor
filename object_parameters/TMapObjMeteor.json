@@ -1,9 +1,9 @@
 {
     "Object Parameters": [
-        "Unknown 1",
-        "Unknown 2",
-        "Unknown 3",
-        "Unknown 4",
+        "Only Cosmetic",
+        "Speed",
+        "Respawn Delay",
+        "Rotation",
         "Unused",
         "Unused",
         "Unused",
@@ -16,11 +16,27 @@
     "DefaultValues": [
         0,
         80,
-        475,
-        1,
+        300,
+        0,
         0,
         0,
         0,
         0
+    ],
+    "Tooltips": [
+        "If checked, the falling star will be purely cosmetic (i.e. no star item will ever be dropped on the ground).",
+        "Speed at which the falling star travels.",
+        "Delay (in frames) for the falling star to respawn.",
+        "Rotation (in degrees) around the vertical axis. Used to orient the falling star perpendicularly with the road."
+    ],
+    "Widgets": [
+        "checkbox",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
     ]
 }

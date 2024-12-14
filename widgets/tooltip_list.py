@@ -84,6 +84,7 @@ objectid = tool_tips_markdown_to_html({
     "TMapObjMareW_A": "Dancing Female Noki",
     "TMapObjMareW_B": "Dancing Female Noki alt 1",
     "TMapObjMareW_C": "Dancing Female Noki alt 2",
+    "TMapObjMeteor": "Falling stars seen in Rainbow Road.",
     "TMapObjMonteA": "Male Pianta",
     "TMapObjMonteB": "Male yellow Pianta",
     "TMapObjMonteC": "Male brown Pianta",
