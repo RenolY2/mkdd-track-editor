@@ -1,0 +1,2 @@
+cx-Freeze==6.15.16
+patchelf==0.17.2.1
