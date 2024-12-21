@@ -4,9 +4,9 @@
         "Speed",
         "Respawn Delay",
         "Rotation",
-        "Unused",
-        "Unused",
-        "Unused",
+        "Item Type 🧩",
+        "Drop Rate 🧩",
+        "Hide Particles 🧩",
         "Unused"
     ],
     "Assets": [
@@ -27,16 +27,47 @@
         "If checked, the falling star will be purely cosmetic (i.e. no star item will ever be dropped on the ground).",
         "Speed at which the falling star travels.",
         "Delay (in frames) for the falling star to respawn.",
-        "Rotation (in degrees) around the vertical axis. Used to orient the falling star perpendicularly with the road."
+        "Rotation (in degrees) around the vertical axis. Used to orient the falling star perpendicularly with the road.",
+        "🧩 Requires the **Customizable Falling Stars** code patch.\n\nIf this property is set, instead of a star, an item of the selected type will be dropped when the falling object hits the ground.\n\n---\n<small>**IMPORTANT:** Custom tracks that utilize this property must include `customizable-falling-stars` in the **code_patches** field in the `trackinfo.ini` file of the custom track.</small>",
+        "🧩 Requires the **Customizable Falling Stars** code patch.\n\nBy default, falling stars only drop an item 30% of the time when the falling object hits the ground. This property can be used to customize the success rate (e.g. 50% means approximately every other time; 100% means every time).\n\n---\n<small>**IMPORTANT:** Custom tracks that utilize this property must include `customizable-falling-stars` in the **code_patches** field in the `trackinfo.ini` file of the custom track.</small>",
+        "🧩 Requires the **Customizable Falling Stars** code patch.\n\nIf checked, particles that accompany the falling object will not be shown. \n\n---\n<small>**IMPORTANT:** Custom tracks that utilize this property must include `customizable-falling-stars` in the **code_patches** field in the `trackinfo.ini` file of the custom track.</small>"
     ],
     "Widgets": [
         "checkbox",
         null,
         null,
         null,
-        null,
-        null,
-        null,
+        ["combobox", {
+            "": 0,
+            "Green Shell": 1,
+            "Bowser Shell": 2,
+            "Red Shell": 3,
+            "Banana": 4,
+            "Giant Banana": 5,
+            "Mushroom": 6,
+            "Star": 7,
+            "Chain Chomp": 8,
+            "Bob-omb": 9,
+            "Lightning": 11,
+            "Yoshi / Birdo Egg": 12,
+            "Blue Shell": 14,
+            "Fake Item Box": 16,
+            "Random": 23
+        }],
+        ["combobox", {
+            "": 0,
+            "10%": 10,
+            "20%": 20,
+            "30%": 30,
+            "40%": 40,
+            "50%": 50,
+            "60%": 60,
+            "70%": 70,
+            "80%": 80,
+            "90%": 90,
+            "100%": 100
+        }],
+        "checkbox",
         null
     ]
 }
