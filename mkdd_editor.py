@@ -57,7 +57,17 @@ from lib.vectors import Vector3
 
 __version__ = '1.4.0'
 
-APP_NAME = f'MKDD Track Editor {__version__}'
+# These constants will be set by the build script on the fly.
+OFFICIAL = False
+COMMIT_SHA = ''
+BUILD_TIME = None
+
+if OFFICIAL:
+    APP_NAME = f'MKDD Track Editor {__version__}'
+elif COMMIT_SHA:
+    APP_NAME = f'MKDD Track Editor {__version__} ({COMMIT_SHA[:8]})'
+else:
+    APP_NAME = f'MKDD Track Editor {__version__} (development)'
 
 
 class SelectionHistorySpecials(enum.IntEnum):
@@ -1151,11 +1161,24 @@ class GenEditor(QtWidgets.QMainWindow):
 
         title = 'About MKDD Track Editor'
         text = textwrap.dedent(f"""\
-            <h1 style="white-space: nowrap">MKDD Track Editor {__version__}</h1>
+            <h1 style="white-space: nowrap">{APP_NAME}</h1>
             <br/>
             <small><a href="https://github.com/RenolY2/mkdd-track-editor">
                 github.com/RenolY2/mkdd-track-editor
             </a></small>
+        """)
+        if COMMIT_SHA and BUILD_TIME:
+            text += textwrap.dedent(f"""\
+                <br/>
+                <br/>
+                <small>
+                Revision: <code>{COMMIT_SHA}</code>
+                <br/>
+                Build time: {BUILD_TIME}
+                </small>
+                <br/>
+            """)
+        text += textwrap.dedent(f"""\
             <p>{__doc__}</p>
             <br/>
             <br/>
