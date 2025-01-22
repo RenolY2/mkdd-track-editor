@@ -143,17 +143,14 @@ class Rotation(object):
 
         if mtx[0][2] < 1:
             if mtx[0][2] > -1:
-                print("A")
                 theta_Y = math.asin(mtx[0][2])
                 theta_X = math.atan2(-mtx[1][2], mtx[2][2])
                 theta_Z = math.atan2(-mtx[0][1], mtx[0][0])
             else:
-                print("B")
                 theta_Y = -math.pi / 2
                 theta_X = -math.atan2(mtx[1][0], mtx[1][1])
                 theta_Z = 0
         else:
-            print("C")
             theta_Y = +math.pi / 2
             theta_X = math.atan2(mtx[1][0], mtx[1][1])
             theta_Z = 0
