@@ -5,7 +5,7 @@ import widgets.tooltip_list as ttl
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from collections import OrderedDict
-from math import inf
+from math import inf, degrees, radians
 from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint, Route, RoutePoint,
                         MapObject, KartStartPoint, Area, Camera, BOL, JugemPoint, MapObject,
                         LightParam, MGEntry, PositionedObject, OBJECTNAMES, REVERSEOBJECTNAMES, MUSIC_IDS, REVERSE_MUSIC_IDS,
@@ -14,6 +14,7 @@ from lib.libbol import (EnemyPoint, EnemyPointGroup, CheckpointGroup, Checkpoint
                         read_object_parameters, all_same_type, get_average_obj)
 from lib.vectors import Vector3
 from lib.model_rendering import Minimap
+from lib.libbol import Rotation
 
 
 def calc_width(fontmetric, minval, maxval, is_spinbox=False):
@@ -650,9 +651,9 @@ class DataEditor(QtWidgets.QWidget):
 
         return widget
 
-    def update_rotation(self, forwardedits, upedits, leftedits):
+    def update_rotation(self, angle_x_edit, angle_y_edit, angle_z_edit):
         rotation = get_average_obj(self.bound_to).rotation
-        forward, up, left = rotation.get_vectors()
+        """forward, up, left = rotation.get_vectors()
 
         for attr in ("x", "y", "z"):
             if getattr(forward, attr) == 0.0:
@@ -676,13 +677,17 @@ class DataEditor(QtWidgets.QWidget):
 
         leftedits[0].setValueQuiet(left.x)
         leftedits[1].setValueQuiet(left.y)
-        leftedits[2].setValueQuiet(left.z)
+        leftedits[2].setValueQuiet(left.z)"""
+        euler_angles = rotation.to_euler()
+        angle_x_edit.setValueQuiet(degrees(euler_angles[0]))
+        angle_y_edit.setValueQuiet(degrees(euler_angles[1]))
+        angle_z_edit.setValueQuiet(degrees(euler_angles[2]))
 
         self.catch_text_update()
 
     def add_rotation_input(self):
         rotation = get_average_obj(self.bound_to).rotation
-        forward_spinboxes = []
+        """forward_spinboxes = []
         up_spinboxes = []
         left_spinboxes = []
 
@@ -756,7 +761,35 @@ class DataEditor(QtWidgets.QWidget):
         self.vbox.addLayout(layout)
         layout = self.create_labeled_widgets(self, "Left dir", left_spinboxes)
         self.vbox.addLayout(layout)
-        return forward_spinboxes, up_spinboxes, left_spinboxes
+        return forward_spinboxes, up_spinboxes, left_spinboxes"""
+
+        euler_angles = rotation.to_euler()
+        angle_edits = []
+        for angle in euler_angles:
+            spinbox = DoubleSpinBox(self)
+            spinbox.setWrapping(True)
+            spinbox.setRange(-360, 360)
+            spinbox.setDecimals(4)
+            angle_edits.append(spinbox)
+
+        def change_rotation():
+            angles = [radians(float(x.text())) for x in angle_edits]
+            for obj in self.bound_to:
+                obj.rotation.rotate_euler(*angles)
+
+            self.emit_3d_update.emit()
+
+        for edit in angle_edits:
+            edit.valueChanged.connect(lambda _value: change_rotation())
+
+        layout = self.create_labeled_widget(self, "Rotation X", angle_edits[0])
+        self.vbox.addLayout(layout)
+        layout = self.create_labeled_widget(self, "Rotation Y", angle_edits[1])
+        self.vbox.addLayout(layout)
+        layout = self.create_labeled_widget(self, "Rotation Z", angle_edits[2])
+        self.vbox.addLayout(layout)
+
+        return angle_edits
 
 
 def create_setter_list(bound_to, attribute, index):
