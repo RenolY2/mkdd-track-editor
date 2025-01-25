@@ -29,6 +29,7 @@ from widgets.data_editor import choose_data_editor
 from widgets.editor_widgets import catch_exception
 from widgets.tree_view import LevelDataTreeView
 from widgets.tooltip_list import markdown_to_html
+from widgets.plugin import PluginMenu
 import widgets.tree_view as tree_view
 from configuration import (
     make_default_config,
@@ -55,7 +56,7 @@ from lib.game_visualizer import Game
 from lib.vectors import Vector3
 
 
-__version__ = '1.5.0'
+__version__ = '1.6.0'
 
 # These constants will be set by the build script on the fly.
 OFFICIAL = False
@@ -916,6 +917,10 @@ class GenEditor(QtWidgets.QMainWindow):
         self.rotation_mode.setChecked(True)
         self.tools_menu.addAction(self.rotation_mode)
 
+        # -------- Plugins Menu
+        self.plugins_menu = PluginMenu(self)
+        self.plugins_menu.load_plugins()
+        self.plugins_menu.add_menu_actions()
 
         # -------- Minimap Menu
         self.minimap_menu = QtWidgets.QMenu(self.menubar)
@@ -1036,6 +1041,7 @@ class GenEditor(QtWidgets.QMainWindow):
         self.menubar.addAction(self.visibility_menu.menuAction())
         self.menubar.addAction(self.collision_menu.menuAction())
         self.menubar.addAction(self.tools_menu.menuAction())
+        self.menubar.addAction(self.plugins_menu.menuAction())
         self.menubar.addAction(self.minimap_menu.menuAction())
         self.menubar.addAction(self.view_menu.menuAction())
         self.menubar.addAction(self.dolphin_menu.menuAction())
