@@ -570,18 +570,57 @@ class Archive(object):
         write_uint32(f, current_stringtable_offset-0x20)
 
 
+def convert(input_path, output_path, dir2arc, yaz0fast=False):
+    inputpath = input_path
 
+    if output_path is None:
+        path, name = os.path.split(inputpath)
 
+        if dir2arc:
+            if yaz0fast:
+                ending = ".szs"
+            else:
+                ending = ".arc"
 
+            if inputpath.endswith("_ext"):
+                outputpath = inputpath[:-4]
+            else:
+                outputpath = inputpath + ending
+        else:
+            outputpath = os.path.join(path, name + "_ext")
+    else:
+        outputpath = output_path
 
+    if dir2arc:
+        dirscan = os.scandir(inputpath)
+        inputdir = None
 
+        for entry in dirscan:
+            if entry.is_dir():
+                if inputdir is None:
+                    inputdir = entry.name
+                else:
+                    raise RuntimeError(
+                        "Directory {0} contains multiple folders! Only one folder should exist.".format(inputpath))
 
+        if inputdir is None:
+            raise RuntimeError("Directory {0} contains no folders! Exactly one folder should exist.".format(inputpath))
 
+        print("Packing directory to archive")
+        archive = Archive.from_dir(os.path.join(inputpath, inputdir))
+        print("Directory loaded into memory, writing archive now")
 
-
-
-
-
+        with open(outputpath, "wb") as f:
+            if yaz0fast:
+                archive.write_arc_compressed(f)
+            else:
+                archive.write_arc(f)
+        print("Done")
+    else:
+        print("Extracting archive to directory")
+        with open(inputpath, "rb") as f:
+            archive = Archive.from_file(f)
+        archive.extract_to(outputpath)
 
 
 if __name__ == "__main__":
@@ -603,53 +642,7 @@ if __name__ == "__main__":
     else:
         dir2arc = False
 
+    convert(inputpath, args.output, dir2arc, args.yaz0fast)
 
-    if args.output is None:
-        path, name = os.path.split(inputpath)
-
-        if dir2arc:
-            if args.yaz0fast:
-                ending = ".szs"
-            else:
-                ending = ".arc"
-            
-            if inputpath.endswith("_ext"):
-                outputpath = inputpath[:-4]
-            else:
-                outputpath = inputpath + ending 
-        else:
-            outputpath = os.path.join(path, name+"_ext")
-    else:
-        outputpath = args.output
-
-    if dir2arc:
-        dirscan = os.scandir(inputpath)
-        inputdir = None 
-        
-        for entry in dirscan:
-            if entry.is_dir():
-                if inputdir is None:
-                    inputdir = entry.name
-                else:
-                    raise RuntimeError("Directory {0} contains multiple folders! Only one folder should exist.".format(inputpath))
-        
-        if inputdir is None:
-            raise RuntimeError("Directory {0} contains no folders! Exactly one folder should exist.".format(inputpath))
-        
-        print("Packing directory to archive")
-        archive = Archive.from_dir(os.path.join(inputpath, inputdir))
-        print("Directory loaded into memory, writing archive now")
-
-        with open(outputpath, "wb") as f:
-            if args.yaz0fast:
-                archive.write_arc_compressed(f)
-            else:
-                archive.write_arc(f)
-        print("Done")
-    else:
-        print("Extracting archive to directory")
-        with open(inputpath, "rb") as f:
-            archive = Archive.from_file(f)
-        archive.extract_to(outputpath)
 
 
