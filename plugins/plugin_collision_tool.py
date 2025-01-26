@@ -1,17 +1,17 @@
 import traceback
-import PySide6.QtWidgets as QtWidgets
-import PySide6.QtGui as QtGui
-import PySide6.QtCore as QtCore
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    import mkdd_editor
+
+from PySide6 import QtCore
+from PySide6 import QtGui
+from PySide6 import QtWidgets
 
 from widgets.editor_widgets import open_error_dialog, open_info_dialog
 
 import plugins.mkddcollision.mkdd_collision_creator as mkdd_collision_creator
 import plugins.mkddcollision.mkdd_collision_reader as mkdd_collision_reader
-
-from collections import namedtuple
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    import mkdd_editor
 
 
 class LabeledWidget(QtWidgets.QWidget):
