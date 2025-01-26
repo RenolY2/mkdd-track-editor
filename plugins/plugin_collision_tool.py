@@ -1,17 +1,17 @@
 import traceback
-import PySide6.QtWidgets as QtWidgets
-import PySide6.QtGui as QtGui
-import PySide6.QtCore as QtCore
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    import mkdd_editor
+
+from PySide6 import QtCore
+from PySide6 import QtGui
+from PySide6 import QtWidgets
 
 from widgets.editor_widgets import open_error_dialog, open_info_dialog
 
 import plugins.mkddcollision.mkdd_collision_creator as mkdd_collision_creator
 import plugins.mkddcollision.mkdd_collision_reader as mkdd_collision_reader
-
-from collections import namedtuple
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    import mkdd_editor
 
 
 class LabeledWidget(QtWidgets.QWidget):
@@ -217,7 +217,6 @@ class Plugin(object):
         self.name = "Collision Tool"
         self.actions = [("MKDD Collision To .OBJ", self.open_from_converter),
                         (".OBJ to MKDD Collision", self.open_to_converter)]
-        print("I have been initialized")
         self.from_converter = None
         self.to_converter = None
 
@@ -225,11 +224,13 @@ class Plugin(object):
         self.to_converter_paths = [None, None, None]
 
     def open_from_converter(self, editor: "mkdd_editor.GenEditor"):
+        _ = editor
         self.from_converter = FromCollisionConverter()
         self.from_converter.closing.connect(self.save_from_converter_paths)
         self.from_converter.show()
 
     def open_to_converter(self, editor: "mkdd_editor.GenEditor"):
+        _ = editor
         self.to_converter = ToCollisionConverter()
         self.to_converter.closing.connect(self.save_to_converter_paths)
         self.to_converter.show()
@@ -241,4 +242,4 @@ class Plugin(object):
         self.to_converter_paths = self.to_converter.get_paths()
 
     def unload(self):
-        print("I have been unloaded")
+        pass

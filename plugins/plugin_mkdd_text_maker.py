@@ -12,10 +12,8 @@ class Plugin(object):
     def __init__(self):
         self.name = "MKDD Text Maker"
         self.actions = [("Open MKDD Text Maker", self.testfunc)]
-        print("I have been initialized")
 
     def testfunc(self, editor: "mkdd_editor.GenEditor"):
-        print(editor.plugins_menu.pluginfolder)
         textmaker_folder = os.path.join(editor.plugins_menu.pluginfolder, "mkdd_text_maker")
         command = [os.path.join(textmaker_folder, "mkdd text maker.exe")]
         if sys.platform != "win32":
@@ -23,4 +21,4 @@ class Plugin(object):
         subprocess.Popen(command)
 
     def unload(self):
-        print("I have been unloaded")
+        pass

@@ -1,19 +1,15 @@
 import traceback
-import PySide6.QtWidgets as QtWidgets
-import PySide6.QtGui as QtGui
-import PySide6.QtCore as QtCore
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    import mkdd_editor
+
+from PySide6 import QtWidgets
 
 from lib.rarc import convert
 
 from widgets.editor_widgets import open_error_dialog, open_info_dialog
 from plugins.plugin_collision_tool import FilepathEntry, ClosingMdiSubWindow
-import plugins.mkddcollision.mkdd_collision_creator as mkdd_collision_creator
-import plugins.mkddcollision.mkdd_collision_reader as mkdd_collision_reader
-
-from collections import namedtuple
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    import bw_editor
 
 
 class FolderEntry(FilepathEntry):
@@ -153,7 +149,6 @@ class Plugin(object):
         self.name = "RARC Archive Tool"
         self.actions = [("Pack Folder To .ARC", self.arc_packer_tool),
                         ("Extract .ARC to Folder", self.arc_extractor_tool)]
-        print("I have been initialized")
         self.arc_packer = None
         self.arc_extractor = None
 
@@ -161,11 +156,13 @@ class Plugin(object):
         self.arc_extractor_paths = [None, None, None]
 
     def arc_packer_tool(self, editor: "mkdd_editor.GenEditor"):
+        _ = editor
         self.arc_packer = FolderToArc()
         self.arc_packer.closing.connect(self.save_packer_paths)
         self.arc_packer.show()
 
     def arc_extractor_tool(self, editor: "mkdd_editor.GenEditor"):
+        _ = editor
         self.arc_extractor = ArcToFolder()
         self.arc_extractor.closing.connect(self.save_extractor_paths)
         self.arc_extractor.show()
