@@ -102,12 +102,12 @@ class FromCollisionConverter(ClosingMdiSubWindow):
         self.autogen_path = QtWidgets.QCheckBox("Set output path based on input path", self)
         self.autogen_path.setChecked(True)
 
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.input_path)
         layout.addWidget(self.output_path)
         layout.addWidget(self.autogen_path)
         layout.addWidget(self.convert_button)
-        contentwidget = QtWidgets.QWidget(self)
+        contentwidget = QtWidgets.QWidget()
 
         contentwidget.setLayout(layout)
         self.setWidget(contentwidget)
@@ -166,13 +166,13 @@ class ToCollisionConverter(ClosingMdiSubWindow):
         self.autogen_path = QtWidgets.QCheckBox("Set output path based on input path", self)
         self.autogen_path.setChecked(True)
 
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.input_path)
         layout.addWidget(self.remap_path)
         layout.addWidget(self.output_path)
         layout.addWidget(self.autogen_path)
         layout.addWidget(self.convert_button)
-        contentwidget = QtWidgets.QWidget(self)
+        contentwidget = QtWidgets.QWidget()
 
         contentwidget.setLayout(layout)
         self.setWidget(contentwidget)
@@ -224,14 +224,14 @@ class Plugin(object):
         self.to_converter_paths = [None, None, None]
 
     def open_from_converter(self, editor: "mkdd_editor.GenEditor"):
-        _ = editor
         self.from_converter = FromCollisionConverter()
+        self.from_converter.setWindowIcon(editor.windowIcon())
         self.from_converter.closing.connect(self.save_from_converter_paths)
         self.from_converter.show()
 
     def open_to_converter(self, editor: "mkdd_editor.GenEditor"):
-        _ = editor
         self.to_converter = ToCollisionConverter()
+        self.to_converter.setWindowIcon(editor.windowIcon())
         self.to_converter.closing.connect(self.save_to_converter_paths)
         self.to_converter.show()
 

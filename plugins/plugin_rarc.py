@@ -40,12 +40,12 @@ class ArcToFolder(ClosingMdiSubWindow):
         self.autogen_path = QtWidgets.QCheckBox("Set output path based on input path", self)
         self.autogen_path.setChecked(True)
 
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.input_path)
         layout.addWidget(self.output_path)
         layout.addWidget(self.autogen_path)
         layout.addWidget(self.convert_button)
-        contentwidget = QtWidgets.QWidget(self)
+        contentwidget = QtWidgets.QWidget()
 
         contentwidget.setLayout(layout)
         self.setWidget(contentwidget)
@@ -102,12 +102,12 @@ class FolderToArc(ClosingMdiSubWindow):
         self.autogen_path = QtWidgets.QCheckBox("Set output path based on input path (if input ends with '_ext')", self)
         self.autogen_path.setChecked(True)
 
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.input_path)
         layout.addWidget(self.output_path)
         layout.addWidget(self.autogen_path)
         layout.addWidget(self.convert_button)
-        contentwidget = QtWidgets.QWidget(self)
+        contentwidget = QtWidgets.QWidget()
 
         contentwidget.setLayout(layout)
         self.setWidget(contentwidget)
@@ -156,14 +156,14 @@ class Plugin(object):
         self.arc_extractor_paths = [None, None, None]
 
     def arc_packer_tool(self, editor: "mkdd_editor.GenEditor"):
-        _ = editor
         self.arc_packer = FolderToArc()
+        self.arc_packer.setWindowIcon(editor.windowIcon())
         self.arc_packer.closing.connect(self.save_packer_paths)
         self.arc_packer.show()
 
     def arc_extractor_tool(self, editor: "mkdd_editor.GenEditor"):
-        _ = editor
         self.arc_extractor = ArcToFolder()
+        self.arc_extractor.setWindowIcon(editor.windowIcon())
         self.arc_extractor.closing.connect(self.save_extractor_paths)
         self.arc_extractor.show()
 
