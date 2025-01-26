@@ -156,14 +156,14 @@ class Plugin(object):
         self.arc_extractor_paths = [None, None, None]
 
     def arc_packer_tool(self, editor: "mkdd_editor.GenEditor"):
-        _ = editor
         self.arc_packer = FolderToArc()
+        self.arc_packer.setWindowIcon(editor.windowIcon())
         self.arc_packer.closing.connect(self.save_packer_paths)
         self.arc_packer.show()
 
     def arc_extractor_tool(self, editor: "mkdd_editor.GenEditor"):
-        _ = editor
         self.arc_extractor = ArcToFolder()
+        self.arc_extractor.setWindowIcon(editor.windowIcon())
         self.arc_extractor.closing.connect(self.save_extractor_paths)
         self.arc_extractor.show()
 
