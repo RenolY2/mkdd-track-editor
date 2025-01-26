@@ -47,6 +47,7 @@ include_files = [
     ("lib/color_coding.json", "lib/color_coding.json"),
     ("lib/minimap_locations.json", "lib/minimap_locations.json"),
     ("lib/superbmd/", "lib/superbmd/"),
+    ("plugins", "lib/plugins/")
 ]
 
 system = platform.system().lower()
