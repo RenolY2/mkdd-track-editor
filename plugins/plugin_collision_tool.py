@@ -102,12 +102,12 @@ class FromCollisionConverter(ClosingMdiSubWindow):
         self.autogen_path = QtWidgets.QCheckBox("Set output path based on input path", self)
         self.autogen_path.setChecked(True)
 
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.input_path)
         layout.addWidget(self.output_path)
         layout.addWidget(self.autogen_path)
         layout.addWidget(self.convert_button)
-        contentwidget = QtWidgets.QWidget(self)
+        contentwidget = QtWidgets.QWidget()
 
         contentwidget.setLayout(layout)
         self.setWidget(contentwidget)
@@ -166,13 +166,13 @@ class ToCollisionConverter(ClosingMdiSubWindow):
         self.autogen_path = QtWidgets.QCheckBox("Set output path based on input path", self)
         self.autogen_path.setChecked(True)
 
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.input_path)
         layout.addWidget(self.remap_path)
         layout.addWidget(self.output_path)
         layout.addWidget(self.autogen_path)
         layout.addWidget(self.convert_button)
-        contentwidget = QtWidgets.QWidget(self)
+        contentwidget = QtWidgets.QWidget()
 
         contentwidget.setLayout(layout)
         self.setWidget(contentwidget)
