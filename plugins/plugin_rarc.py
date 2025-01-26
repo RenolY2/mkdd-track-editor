@@ -149,7 +149,6 @@ class Plugin(object):
         self.name = "RARC Archive Tool"
         self.actions = [("Pack Folder To .ARC", self.arc_packer_tool),
                         ("Extract .ARC to Folder", self.arc_extractor_tool)]
-        print("I have been initialized")
         self.arc_packer = None
         self.arc_extractor = None
 

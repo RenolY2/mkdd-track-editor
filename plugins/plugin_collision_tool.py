@@ -217,7 +217,6 @@ class Plugin(object):
         self.name = "Collision Tool"
         self.actions = [("MKDD Collision To .OBJ", self.open_from_converter),
                         (".OBJ to MKDD Collision", self.open_to_converter)]
-        print("I have been initialized")
         self.from_converter = None
         self.to_converter = None
 
@@ -243,4 +242,4 @@ class Plugin(object):
         self.to_converter_paths = self.to_converter.get_paths()
 
     def unload(self):
-        print("I have been unloaded")
+        pass
