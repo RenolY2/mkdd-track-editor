@@ -47,8 +47,12 @@ include_files = [
     ("lib/color_coding.json", "lib/color_coding.json"),
     ("lib/minimap_locations.json", "lib/minimap_locations.json"),
     ("lib/superbmd/", "lib/superbmd/"),
-    ("plugins", "lib/plugins/")
 ]
+
+for name in os.listdir("./plugins"):
+    print(name)
+    if name != "mkdd_text_maker":
+        include_files.append(("plugins/"+name, "lib/plugins/"+name))
 
 system = platform.system().lower()
 
@@ -87,6 +91,11 @@ os.remove(os.path.join(bundle_dirpath, 'frozen_application_license.txt'))
 
 # A copy of SuperBMD that can be removed. The real one is in `lib/superbmd`.
 shutil.rmtree(os.path.join(bundle_dirpath, 'lib', 'lib', 'superbmd'))
+
+# Manual copy of the mkdd text maker because cx_freeze printing filenames can 
+# cause encoding issues on some systems
+shutil.copytree(os.path.join("plugins", "mkdd_text_maker"),
+                os.path.join(bundle_dirpath, "lib", "plugins", "mkdd_text_maker")) 
 
 # Qt will be trimmed to reduce the size of the bundle.
 relative_pyside_dir = os.path.join('lib', 'PySide6')
