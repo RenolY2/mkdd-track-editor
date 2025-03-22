@@ -3145,15 +3145,36 @@ class GenEditor(QtWidgets.QMainWindow):
 
             for position in self.level_view.selected_positions:
                 diff = position - middle
-                diff.y = 0.0
 
-                length = diff.norm()
-                if length > 0:
-                    diff.normalize()
-                    angle = atan2(diff.x, diff.z)
-                    angle += deltarotation.y
-                    position.x = middle.x + length * sin(angle)
-                    position.z = middle.z + length * cos(angle)
+                if deltarotation.x != 0:
+                    diff.x = 0.0
+                    length = diff.length()
+                    if length > 0:
+                        diff /= length
+                        angle = atan2(diff.y, diff.z)
+                        angle += -deltarotation.x
+                        position.y = middle.y + length * sin(angle)
+                        position.z = middle.z + length * cos(angle)
+
+                elif deltarotation.y != 0:
+                    diff.y = 0.0
+                    length = diff.length()
+                    if length > 0:
+                        diff /= length
+                        angle = atan2(diff.x, diff.z)
+                        angle += deltarotation.y
+                        position.x = middle.x + length * sin(angle)
+                        position.z = middle.z + length * cos(angle)
+
+                elif deltarotation.z != 0:
+                    diff.z = 0.0
+                    length = diff.length()
+                    if length > 0:
+                        diff /= length
+                        angle = atan2(diff.x, diff.y)
+                        angle += -deltarotation.z
+                        position.x = middle.x + length * sin(angle)
+                        position.y = middle.y + length * cos(angle)
 
         self.level_view.do_redraw()
         self.set_has_unsaved_changes(True)
