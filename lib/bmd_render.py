@@ -7,13 +7,16 @@ import tempfile
 from lib.model_rendering import TexturedModel
 
 
+mkdd_editor_cache_dir = os.path.join(tempfile.gettempdir(), 'mkdd_track_editor_cache')
+
+
 def md5sum(filepath: str) -> str:
     return hashlib.md5(open(filepath, 'rb').read()).hexdigest()
 
 
 def superbmd_to_obj(src):
     checksum = md5sum(src)
-    cached_dir = os.path.join(tempfile.gettempdir(), f'mkdd_track_editor_tmp_{checksum}')
+    cached_dir = os.path.join(mkdd_editor_cache_dir, checksum)
 
     if os.path.isdir(cached_dir) and os.path.exists(os.path.join(cached_dir, "temp.obj")):
         shutil.rmtree('lib/temp')
