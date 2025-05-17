@@ -9,6 +9,7 @@ import enum
 import pickle
 import platform
 import pstats
+import shutil
 import textwrap
 import traceback
 import weakref
@@ -51,7 +52,7 @@ from lib.model_rendering import TexturedModel, CollisionModel, Minimap
 from widgets.editor_widgets import ErrorAnalyzer, ErrorAnalyzerButton, show_minimap_generator
 from lib.dolreader import DolFile, read_float, write_float, read_load_immediate_r0, write_load_immediate_r0, UnmappedAddress
 from widgets.file_select import FileSelect
-from lib.bmd_render import clear_temp_folder, load_textured_bmd
+from lib.bmd_render import clear_temp_folder, load_textured_bmd, mkdd_editor_cache_dir
 from lib.game_visualizer import Game
 from lib.vectors import Vector3
 
@@ -855,6 +856,9 @@ class GenEditor(QtWidgets.QMainWindow):
         self.clear_current_collision.triggered.connect(self.clear_collision)
         self.collision_menu.addAction(self.clear_current_collision)
 
+        self.collision_menu.addSeparator()
+        purge_cache_action = self.collision_menu.addAction("Purge Cache")
+        purge_cache_action.triggered.connect(self.on_purge_cache_triggered)
         self.collision_menu.addSeparator()
         cull_faces_action = self.collision_menu.addAction("Cull Faces")
         cull_faces_action.setCheckable(True)
@@ -1667,6 +1671,9 @@ class GenEditor(QtWidgets.QMainWindow):
         save_cfg(self.configuration)
 
         self.level_view.do_redraw()
+
+    def on_purge_cache_triggered(self):
+        shutil.rmtree(mkdd_editor_cache_dir)
 
     def on_cull_faces_triggered(self, checked):
         self.editorconfig["cull_faces"] = "True" if checked else "False"
