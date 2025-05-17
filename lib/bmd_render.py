@@ -38,7 +38,10 @@ def superbmd_to_obj(src):
             raise RuntimeError(
                 f'BMD conversion failed (code: {process.returncode}):\n{error_output}')
 
-    shutil.copytree('lib/temp', cached_dir, dirs_exist_ok=True)
+    shutil.rmtree(cached_dir, ignore_errors=True)
+    shutil.rmtree(f'{cached_dir}_tmp', ignore_errors=True)
+    shutil.copytree('lib/temp', f'{cached_dir}_tmp')
+    os.rename(f'{cached_dir}_tmp', cached_dir)
 
 
 def clear_temp_folder():
