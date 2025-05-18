@@ -43,7 +43,7 @@ from widgets import utils
 from widgets.side_widget import PikminSideWidget
 from widgets.editor_widgets import open_error_dialog, open_info_dialog, catch_exception_with_dialog
 from mkdd_widgets import BolMapViewer, MODE_TOPDOWN, SnappingMode
-from lib.libbol import BOL, MGEntry, Route, get_full_name
+from lib.libbol import BOL, MGEntry, Route, get_full_name, Rotation
 import lib.libbol as libbol
 from lib.rarc import Archive
 from lib.BCOllider import RacetrackCollision
@@ -960,6 +960,8 @@ class GenEditor(QtWidgets.QMainWindow):
         #View
         self.view_menu = QtWidgets.QMenu(self.menubar)
         self.view_menu.setTitle("View")
+        self.view_menu.aboutToShow.connect(self.on_view_menu_aboutToShow)
+
         frame_selected_action = QtGui.QAction("Frame Selected\tNumpad . or F", self)
         frame_selected_action.triggered.connect(lambda _checked: self.frame_selection())
         frame_selected_shortcut = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F), self)
@@ -1004,6 +1006,13 @@ class GenEditor(QtWidgets.QMainWindow):
         hide_unselected_action = show_hide_objects_menu.addAction('Hide Unselected')
         hide_unselected_action.setShortcut('Shift+H')
         hide_unselected_action.triggered.connect(self.on_hide_unselected_action_triggered)
+
+        self.view_menu.addSeparator()
+
+        self.apply_current_view_action = QtGui.QAction('Apply Current View to Selected Object', self)
+        self.view_menu.addAction(self.apply_current_view_action)
+        self.apply_current_view_action.triggered.connect(self.on_apply_current_view_action_triggered)
+        self.apply_current_view_action.setShortcut('K')
 
         self.view_menu.addSeparator()
 
@@ -1715,6 +1724,20 @@ class GenEditor(QtWidgets.QMainWindow):
             self.snapping_height_offset = value
             self.snapping_height_offset_action.setText(f'Set Height Offset ({value} units)')
 
+    def get_selected_positioned_object(self):
+        if not self.change_to_3dview_action.isChecked():
+            return None
+
+        for selected in reversed(self.level_view.selected):
+            if hasattr(selected, 'position') and hasattr(selected, 'rotation'):
+                return selected
+
+        return None
+
+    def on_view_menu_aboutToShow(self):
+        allow_apply_current_view = self.get_selected_positioned_object() is not None
+        self.apply_current_view_action.setEnabled(allow_apply_current_view)
+
     def change_to_topdownview(self, checked):
         if checked:
             self.level_view.change_from_3d_to_topdown()
@@ -1752,6 +1775,26 @@ class GenEditor(QtWidgets.QMainWindow):
                 obj.hidden = True
                 obj.widget.update_name()
         self.update_3d()
+
+    def on_apply_current_view_action_triggered(self):
+        target_object = self.get_selected_positioned_object()
+        if target_object is None:
+            return
+
+        target_object.position.x = self.level_view.camera_x
+        target_object.position.y = self.level_view.camera_height
+        target_object.position.z = -self.level_view.camera_z
+        target_object.rotation.rotate_euler(
+            0.0,
+            -self.level_view.camera_horiz,
+            self.level_view.camera_vertical,
+        )
+
+        self.level_view.gizmo.move_to_average(self.level_view.selected_positions,
+                                              self.level_view.selected_rotations)
+        self.level_view.do_redraw()
+        self.pik_control.update_info()
+        self.set_has_unsaved_changes(True)
 
     def setup_ui_toolbar(self):
         # self.toolbar = QtWidgets.QToolBar("Test", self)
