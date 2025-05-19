@@ -7,13 +7,16 @@ import tempfile
 from lib.model_rendering import TexturedModel
 
 
+mkdd_editor_cache_dir = os.path.join(tempfile.gettempdir(), 'mkdd_track_editor_cache')
+
+
 def md5sum(filepath: str) -> str:
     return hashlib.md5(open(filepath, 'rb').read()).hexdigest()
 
 
 def superbmd_to_obj(src):
     checksum = md5sum(src)
-    cached_dir = os.path.join(tempfile.gettempdir(), f'mkdd_track_editor_tmp_{checksum}')
+    cached_dir = os.path.join(mkdd_editor_cache_dir, checksum)
 
     if os.path.isdir(cached_dir) and os.path.exists(os.path.join(cached_dir, "temp.obj")):
         shutil.rmtree('lib/temp')
@@ -35,7 +38,10 @@ def superbmd_to_obj(src):
             raise RuntimeError(
                 f'BMD conversion failed (code: {process.returncode}):\n{error_output}')
 
-    shutil.copytree('lib/temp', cached_dir, dirs_exist_ok=True)
+    shutil.rmtree(cached_dir, ignore_errors=True)
+    shutil.rmtree(f'{cached_dir}_tmp', ignore_errors=True)
+    shutil.copytree('lib/temp', f'{cached_dir}_tmp')
+    os.rename(f'{cached_dir}_tmp', cached_dir)
 
 
 def clear_temp_folder():
