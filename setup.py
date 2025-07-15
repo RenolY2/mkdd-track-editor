@@ -65,7 +65,7 @@ bundle_dirname = f'mkdd-track-editor-{version}{version_suffix}-{system}-{arch}'
 bundle_dirpath = os.path.join(build_dirpath, bundle_dirname)
 
 build_exe_options = {
-    "packages": ["OpenGL", "numpy.core._methods", "numpy.lib.format", "PIL"],
+    "packages": ["OpenGL", "numba", "numpy.core", "numpy.lib.format", "PIL"],
     "includes": ["widgets"],
     "excludes": ["PySide6.QtWebEngine", "PySide6.QtWebEngineCore"],
     "optimize": 0,
