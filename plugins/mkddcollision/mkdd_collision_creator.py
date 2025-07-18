@@ -74,8 +74,8 @@ def read_remap_file(remap_file):
                     more_info.append(1)
                 
             elif len(more_info) == 2:
-                extra_match =  match( "^\s*(0x[0-9a-fA-F]{2})$", more_info[1] )
-                setting_match =  match( "^\s*(0x[0-9a-fA-F]{8})$", more_info[1] )
+                extra_match =  match( "^\\s*(0x[0-9a-fA-F]{2})$", more_info[1] )
+                setting_match =  match( "^\\s*(0x[0-9a-fA-F]{8})$", more_info[1] )
                 if extra_match is not None:
                     #you got an extra setting
                     more_info.append("0")
@@ -84,8 +84,8 @@ def read_remap_file(remap_file):
                     
             elif len(more_info) == 3:
                 #make sure they are of the correct form
-                assert( match( "^\s*(0x[0-9a-fA-F]{2})$", more_info[1] ) is not None)
-                assert( match( "^\s*(0x[0-9a-fA-F]{8})$", more_info[2] ) is not None)
+                assert( match( "^\\s*(0x[0-9a-fA-F]{2})$", more_info[1] ) is not None)
+                assert( match( "^\\s*(0x[0-9a-fA-F]{8})$", more_info[2] ) is not None)
                 
                 
             elif (len(more_info)) > 3:
