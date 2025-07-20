@@ -65,7 +65,7 @@ bundle_dirname = f'mkdd-track-editor-{version}{version_suffix}-{system}-{arch}'
 bundle_dirpath = os.path.join(build_dirpath, bundle_dirname)
 
 build_exe_options = {
-    "packages": ["OpenGL", "numpy.core._methods", "numpy.lib.format", "PIL"],
+    "packages": ["OpenGL", "numba", "numpy.core", "numpy.lib.format", "PIL"],
     "includes": ["widgets"],
     "excludes": ["PySide6.QtWebEngine", "PySide6.QtWebEngineCore"],
     "optimize": 0,
@@ -97,104 +97,60 @@ shutil.rmtree(os.path.join(bundle_dirpath, 'lib', 'lib', 'superbmd'))
 shutil.copytree(os.path.join("plugins", "mkdd_text_maker"),
                 os.path.join(bundle_dirpath, "lib", "plugins", "mkdd_text_maker")) 
 
-# Qt will be trimmed to reduce the size of the bundle.
+# cx-Freeze bundles many libraries in the Qt framework that are not used by this application, which
+# is wasteful; in some cases, there are even duplicates.
+#
+# Duplicates and unused files will be removed from the build to reduce the size of the bundle.
+#
+# NOTE: What files can or cannot be removed varies between PySide and cx-Freeze versions, meaning
+# that this process must be revisited, in both platforms, when there is a library upgrade.
+
 relative_pyside_dir = os.path.join('lib', 'PySide6')
 pyside_dir = os.path.join(bundle_dirpath, relative_pyside_dir)
+
 unwelcome_files = []
-if os.name == 'nt':
-    for plugin in os.listdir(os.path.join(pyside_dir, 'plugins')):
-        if plugin not in ('platforms', 'imageformats'):
-            unwelcome_files.append(os.path.join('plugins', plugin))
-else:
-    for plugin in os.listdir(os.path.join(pyside_dir, 'Qt', 'plugins')):
-        if not (plugin in ('iconengines', 'imageformats') or plugin.startswith('platform')
-                or plugin.startswith('wayland') or plugin.startswith('xcb')):
-            unwelcome_files.append(os.path.join('Qt', 'plugins', plugin))
 
-glob_patterns = [
-    '*.exe',
-    '*3D*',
-    '*Bluetooth*',
-    '*Body*',
-    '*Charts*',
-    '*Compat*',
-    '*compiler*',
-    '*Concurrent*',
-    '*Container*',
-    '*Designer*',
-    '*Help*',
-    '*HttpServer*',
-    '*JsonRpc*',
-    '*Keyboard*',
-    '*Labs*',
-    '*Language*',
-    '*Location*',
-    '*Multimedia*',
-    '*Network*',
-    '*Nfc*',
-    '*Pdf*',
-    '*Positioning*',
-    '*Print*',
-    '*Qml*',
-    '*Quick*',
-    '*Remote*',
-    '*Scxml*',
-    '*Sensors*',
-    '*Serial*',
-    '*Shader*',
-    '*SpatialAudio*',
-    '*Sql*',
-    '*StateMachine*',
-    '*SvgWidgets*',
-    '*Test*',
-    '*TextToSpeech*',
-    '*Tools*',
-    '*Visualization*',
-    '*Web*',
-    '*Xml*',
-    'assistant*',
-    'designer*',
-    'examples',
-    'glue',
-    'include',
-    'libexec',
-    'linguist*',
-    'lrelease*',
-    'lupdate*',
-    'metatypes',
-    'plugins/imageformats/*Pdf*',
-    'qml',
-    'qmlformat*',
-    'qmllint*',
-    'qmlls*',
-    'resources',
-    'scripts',
-    'support',
-    'translations',
-    'typesystems',
-]
-if os.name == 'nt':
-    glob_patterns.append('*Bus*')
+# Select unwanted files based on glob patterns.
+glob_patterns = (
+    '**/*Network*',
+    '**/*Qml*',
+    '**/*Quick*',
+    '**/*Pdf*',
+    '**/*VirtualKeyboard*',
+    '**/platforminputcontexts',
+    '**/networkinformation',
+)
 for glob_pattern in glob_patterns:
-    for filename in glob.glob(glob_pattern, root_dir=pyside_dir):
-        unwelcome_files.append(filename)
-    if os.name != 'nt':
-        for filename in glob.glob(glob_pattern, root_dir=os.path.join(pyside_dir, 'Qt')):
-            unwelcome_files.append(os.path.join('Qt', filename))
-        for filename in glob.glob(glob_pattern, root_dir=os.path.join(pyside_dir, 'Qt', 'lib')):
-            unwelcome_files.append(os.path.join('Qt', 'lib', filename))
+    for relative_filepath in glob.glob(glob_pattern,
+                                       root_dir=pyside_dir,
+                                       recursive=True):
+        unwelcome_files.append(relative_filepath)
 
-for relative_path in sorted(tuple(set(unwelcome_files))):
-    path = os.path.join(pyside_dir, relative_path)
-
-    if not os.path.exists(path):
+# Select duplicates of files that exist in the main `lib/` directory.
+if system == 'windows':
+    qtlib_dirpath = pyside_dir
+else:
+    qtlib_dirpath = os.path.join(pyside_dir, 'Qt', 'lib')
+potentially_duplicate_filenames = os.listdir(qtlib_dirpath)
+for rootdir, dirnames, filenames in os.walk(pyside_dir):
+    if rootdir == qtlib_dirpath:
         continue
+    relative_rootdir = os.path.relpath(rootdir, pyside_dir)
+    dirnames.sort()
+    filenames.sort()
+    for filename in filenames:
+        if filename in potentially_duplicate_filenames:
+            relative_filepath = os.path.join(relative_rootdir, filename)
+            unwelcome_files.append(relative_filepath)
 
-    print(f'Remove: "{path}"')
-    if os.path.isfile(path):
-        os.remove(path)
-    else:
+# Effectively remove unwanted files.
+for relative_path in set(unwelcome_files):
+    print(f'Remove: "{relative_path}"')
+    path = os.path.join(pyside_dir, relative_path)
+    if os.path.isdir(path):
         shutil.rmtree(path)
+    elif os.path.isfile(path):
+        os.remove(path)
 
 if not is_ci:
     # Create the ZIP archive.
