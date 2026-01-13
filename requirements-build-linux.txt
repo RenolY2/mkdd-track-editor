@@ -1,5 +1,5 @@
 cx_Freeze==8.3.0
-filelock==3.18.0
+filelock==3.20.3
 packaging==25.0
 patchelf==0.17.2.2
 setuptools==80.4.0
