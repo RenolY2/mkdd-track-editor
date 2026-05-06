@@ -1,5 +1,6 @@
-cx_Freeze==8.3.0
-filelock==3.18.0
-packaging==25.0
-patchelf==0.17.2.2
-setuptools==80.4.0
+cx_Freeze==8.6.3
+filelock==3.25.2
+freeze-core==0.6.1
+packaging==26.0
+patchelf==0.17.2.4
+setuptools==82.0.1
