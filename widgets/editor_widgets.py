@@ -815,10 +815,17 @@ def show_minimap_generator(editor: 'GenEditor'):
     color_mode_blackwhite_radiobutton.toggled.connect(lambda checked: update() if checked else None)
     color_mode_customcolors_radiobutton.toggled.connect(lambda checked: update()
                                                         if checked else None)
-    for visible_checkbox, color_picker, _color_picker_label in terrain_colors_widgets_map.values():
+    for visible_checkbox, color_picker, color_picker_label in terrain_colors_widgets_map.values():
         visible_checkbox.stateChanged.connect(lambda _state: update())
         color_picker.color_changed.connect(update)
         color_picker.color_picked.connect(update)
+        color_picker.color_changed.connect(
+            lambda color, picker=color_picker_label: picker.setText(
+                '({}, {}, {})'.format(
+                    color.red(),
+                    color.green(),
+                    color.blue(),
+                )))
     reset_button.clicked.connect(reset)
 
     update()
