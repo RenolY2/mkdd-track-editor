@@ -466,7 +466,7 @@ class EnemyPointGroup(object):
         group = EnemyPointGroup()
         group.id = new_id
         for point in self.points:
-            new_point = deepcopy(point)
+            new_point = point.copy()
             new_point.group = new_id
             group.points.append(new_point)
 
@@ -485,7 +485,7 @@ class EnemyPointGroup(object):
                     tmp = point.widget
                     point.widget = None
 
-                new_point = deepcopy(point)
+                new_point = point.copy()
 
                 if hasattr(point, "widget"):
                     point.widget = tmp
@@ -675,7 +675,7 @@ class CheckpointGroup(object):
         group.nextgroup = deepcopy(self.nextgroup)
 
         for point in self.points:
-            new_point = deepcopy(point)
+            new_point = point.copy()
             group.points.append(new_point)
 
         return group
@@ -687,7 +687,7 @@ class CheckpointGroup(object):
         # Check if the element is the last element
         if not len(self.points)-1 == pos:
             for point in self.points[pos+1:]:
-                new_point = deepcopy(point)
+                new_point = point.copy()
                 group.points.append(new_point)
 
         return group
