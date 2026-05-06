@@ -530,6 +530,7 @@ def show_minimap_generator(editor: 'GenEditor'):
         0x1300: 'Heavy Off-road',
         0x3700: 'Boost',
         0x4700: 'Boost',
+        0xB000: 'Bouncy Terrain (code patch)',
     }
 
     terrain_colors_table_font = dialog.font()

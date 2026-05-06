@@ -33,6 +33,7 @@ DEFAULT_TERRAIN_COLORS = (
     (0x1300, False, (0, 0, 0)), # Heavy Off-road
     (0x3700, True, (255, 255, 255)), # Boost
     (0x4700, True, (255, 255, 255)), # Boost
+    (0xB000, True, (255, 255, 255)), # Bouncy Terrain (code patch)
 )
 """
 List of 3-tuples containing the terrain type, whether it should be part of the minimap, and its

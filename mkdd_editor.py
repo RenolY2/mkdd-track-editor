@@ -1493,6 +1493,7 @@ class GenEditor(QtWidgets.QMainWindow):
                 "0x13__": "Heavy Off-road",
                 "0x37__": "Boost",
                 "0x47__": "Boost",
+                "0xB0__": "Bouncy Terrain (code patch)",
             }
 
             return group_descs.get(label[:-2] + "__", "")
