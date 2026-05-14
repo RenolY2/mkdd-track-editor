@@ -57,7 +57,7 @@ from lib.game_visualizer import Game
 from lib.vectors import Vector3
 
 
-__version__ = '1.6.2'
+__version__ = '1.7.0'
 
 # These constants will be set by the build script on the fly.
 OFFICIAL = False
