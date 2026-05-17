@@ -356,7 +356,12 @@ class EnemyPoint(PositionedObject):
 
         self.hidden = False
         self.widget = None
-
+        if self.swerve not in (-3, -2, -1, 0, 1, 2, 3):
+            clamped = max(min(self.swerve, 3), -3)
+            
+            print("Invalid swerve value:", self.swerve, "setting to", clamped)
+            self.swerve = clamped 
+            
         assert self.swerve in (-3, -2, -1, 0, 1, 2, 3)
         if self.itemsonly not in (0,1):
             print("Invalid itemsonly value", self.itemsonly,"setting to", self.itemsonly&1)
