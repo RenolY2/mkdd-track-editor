@@ -1192,8 +1192,8 @@ class ObjectEdit(DataEditor):
         set_tool_tip(self.presence_filter, ttl.objectdata['Game Mode Presence'])
 
         self.presence = self.add_maskbox("Player Mode Presence", "presence", {
-            0b01: ('👤', 'Single Player'),
-            0b10: ('👥', 'Multi Player'),
+            0b01: ('🕺', 'Single Player'),
+            0b10: ('👯', 'Multi Player'),
         })
         set_tool_tip(self.presence, ttl.objectdata['Player Mode Presence'])
 
